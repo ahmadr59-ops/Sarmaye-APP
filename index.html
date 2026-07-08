@@ -15,9 +15,9 @@
 <link rel="icon" href="icon-32.png" sizes="32x32">
 <title>سرمایه</title>
 <!-- Firebase (cloud backup) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyA-pHzeZ1SKLRADAkB5_QHtQ_UMfGNFxN8",
@@ -33,7 +33,11 @@
     fbAuth=firebase.auth();
     fbDb=firebase.firestore();
     fbReady=true;
-  }catch(e){ console.error('Firebase init failed:',e); }
+    console.log('[Firebase] SDK loaded and initialized OK. Project:', firebaseConfig.projectId);
+  }catch(e){ console.error('[Firebase] init failed:',e); }
+  window.addEventListener('load',()=>{
+    console.log('[Firebase] typeof firebase =', typeof firebase, '| fbReady =', fbReady);
+  });
 </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
@@ -3356,21 +3360,21 @@ async function cloudSignUp(){
   const pass=document.getElementById('cloud-pass').value;
   if(!email||!pass){ntf('⚠️ ایمیل و رمز را وارد کنید');return;}
   try{ await fbAuth.createUserWithEmailAndPassword(email,pass); ntf('✅ ثبت‌نام انجام شد');renderCloudPanel(); }
-  catch(e){ ntf('⚠️ '+fbErrMsg(e)); }
+  catch(e){ console.error('Firebase auth error:',e); alert('خطا: '+fbErrMsg(e)+'\n\n(کد فنی: '+(e.code||e.message||'نامشخص')+')'); }
 }
 async function cloudSignIn(){
   const email=document.getElementById('cloud-email').value.trim();
   const pass=document.getElementById('cloud-pass').value;
   if(!email||!pass){ntf('⚠️ ایمیل و رمز را وارد کنید');return;}
   try{ await fbAuth.signInWithEmailAndPassword(email,pass); ntf('✅ وارد شدید');renderCloudPanel(); }
-  catch(e){ ntf('⚠️ '+fbErrMsg(e)); }
+  catch(e){ console.error('Firebase auth error:',e); alert('خطا: '+fbErrMsg(e)+'\n\n(کد فنی: '+(e.code||e.message||'نامشخص')+')'); }
 }
 async function cloudSignInGoogle(){
   try{
     const provider=new firebase.auth.GoogleAuthProvider();
     await fbAuth.signInWithPopup(provider);
     ntf('✅ وارد شدید');renderCloudPanel();
-  }catch(e){ ntf('⚠️ '+fbErrMsg(e)); }
+  }catch(e){ console.error('Firebase auth error:',e); alert('خطا: '+fbErrMsg(e)+'\n\n(کد فنی: '+(e.code||e.message||'نامشخص')+')'); }
 }
 async function cloudSignOut(){
   await fbAuth.signOut();
