@@ -516,12 +516,12 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     <div class="stt-list">
       <div class="stt-row" onclick="openCloudModal()">
         <div class="stt-ic" style="background:linear-gradient(145deg,#FFA000,#EF6C00)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div>
-        <div class="stt-info"><strong>پشتیبان‌گیری ابری (Firebase)</strong><span id="cloud-status-lbl">وارد نشده‌اید</span></div>
+        <div class="stt-info"><strong>پشتیبان ابری خودکار (Firebase)</strong><span id="cloud-status-lbl">غیرفعال — وارد شوید تا خودکار فعال شود</span></div>
         <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
       </div>
       <div class="stt-row" onclick="openBackupModal()">
         <div class="stt-ic" style="background:linear-gradient(145deg,#A78BFA,#6D28D9)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></div>
-        <div class="stt-info"><strong>پشتیبان‌گیری</strong><span>با رمزنگاری اختیاری + اشتراک‌گذاری مستقیم</span></div>
+        <div class="stt-info"><strong>پشتیبان‌گیری دستی (فایل)</strong><span>اختیاری — ذخیره/اشتراک یک فایل جداگانه</span></div>
         <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
       </div>
       <div class="stt-row" onclick="document.getElementById('imp2').click()">
@@ -988,13 +988,13 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     <button class="btn btns" onclick="cloudSignInGoogle()">ورود با حساب گوگل</button>
   </div>
   <div id="cloud-loggedin" style="display:none">
-    <div style="display:flex;align-items:center;gap:10px;background:var(--grl);border-radius:12px;padding:12px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;background:var(--grl);border-radius:12px;padding:12px;margin-bottom:10px">
       <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--gr);stroke-width:2;fill:none;flex-shrink:0"><path d="M20 6L9 17l-5-5"/></svg>
       <span id="cloud-email-lbl" style="font-size:12.5px;color:var(--gr);font-weight:700"></span>
     </div>
+    <div style="font-size:11.5px;color:var(--t3);line-height:1.7;margin-bottom:10px">بکاپ خودکار فعال است — هر بار برنامه را باز یا بسته می‌کنید یک نسخه در ابر ذخیره می‌شود. نیازی به عمل دستی نیست.</div>
     <div id="cloud-lastbk" style="font-size:11.5px;color:var(--t3);margin-bottom:12px"></div>
-    <button class="btn btnp" onclick="cloudBackup()">📤 پشتیبان‌گیری در ابر</button>
-    <button class="btn btns" onclick="cloudRestore()">📥 بازیابی از ابر</button>
+    <button class="btn btns" id="cloud-restore-btn" onclick="cloudRestore()">📥 بازیابی از ابر</button>
     <button class="btn btnd" onclick="cloudSignOut()">خروج از حساب</button>
   </div>
 </div>
@@ -2752,15 +2752,17 @@ async function encryptJSON(obj,pass){
   const enc=new TextEncoder();
   const salt=crypto.getRandomValues(new Uint8Array(16));
   const iv=crypto.getRandomValues(new Uint8Array(12));
+  const iterations=50000; // lowered from 150000 — this app's data isn't sensitive enough to justify the extra wait
   const keyMat=await crypto.subtle.importKey('raw',enc.encode(pass),{name:'PBKDF2'},false,['deriveKey']);
-  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},keyMat,{name:'AES-GCM',length:256},false,['encrypt']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations,hash:'SHA-256'},keyMat,{name:'AES-GCM',length:256},false,['encrypt']);
   const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj)));
-  return {srmEnc:1,salt:buf2b64(salt),iv:buf2b64(iv),data:buf2b64(new Uint8Array(cipher))};
+  return {srmEnc:1,iter:iterations,salt:buf2b64(salt),iv:buf2b64(iv),data:buf2b64(new Uint8Array(cipher))};
 }
 async function decryptJSON(envelope,pass){
   const enc=new TextEncoder();
+  const iterations=envelope.iter||150000; // backward-compatible with backups made before this field existed
   const keyMat=await crypto.subtle.importKey('raw',enc.encode(pass),{name:'PBKDF2'},false,['deriveKey']);
-  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b642buf(envelope.salt),iterations:150000,hash:'SHA-256'},keyMat,{name:'AES-GCM',length:256},false,['decrypt']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b642buf(envelope.salt),iterations,hash:'SHA-256'},keyMat,{name:'AES-GCM',length:256},false,['decrypt']);
   const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b642buf(envelope.iv)},key,b642buf(envelope.data));
   return JSON.parse(new TextDecoder().decode(plain));
 }
@@ -3336,7 +3338,7 @@ function renderCloudPanel(){
   if(u){
     out.style.display='none';inn.style.display='block';
     document.getElementById('cloud-email-lbl').textContent=u.email||u.uid;
-    if(lbl) lbl.textContent='وارد شده — '+(u.email||'');
+    if(lbl) lbl.textContent='فعال — بکاپ خودکار ('+(u.email||'')+')';
     fbDb.collection('backups').doc(u.uid).get().then(doc=>{
       const el=document.getElementById('cloud-lastbk');
       if(!el) return;
@@ -3349,31 +3351,35 @@ function renderCloudPanel(){
     }).catch(()=>{});
   } else {
     out.style.display='block';inn.style.display='none';
-    if(lbl) lbl.textContent='وارد نشده‌اید';
+    if(lbl) lbl.textContent='غیرفعال — وارد شوید تا خودکار فعال شود';
   }
 }
+let openBackupFired=false;
 if(fbReady){
-  fbAuth.onAuthStateChanged(()=>{ if(document.getElementById('cloud-status-lbl')) renderCloudPanel(); });
+  fbAuth.onAuthStateChanged(user=>{
+    if(document.getElementById('cloud-status-lbl')) renderCloudPanel();
+    if(user && !openBackupFired){ openBackupFired=true; cloudAutoBackupIfSignedIn(); }
+  });
 }
 async function cloudSignUp(){
   const email=document.getElementById('cloud-email').value.trim();
   const pass=document.getElementById('cloud-pass').value;
   if(!email||!pass){ntf('⚠️ ایمیل و رمز را وارد کنید');return;}
-  try{ await fbAuth.createUserWithEmailAndPassword(email,pass); ntf('✅ ثبت‌نام انجام شد');renderCloudPanel(); }
+  try{ await fbAuth.createUserWithEmailAndPassword(email,pass); ntf('✅ ثبت‌نام انجام شد');renderCloudPanel();cloudAutoBackupIfSignedIn(); }
   catch(e){ console.error('Firebase auth error:',e); alert('خطا: '+fbErrMsg(e)+'\n\n(کد فنی: '+(e.code||e.message||'نامشخص')+')'); }
 }
 async function cloudSignIn(){
   const email=document.getElementById('cloud-email').value.trim();
   const pass=document.getElementById('cloud-pass').value;
   if(!email||!pass){ntf('⚠️ ایمیل و رمز را وارد کنید');return;}
-  try{ await fbAuth.signInWithEmailAndPassword(email,pass); ntf('✅ وارد شدید');renderCloudPanel(); }
+  try{ await fbAuth.signInWithEmailAndPassword(email,pass); ntf('✅ وارد شدید');renderCloudPanel();cloudAutoBackupIfSignedIn(); }
   catch(e){ console.error('Firebase auth error:',e); alert('خطا: '+fbErrMsg(e)+'\n\n(کد فنی: '+(e.code||e.message||'نامشخص')+')'); }
 }
 async function cloudSignInGoogle(){
   try{
     const provider=new firebase.auth.GoogleAuthProvider();
     await fbAuth.signInWithPopup(provider);
-    ntf('✅ وارد شدید');renderCloudPanel();
+    ntf('✅ وارد شدید');renderCloudPanel();cloudAutoBackupIfSignedIn();
   }catch(e){ console.error('Firebase auth error:',e); alert('خطا: '+fbErrMsg(e)+'\n\n(کد فنی: '+(e.code||e.message||'نامشخص')+')'); }
 }
 async function cloudSignOut(){
@@ -3381,46 +3387,45 @@ async function cloudSignOut(){
   ntf('🔓 خارج شدید');
   cls('cloudm');
 }
-async function cloudBackup(){
-  if(!fbAuth.currentUser){ntf('⚠️ ابتدا وارد حساب شوید');return;}
-  const pass=prompt('برای رمزنگاری بکاپ ابری رمز عبور وارد کنید (اختیاری — خالی بگذارید یعنی بدون رمزنگاری):');
-  let payload;
-  if(pass) payload=await encryptJSON(ST,pass);
-  else payload={srmEnc:0,data:JSON.stringify(ST)};
-  try{
-    await fbDb.collection('backups').doc(fbAuth.currentUser.uid).set({
-      ...payload,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    ntf('✅ بکاپ در ابر ذخیره شد');
-    renderCloudPanel();
-  }catch(e){ console.error(e); ntf('⚠️ خطا در ذخیره ابری: '+(e.message||'')); }
+function setBtnBusy(id,busyText){
+  const b=document.getElementById(id);
+  if(!b) return ()=>{};
+  const orig=b.textContent;
+  b.disabled=true;b.style.opacity='0.6';b.style.cursor='wait';b.textContent=busyText;
+  return ()=>{ b.disabled=false;b.style.opacity='';b.style.cursor='';b.textContent=orig; };
 }
 async function cloudRestore(){
   if(!fbAuth.currentUser){ntf('⚠️ ابتدا وارد حساب شوید');return;}
+  const done=setBtnBusy('cloud-restore-btn','⏳ در حال دریافت...');
   try{
     const doc=await fbDb.collection('backups').doc(fbAuth.currentUser.uid).get();
     if(!doc.exists){ntf('⚠️ هیچ بکاپ ابری یافت نشد');return;}
     const p=doc.data();
     let obj;
     if(p.srmEnc===1){
+      done();
       const pass=prompt('رمز عبور بکاپ ابری را وارد کنید:');
       if(!pass) return;
+      const done2=setBtnBusy('cloud-restore-btn','⏳ در حال رمزگشایی...');
       try{ obj=await decryptJSON(p,pass); }
-      catch(e){ ntf('⚠️ رمز عبور نادرست است');return; }
+      catch(e){ ntf('⚠️ رمز عبور نادرست است');done2();return; }
+      done2();
     } else {
       obj=JSON.parse(p.data);
     }
     if(!confirm('بازیابی از ابر، داده‌های فعلی روی این گوشی را جایگزین می‌کند. ادامه می‌دهید؟')) return;
+    const done3=setBtnBusy('cloud-restore-btn','⏳ در حال بازیابی...');
     ST=migrateState({...def(),...obj,cats:{
       income:obj.cats?.income||def().cats.income,
       expense:obj.cats?.expense||def().cats.expense
     }});
     await sv();
+    done3();
     cls('cloudm');
     rDash();rTx();rSett();
     ntf('✅ بازیابی از ابر انجام شد');
   }catch(e){ console.error(e); ntf('⚠️ خطا در بازیابی ابری: '+(e.message||'')); }
+  finally{ done(); }
 }
 // Best-effort silent cloud copy, used by the weekly local-backup reminder when the user is already signed in
 async function cloudAutoBackupIfSignedIn(){
@@ -3568,8 +3573,13 @@ async function init(){
   updateAccCountDisplay();
   updateLockStatusLabel();
   rDash();
-  // Check if weekly auto-backup reminder is needed
-  setTimeout(chkAutoBackup, 1500);
+  // Automatic cloud backup when the app is closed or sent to background (if signed in)
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='hidden') cloudAutoBackupIfSignedIn();
+  });
+  // Check if weekly LOCAL-FILE backup reminder is needed — skipped for users who
+  // already have automatic cloud backup running, to avoid two competing prompts
+  setTimeout(()=>{ if(!(fbReady&&fbAuth&&fbAuth.currentUser)) chkAutoBackup(); }, 1500);
   setTimeout(chkDue, 2000);
   setTimeout(chkRecurring, 3000);
   setInterval(chkDue, 3600000);
