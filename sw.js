@@ -1,4 +1,4 @@
-const CACHE = 'sarmaye-v18';
+const CACHE = 'sarmaye-v19';
 const FILES = [
   './',
   './index.html',
@@ -21,7 +21,11 @@ const FILES = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      // cache:'reload' bypasses the browser's HTTP cache for the precache fetch itself,
+      // so a fresh sw.js also means a genuinely fresh copy of every precached file
+      .then(c => Promise.all(FILES.map(f => fetch(f, {cache:'reload'}).then(res => c.put(f, res)).catch(()=>{}))))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -37,10 +41,12 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   const isHTML = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
   if (isHTML) {
-    // Network-first for the app shell: always get the latest version when online,
-    // so future updates reach users immediately without needing a new cache version.
+    // Network-first AND cache:'no-store' — this bypasses the browser's own HTTP cache,
+    // not just the service worker cache. Without this, a GitHub Pages / Firebase Hosting
+    // Cache-Control header could make "network-first" silently return a stale cached
+    // response, which was the actual cause of needing a manual cache clear on updates.
     e.respondWith(
-      fetch(req)
+      fetch(req, {cache:'no-store'})
         .then(res => {
           caches.open(CACHE).then(c => c.put(req, res.clone()));
           return res;

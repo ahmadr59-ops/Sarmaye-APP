@@ -2876,7 +2876,24 @@ document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.
 // SERVICE WORKER
 // ============================================================
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>{
+      // Check for a newer sw.js right away, and again whenever the app is reopened/foregrounded
+      reg.update().catch(()=>{});
+      document.addEventListener('visibilitychange',()=>{
+        if(document.visibilityState==='visible') reg.update().catch(()=>{});
+      });
+    }).catch(()=>{});
+  });
+  // When a new service worker takes control (i.e. an update just installed and
+  // activated), the page already in memory is running stale code — reload once
+  // so the user automatically gets the new version without clearing cache by hand.
+  let swRefreshed=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(swRefreshed) return;
+    swRefreshed=true;
+    window.location.reload();
+  });
 }
 
 // ============================================================
