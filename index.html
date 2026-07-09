@@ -889,7 +889,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 <div class="ov" id="transm">
 <div class="mdl">
   <div class="mh"></div>
-  <h2>انتقال بین حساب‌ها</h2>
+  <h2 id="transmt">انتقال بین حساب‌ها</h2>
   <div class="fg"><label>از حساب</label><select id="trans-from"></select></div>
   <div style="text-align:center;margin:-6px 0 8px;color:var(--t3)">
     <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -897,10 +897,16 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <div class="fg"><label>به حساب</label><select id="trans-to"></select></div>
   <div class="fg"><label>مبلغ (تومان)</label><input type="number" id="trans-amt" inputmode="numeric" placeholder="مبلغ انتقال"></div>
   <div class="fg"><label>توضیحات (اختیاری)</label><input type="text" id="trans-dsc" placeholder="مثال: انتقال برای خرید"></div>
-  <button class="btn btnp" onclick="doTransfer()">
+  <div class="dategrid">
+    <div class="fg"><label>روز</label><input type="number" id="trans-day" min="1" max="31" inputmode="numeric"></div>
+    <div class="fg"><label>ماه</label><select id="trans-mon"></select></div>
+    <div class="fg"><label>سال</label><input type="number" id="trans-yr" inputmode="numeric"></div>
+  </div>
+  <button class="btn btnp" id="trans-savebtn" onclick="doTransfer()">
     <svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg>ثبت انتقال
   </button>
-  <button class="btn btns" onclick="cls('transm')">انصراف</button>
+  <button class="btn btns" onclick="etrans=null;cls('transm')">انصراف</button>
+  <button class="btn btnd" id="dtransb" style="display:none" onclick="delTransfer()"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>حذف انتقال</button>
 </div>
 </div>
 
@@ -1567,7 +1573,7 @@ function txHtml(t){
     </div>`;
   }
   if(t.isTransfer){
-    return `<div class="txi" onclick="edTx('${t.id}')">
+    return `<div class="txi" onclick="openTransfer('${t.id}')">
       <div class="txic" style="background:linear-gradient(145deg,#90A4AE,#546E7A)">
         <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:#fff;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS.swap}</svg>
       </div>
@@ -1741,6 +1747,7 @@ async function delTx(){
   ST.tx=ST.tx.filter(t=>t.id!==etx);
   if(delObj&&delObj.isRent&&delObj.payKey&&ST.pay[delObj.payKey]) delete ST.pay[delObj.payKey];
   if(delObj&&delObj.isOpening){const acc=(ST.accounts||[]).find(a=>a.openTxId===delObj.id);if(acc)acc.openTxId=null;}
+  if(delObj&&delObj.isTransfer){const pair=findTransferPair(delObj);if(pair) ST.tx=ST.tx.filter(t=>t.id!==pair.id);}
   cls('txm');ntf('🗑️ حذف شد');
   rDash();rTx();rTen();
   await sv();
@@ -3248,14 +3255,61 @@ function fillAccSelects(){
   });
 }
 
-function openTransfer(){
+let etrans=null; // id of the tx leg being edited, or null when creating a new transfer
+function openTransfer(id){
   if(!ST.accounts||ST.accounts.length<2){
     ntf('⚠️ حداقل ۲ حساب برای انتقال لازم است');return;
   }
   fillAccSelects();
+  fillMon('trans-mon', today().m-1);
+  etrans=id||null;
+  const fromSel=document.getElementById('trans-from');
+  const toSel=document.getElementById('trans-to');
+  if(id){
+    const leg=ST.tx.find(t=>t.id===id);
+    if(!leg){etrans=null;}
+    else{
+      const pair=findTransferPair(leg);
+      const fromLeg=leg.tp==='expense'?leg:pair;
+      const toLeg=leg.tp==='income'?leg:pair;
+      document.getElementById('transmt').textContent='ویرایش انتقال';
+      document.getElementById('trans-amt').value=leg.a;
+      document.getElementById('trans-dsc').value=stripTransferDsc(leg.dsc);
+      document.getElementById('trans-day').value=leg.day;
+      fillMon('trans-mon', leg.m);
+      document.getElementById('trans-yr').value=leg.y||today().y;
+      setTimeout(()=>{
+        if(fromLeg) fromSel.value=fromLeg.accId;
+        if(toLeg) toSel.value=toLeg.accId;
+      },30);
+      fromSel.disabled=true; toSel.disabled=true;
+      document.getElementById('dtransb').style.display='block';
+      document.getElementById('transm').classList.add('on');
+      return;
+    }
+  }
+  document.getElementById('transmt').textContent='انتقال بین حساب‌ها';
+  fromSel.disabled=false; toSel.disabled=false;
   document.getElementById('trans-amt').value='';
   document.getElementById('trans-dsc').value='';
+  const t=today();
+  document.getElementById('trans-day').value=t.d;
+  fillMon('trans-mon', t.m-1);
+  document.getElementById('trans-yr').value=t.y;
+  document.getElementById('dtransb').style.display='none';
   document.getElementById('transm').classList.add('on');
+}
+// Strip the auto-generated "انتقال به X ·" / "دریافت از X ·" prefix back to the user's own note
+function stripTransferDsc(dsc){
+  if(!dsc) return '';
+  const parts=dsc.split(' · ');
+  return parts.length>1?parts.slice(1).join(' · '):'';
+}
+function findTransferPair(leg){
+  if(!leg) return null;
+  if(leg.transferId) return ST.tx.find(t=>t.id!==leg.id&&t.transferId===leg.transferId);
+  // Legacy transfers (created before pairing existed) — best-effort match
+  return ST.tx.find(t=>t.id!==leg.id&&t.isTransfer&&!t.transferId&&t.a===leg.a&&t.day===leg.day&&t.m===leg.m&&t.y===leg.y&&t.tp!==leg.tp) || null;
 }
 
 async function doTransfer(){
@@ -3263,16 +3317,48 @@ async function doTransfer(){
   const toId=document.getElementById('trans-to').value;
   const amt=toLn(document.getElementById('trans-amt').value);
   const dsc=document.getElementById('trans-dsc').value.trim()||'انتقال بین حساب‌ها';
+  const day=parseInt(document.getElementById('trans-day').value)||today().d;
+  const m=parseInt(document.getElementById('trans-mon').value);
+  const y=parseInt(document.getElementById('trans-yr').value)||today().y;
   if(!fromId||!toId){ntf('⚠️ هر دو حساب را انتخاب کنید');return;}
   if(fromId===toId){ntf('⚠️ حساب مبدا و مقصد یکسان است');return;}
   if(!amt||amt<=0){ntf('⚠️ مبلغ باید بزرگتر از صفر باشد');hiErr('trans-amt');return;}
   if(amt>100000000000){ntf('⚠️ مبلغ انتقال غیرمنطقی است');hiErr('trans-amt');return;}
+  if(day<1||day>31){ntf('⚠️ روز نامعتبر است');return;}
+
+  if(etrans){
+    // Editing an existing transfer — update both linked legs together so they never desync
+    const leg=ST.tx.find(t=>t.id===etrans);
+    if(!leg){ntf('⚠️ تراکنش یافت نشد');return;}
+    const pair=findTransferPair(leg);
+    const fromLeg=leg.tp==='expense'?leg:pair;
+    const toLeg=leg.tp==='income'?leg:pair;
+    // Balance check: add the OLD amount back before checking, since it's being replaced
+    const effectiveBal=calcAccBalance(fromId)+(fromLeg?fromLeg.a:0);
+    if(effectiveBal<amt){ntf('⚠️ موجودی حساب مبدا کافی نیست');return;}
+    const newDsc1='انتقال به '+getAccName(toId)+' · '+dsc;
+    const newDsc2='دریافت از '+getAccName(fromId)+' · '+dsc;
+    if(fromLeg){fromLeg.a=amt;fromLeg.dsc=newDsc1;fromLeg.day=day;fromLeg.m=m;fromLeg.y=y;}
+    if(toLeg){toLeg.a=amt;toLeg.dsc=newDsc2;toLeg.day=day;toLeg.m=m;toLeg.y=y;}
+    await sv();cls('transm');ntf('✅ انتقال ویرایش شد');rDash();rTx();
+    return;
+  }
+
   const fromBal=calcAccBalance(fromId);
   if(fromBal<amt){ntf('⚠️ موجودی حساب مبدا کافی نیست');return;}
-  const t=today();
-  ST.tx.push({id:uid(),tp:'expense',cat:'transfer',a:amt,dsc:'انتقال به '+getAccName(toId)+' · '+dsc,day:t.d,m:t.m-1,y:t.y,accId:fromId,isTransfer:true});
-  ST.tx.push({id:uid(),tp:'income',cat:'transfer',a:amt,dsc:'دریافت از '+getAccName(fromId)+' · '+dsc,day:t.d,m:t.m-1,y:t.y,accId:toId,isTransfer:true});
+  const transferId=uid();
+  ST.tx.push({id:uid(),tp:'expense',cat:'transfer',a:amt,dsc:'انتقال به '+getAccName(toId)+' · '+dsc,day,m,y,accId:fromId,isTransfer:true,transferId});
+  ST.tx.push({id:uid(),tp:'income',cat:'transfer',a:amt,dsc:'دریافت از '+getAccName(fromId)+' · '+dsc,day,m,y,accId:toId,isTransfer:true,transferId});
   await sv();cls('transm');ntf('✅ انتقال ثبت شد');rDash();rTx();
+}
+async function delTransfer(){
+  if(!etrans) return;
+  if(!confirm('هر دو طرف این انتقال حذف می‌شود. ادامه می‌دهید؟')) return;
+  const leg=ST.tx.find(t=>t.id===etrans);
+  if(!leg) return;
+  const pair=findTransferPair(leg);
+  ST.tx=ST.tx.filter(t=>t.id!==leg.id&&(!pair||t.id!==pair.id));
+  await sv();cls('transm');ntf('🗑️ انتقال حذف شد');rDash();rTx();
 }
 
 function getAccName(id){
