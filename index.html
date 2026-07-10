@@ -313,13 +313,23 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 
   <!-- Dashboard: unified professional layout -->
 
-  <!-- Date strip -->
+  <!-- Net worth hero + date -->
   <div style="padding:12px 14px 0">
-    <div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:11px 16px;display:flex;align-items:center;gap:10px">
-      <span style="width:36px;height:36px;border-radius:11px;background:linear-gradient(145deg,#4A90D9,#1456A8);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-      </span>
-      <div id="td" style="font-size:13px;font-weight:700;color:var(--t1)"></div>
+    <div style="background:var(--grad);border-radius:var(--rad);box-shadow:var(--shc);padding:17px 18px 15px;color:#fff;position:relative;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+        <span style="font-size:12px;font-weight:600;opacity:.9;display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/></svg>
+          خالص دارایی
+        </span>
+        <span id="td" style="font-size:10.5px;font-weight:600;opacity:.8"></span>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span id="netWorth" style="font-size:30px;font-weight:800;line-height:1">۰</span>
+        <span style="font-size:13px;font-weight:600;opacity:.85">تومان</span>
+      </div>
+      <div id="netWorthHint" style="font-size:11px;opacity:.9;margin-top:9px;display:none;cursor:pointer" onclick="openAccList()">
+        برای محاسبهٔ دارایی، ابتدا حساب‌هایتان را ثبت کنید ←
+      </div>
     </div>
   </div>
 
@@ -1120,7 +1130,6 @@ function def(){
         {id:'e3',n:'سلامت و ورزش',i:'health',c:'#993556'},
         {id:'e4',n:'باغ و باغچه',i:'home',c:'#3B6D11'},
         {id:'e5',n:'خودرو',i:'car',c:'#534AB7'},
-        {id:'e6',n:'پس\u200cانداز',i:'piggy',c:'#1865C2'},
         {id:'e7',n:'متفرقه',i:'more',c:'#65728C'}
       ]
     },
@@ -1304,6 +1313,42 @@ function migrateState(s){
     });
   }
 
+  // ---- Savings → Transfer migration (one-time) ----
+  // Historically "پس‌انداز" (id e6) was an EXPENSE category, which wrongly inflated
+  // spending and hid saved money as if it were consumed. We now model saving as a
+  // transfer into a dedicated "پس‌انداز" account so it is excluded from expense totals
+  // and instead shows up as an asset in net worth.
+  if(!s.savingsV1){
+    if(!Array.isArray(s.accounts)) s.accounts=[];
+    if(!Array.isArray(s.tx)) s.tx=[];
+    const savTxs=s.tx.filter(t=>t.cat==='e6'&&t.tp==='expense'&&!t.isTransfer&&!t.isOpening);
+    if(savTxs.length){
+      let sav=s.accounts.find(a=>a.id===SAVINGS_ACC_ID);
+      if(!sav){
+        const t=today();
+        sav={id:SAVINGS_ACC_ID,bank:'پس‌انداز',name:'',accno:'',cardno:'',last4:'',exp:'',iban:'',
+             color:'#4A42B0',initDate:{d:t.d,m:t.m-1,y:t.y},initBalance:0,openTxId:null};
+        s.accounts.push(sav);
+      }
+      savTxs.forEach(t=>{
+        const tid=uid();
+        const note=t.dsc||'';
+        // original tx becomes the source (money-out) leg of the transfer
+        t.cat='transfer'; t.isTransfer=true; t.transferId=tid;
+        t.dsc='پس‌انداز'+(note?(' · '+note):'');
+        // paired money-in leg landing in the savings account
+        s.tx.push({id:uid(),tp:'income',cat:'transfer',a:t.a,
+          dsc:'پس‌انداز'+(note?(' · '+note):''),
+          day:t.day,m:t.m,y:t.y,accId:SAVINGS_ACC_ID,isTransfer:true,transferId:tid});
+      });
+    }
+    // drop the legacy پس‌انداز expense category so new savings go through «انتقال»
+    if(s.cats&&Array.isArray(s.cats.expense)){
+      s.cats.expense=s.cats.expense.filter(c=>c.id!=='e6');
+    }
+    s.savingsV1=true;
+  }
+
   return s;
 }
 
@@ -1325,8 +1370,11 @@ const BANK_STYLE={
   'بانک پاسارگاد':{c:'#5B3A29',t:'پاسارگاد'},
   'بانک مسکن':{c:'#8C6A3F',t:'مسکن'},
   'بانک رفاه':{c:'#00838F',t:'رفاه'},
-  'بانک رسالت':{c:'#00A99D',t:'رسالت'}
+  'بانک رسالت':{c:'#00A99D',t:'رسالت'},
+  'پس‌انداز':{c:'#4A42B0',t:'پس‌انداز'}
 };
+// Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
+const SAVINGS_ACC_ID='sav_main';
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
   'بانک ملت':'bank-mellat.png',
@@ -1374,6 +1422,8 @@ function annualCollected(tid,y){
   return s;
 }
 function totals(txs){let i=0,e=0;txs.forEach(t=>{if(t.isTransfer||t.isOpening)return;if(t.tp==='income')i+=t.a;else e+=t.a;});return{i,e,b:i-e};}
+// Net worth = sum of every account's current balance (opening balance + its own income/expense/transfer legs)
+function netWorth(){return (ST.accounts||[]).reduce((s,a)=>s+calcAccBalance(a.id),0);}
 
 // ============================================================
 // MONTH SELECTOR (pill in header corner)
@@ -1482,6 +1532,12 @@ function rDash(){
   const txs=getTx(SM);const{i,e,b}=totals(txs);
   document.getElementById('di').textContent=nf(i);
   document.getElementById('de').textContent=nf(e);
+  const nwEl=document.getElementById('netWorth');
+  const nwHint=document.getElementById('netWorthHint');
+  if(nwEl){
+    nwEl.textContent=nf(netWorth());
+    if(nwHint) nwHint.style.display=(ST.accounts&&ST.accounts.length)?'none':'block';
+  }
   const rentAlrtEl=document.getElementById('dash-rent-alrt');
   if(rentAlrtEl){
     const rs=unpaidRentSummary();
@@ -2461,6 +2517,25 @@ async function clearPay(tid,y,m){
 // ============================================================
 // REPORTS
 // ============================================================
+// Number of rent-due months for a tenant within Jalali year y, counted only up to
+// the current month (so mid-year tenants aren't unfairly shown as under-collected).
+// Mirrors the start-date logic used in unpaidRentSummary/chkDue: first rent is the
+// month AFTER the contract start month.
+function expectedRentMonths(ten,y){
+  const t=today();
+  const startM=ten.start_m!==undefined?ten.start_m:0;
+  const firstRentM=(startM+1)%12;
+  const firstRentY=(ten.start_y||t.y)+(startM+1>11?1:0);
+  let startIdx;
+  if(firstRentY<y) startIdx=0;
+  else if(firstRentY===y) startIdx=firstRentM;
+  else return 0;                 // rent starts after year y
+  let endIdx;
+  if(y<t.y) endIdx=11;
+  else if(y===t.y) endIdx=t.m-1; // up to current month only
+  else return 0;                 // future year
+  return Math.max(0,endIdx-startIdx+1);
+}
 function rPropTable(){
   const card=document.getElementById('propCard');
   const box=document.getElementById('propTbl');
@@ -2469,18 +2544,32 @@ function rPropTable(){
   const y=SY;
   box.innerHTML=ST.ten.map(ten=>{
     const collected=annualCollected(ten.id,y);
-    const expected=ten.rent*12;
-    const growth=expected>0?Math.round((collected/expected)*100):0;
-    const yieldPct=ten.val>0?((collected/ten.val)*100).toFixed(1):null;
+    const months=expectedRentMonths(ten,y);
+    const expected=(ten.rent||0)*months;
+    const started=months>0;
+    const growth=expected>0?Math.round((collected/expected)*100):(collected>0?100:0);
+    // Gross annual yield uses the CONTRACT rent (rent×12), not partial collections.
+    const grossYield=ten.val>0?((ten.rent*12/ten.val)*100).toFixed(1):null;
+    // Effective yield adjusts for the deposit (interest-free capital that reduces the
+    // owner's own money tied up in the property) — meaningful in Iran's رهن‌واجاره market.
+    const effYield=(ten.val>0&&ten.dep>0&&ten.val>ten.dep)?((ten.rent*12/(ten.val-ten.dep))*100).toFixed(1):null;
     const gColor=growth>=90?'var(--gr)':growth>=50?'var(--am)':'var(--rd)';
+    const rightBadge=started?`<span class="rv" style="color:${gColor};font-size:13px">${toFa(growth)}٪ وصولی</span>`
+                             :`<span class="rv" style="color:var(--t3);font-size:12px">اجاره شروع نشده</span>`;
+    const collectedLine=started?`دریافتی ${toFa(y)}: ${nf(collected)} از ${nf(expected)} ت (${toFa(months)} ماه)`
+                               :`اجاره در سال ${toFa(y)} هنوز آغاز نشده`;
+    let yieldLine;
+    if(grossYield===null){ yieldLine='بازدهی: ارزش ملک ثبت نشده'; }
+    else if(effYield!==null){ yieldLine=`بازدهی ناخالص ${toFa(grossYield)}٪ · مؤثر ${toFa(effYield)}٪`; }
+    else { yieldLine=`بازدهی ناخالص سالانه: ${toFa(grossYield)}٪`; }
     return `<div class="rrow" style="align-items:flex-start;flex-direction:column;gap:6px;padding:12px 0">
       <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
         <span class="rlb" style="font-weight:700;color:var(--t1)">${esc(ten.n)} <span style="font-weight:500;color:var(--t3)">· ${esc(ten.unit)}</span></span>
-        <span class="rv" style="color:${gColor};font-size:13px">${toFa(growth)}٪ وصولی</span>
+        ${rightBadge}
       </div>
-      <div style="display:flex;justify-content:space-between;width:100%;font-size:12px;color:var(--t2)">
-        <span>دریافتی ${toFa(y)}: ${nf(collected)} ت از ${nf(expected)} ت</span>
-        <span>${yieldPct!==null?'بازدهی سالانه: '+toFa(yieldPct)+'٪':'بازدهی: ارزش ملک ثبت نشده'}</span>
+      <div style="display:flex;justify-content:space-between;width:100%;font-size:12px;color:var(--t2);gap:8px;flex-wrap:wrap">
+        <span>${collectedLine}</span>
+        <span style="text-align:left">${yieldLine}</span>
       </div>
     </div>`;
   }).join('');
