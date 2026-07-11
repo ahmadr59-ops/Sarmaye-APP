@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="سرمایه">
@@ -59,8 +59,40 @@ html{width:100%;overflow-x:hidden}
   --glass-blur:blur(22px) saturate(180%);
   --glass-edge:rgba(255,255,255,0.75);
   --sb:env(safe-area-inset-bottom);--st:env(safe-area-inset-top);
-  --sl:env(safe-area-inset-left);--sr:env(safe-area-inset-right)
+  --sl:env(safe-area-inset-left);--sr:env(safe-area-inset-right);
+  --inc-bg:#E8F5EE;--inc-ic:#C3E8D1;--inc-t:#1A8A4A;--inc-t2:#4AAA72;
+  --exp-bg:#FDECEA;--exp-ic:#F9C9C5;--exp-t:#C0392B;--exp-t2:#D9534F;
+  --inp-bg:#fff
 }
+html[data-theme="dark"]{
+  --pr:#5B9BE8;--pr2:#4A8AD9;--prd:#3A79C8;--prl:#16294A;
+  --grad:linear-gradient(145deg,#1D4E9E 0%,#0A2E6B 100%);
+  --gr:#4CC97A;--grl:#0F2E1B;
+  --rd:#F07568;--rdl:#3A1512;
+  --am:#F0A050;--aml:#33220C;
+  --pk:#E58BB4;--pkl:#331624;
+  --pp:#9B93F0;--ppl:#1F1C42;
+  --bg:#0C1322;--card:rgba(24,34,58,0.78);--border:rgba(255,255,255,0.09);
+  --t1:#E9EEF8;--t2:#A9B5CD;--t3:#68758F;
+  --sh:0 1px 0 rgba(255,255,255,0.04) inset,0 8px 24px rgba(0,0,0,0.35),0 1px 3px rgba(0,0,0,0.3);
+  --shc:0 1px 0 rgba(255,255,255,0.05) inset,0 12px 34px rgba(0,0,0,0.45),0 2px 6px rgba(0,0,0,0.35);
+  --glass-edge:rgba(255,255,255,0.12);
+  --inc-bg:#10281A;--inc-ic:#174D2C;--inc-t:#4CC97A;--inc-t2:#3B9E60;
+  --exp-bg:#301410;--exp-ic:#57221B;--exp-t:#F07568;--exp-t2:#D96257;
+  --inp-bg:rgba(24,34,58,0.85)
+}
+html[data-theme="dark"] body{
+  background:
+    radial-gradient(760px 560px at 12% -6%, rgba(30,60,130,0.5), transparent 60%),
+    radial-gradient(680px 520px at 108% 18%, rgba(25,45,100,0.5), transparent 60%),
+    radial-gradient(900px 700px at 50% 115%, rgba(20,40,90,0.4), transparent 60%),
+    linear-gradient(180deg,#0C1322 0%,#0A101D 100%);
+  background-attachment:fixed}
+html[data-theme="dark"] .month-picker-dropdown{background:rgba(24,34,58,0.94);border-color:rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+html[data-theme="dark"] .mdl{background:rgba(18,26,46,0.92);border-color:rgba(255,255,255,0.1);border-top-color:rgba(255,255,255,0.14)}
+html[data-theme="dark"] .fg input,html[data-theme="dark"] .fg select,html[data-theme="dark"] .fg textarea{background:rgba(24,34,58,0.85);border-color:rgba(255,255,255,0.12)}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background:var(--inp-bg) !important;color:var(--t1) !important;border-color:var(--border) !important;color-scheme:dark}
+
 body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height:100vh;direction:rtl;-webkit-font-smoothing:antialiased;width:100%;overflow-x:hidden;overscroll-behavior-y:none;
   background:
     radial-gradient(760px 560px at 12% -6%, rgba(120,175,255,0.55), transparent 60%),
@@ -327,6 +359,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
         <span id="netWorth" style="font-size:30px;font-weight:800;line-height:1">۰</span>
         <span style="font-size:13px;font-weight:600;opacity:.85">تومان</span>
       </div>
+      <div id="netWorthBreak" style="font-size:10.5px;opacity:.85;margin-top:8px;display:none"></div>
       <div id="netWorthHint" style="font-size:11px;opacity:.9;margin-top:9px;display:none;cursor:pointer" onclick="openAccList()">
         برای محاسبهٔ دارایی، ابتدا حساب‌هایتان را ثبت کنید ←
       </div>
@@ -335,57 +368,64 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 
   <!-- Income / Expense cards — bigger, more breathing room -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 14px 0">
-    <div style="background:#E8F5EE;border-radius:18px;padding:18px 16px">
+    <div style="background:var(--inc-bg);border-radius:18px;padding:18px 16px">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px">
-        <span style="width:30px;height:30px;border-radius:9px;background:#C3E8D1;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#1A8A4A;stroke-width:2.5;fill:none;stroke-linecap:round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        <span style="width:30px;height:30px;border-radius:9px;background:var(--inc-ic);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:var(--inc-t);stroke-width:2.5;fill:none;stroke-linecap:round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
         </span>
-        <span style="font-size:12.5px;font-weight:700;color:#1A8A4A">درآمد ماه</span>
+        <span style="font-size:12.5px;font-weight:700;color:var(--inc-t)">درآمد ماه</span>
       </div>
-      <div id="di" style="font-size:22px;font-weight:800;color:#1A8A4A;line-height:1">۰</div>
-      <div style="font-size:11px;color:#4AAA72;margin-top:5px;font-weight:600">تومان</div>
+      <div id="di" style="font-size:22px;font-weight:800;color:var(--inc-t);line-height:1">۰</div>
+      <div style="font-size:11px;color:var(--inc-t2);margin-top:5px;font-weight:600">تومان</div>
     </div>
-    <div style="background:#FDECEA;border-radius:18px;padding:18px 16px">
+    <div style="background:var(--exp-bg);border-radius:18px;padding:18px 16px">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px">
-        <span style="width:30px;height:30px;border-radius:9px;background:#F9C9C5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#C0392B;stroke-width:2.5;fill:none;stroke-linecap:round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        <span style="width:30px;height:30px;border-radius:9px;background:var(--exp-ic);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:var(--exp-t);stroke-width:2.5;fill:none;stroke-linecap:round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
         </span>
-        <span style="font-size:12.5px;font-weight:700;color:#C0392B">هزینه ماه</span>
+        <span style="font-size:12.5px;font-weight:700;color:var(--exp-t)">هزینه ماه</span>
       </div>
-      <div id="de" style="font-size:22px;font-weight:800;color:#C0392B;line-height:1">۰</div>
-      <div style="font-size:11px;color:#D9534F;margin-top:5px;font-weight:600">تومان</div>
+      <div id="de" style="font-size:22px;font-weight:800;color:var(--exp-t);line-height:1">۰</div>
+      <div style="font-size:11px;color:var(--exp-t2);margin-top:5px;font-weight:600">تومان</div>
     </div>
   </div>
 
   <!-- Outstanding rent summary -->
   <div id="dash-rent-alrt"></div>
 
-  <!-- Action buttons: 4 icons in a single row -->
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 14px 0">
-    <button onclick="openTx()" style="padding:12px 4px 10px;border-radius:16px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:700;transition:opacity .15s"
+  <!-- Action buttons: 5 icons in a single row -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:12px 14px 0">
+    <button onclick="openSavingsQuick()" style="padding:12px 2px 10px;border-radius:16px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pp);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:10.5px;font-weight:700;transition:opacity .15s"
       onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:40px;height:40px;border-radius:12px;background:var(--prl);display:flex;align-items:center;justify-content:center">
+      <span style="width:38px;height:38px;border-radius:12px;background:var(--ppl);display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:var(--pp);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M19 9V6a2 2 0 00-2-2h-1.5L14 2h-4l-1.5 2H7a2 2 0 00-2 2v3M3 11h2M2 9h3v6.5A1.5 1.5 0 006.5 17H7v3h3v-3h4v3h3v-3h.5a1.5 1.5 0 001.5-1.5V9M16 13h.01"/></svg>
+      </span>
+      پس‌انداز
+    </button>
+    <button onclick="openTx()" style="padding:12px 2px 10px;border-radius:16px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:10.5px;font-weight:700;transition:opacity .15s"
+      onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
+      <span style="width:38px;height:38px;border-radius:12px;background:var(--prl);display:flex;align-items:center;justify-content:center">
         <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--pr);stroke-width:2.3;fill:none;stroke-linecap:round"><path d="M12 5v14M5 12h14"/></svg>
       </span>
       تراکنش
     </button>
-    <button onclick="openSms()" style="padding:12px 4px 10px;border-radius:16px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pp);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:700;transition:opacity .15s"
+    <button onclick="openSms()" style="padding:12px 2px 10px;border-radius:16px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pp);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:10.5px;font-weight:700;transition:opacity .15s"
       onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:40px;height:40px;border-radius:12px;background:var(--ppl);display:flex;align-items:center;justify-content:center">
+      <span style="width:38px;height:38px;border-radius:12px;background:var(--ppl);display:flex;align-items:center;justify-content:center">
         <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--pp);stroke-width:2;fill:none;stroke-linecap:round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
       </span>
       پیامک
     </button>
-    <button onclick="openAccList()" style="padding:12px 4px 10px;border-radius:16px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--gr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:700;transition:opacity .15s"
+    <button onclick="openAccList()" style="padding:12px 2px 10px;border-radius:16px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--gr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:10.5px;font-weight:700;transition:opacity .15s"
       onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:40px;height:40px;border-radius:12px;background:var(--grl);display:flex;align-items:center;justify-content:center">
+      <span style="width:38px;height:38px;border-radius:12px;background:var(--grl);display:flex;align-items:center;justify-content:center">
         <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--gr);stroke-width:2;fill:none;stroke-linecap:round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>
       </span>
       حساب‌ها
     </button>
-    <button onclick="openTransfer()" style="padding:12px 4px 10px;border-radius:16px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--am);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:700;transition:opacity .15s"
+    <button onclick="openTransfer()" style="padding:12px 2px 10px;border-radius:16px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--am);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:10.5px;font-weight:700;transition:opacity .15s"
       onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:40px;height:40px;border-radius:12px;background:var(--aml);display:flex;align-items:center;justify-content:center">
+      <span style="width:38px;height:38px;border-radius:12px;background:var(--aml);display:flex;align-items:center;justify-content:center">
         <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--am);stroke-width:2;fill:none;stroke-linecap:round"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg>
       </span>
       انتقال
@@ -412,22 +452,22 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <!-- Search -->
   <div style="padding:10px 14px 0">
     <input type="text" id="txsearch" oninput="setTxSearch(this.value)" placeholder="جستجو در توضیحات یا دسته‌بندی..."
-      style="width:100%;padding:11px 14px;border-radius:16px;border:1.5px solid var(--border);background:#fff;font-size:13.5px;color:var(--t1);font-family:'Vazirmatn',sans-serif;outline:none">
+      style="width:100%;padding:11px 14px;border-radius:16px;border:1.5px solid var(--border);background:var(--inp-bg);font-size:13.5px;color:var(--t1);font-family:'Vazirmatn',sans-serif;outline:none">
   </div>
   <!-- Filter bar -->
   <div style="display:flex;gap:8px;padding:10px 14px 0">
     <button id="fltr-all"  onclick="setTxFilter('all')"
       style="flex:1;padding:8px;border-radius:20px;border:1.5px solid var(--pr);background:var(--pr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">همه</button>
     <button id="fltr-income" onclick="setTxFilter('income')"
-      style="flex:1;padding:8px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">درآمد</button>
+      style="flex:1;padding:8px;border-radius:20px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">درآمد</button>
     <button id="fltr-expense" onclick="setTxFilter('expense')"
-      style="flex:1;padding:8px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">هزینه</button>
+      style="flex:1;padding:8px;border-radius:20px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">هزینه</button>
   </div>
   <div style="display:flex;gap:8px;padding:8px 14px 0">
     <button id="fltr-d-week" onclick="setTxDateFilter('week')"
-      style="flex:1;padding:7px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">هفته اخیر</button>
+      style="flex:1;padding:7px;border-radius:20px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">هفته اخیر</button>
     <button id="fltr-d-month" onclick="setTxDateFilter('month')"
-      style="flex:1;padding:7px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">ماه جاری</button>
+      style="flex:1;padding:7px;border-radius:20px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">ماه جاری</button>
     <button id="fltr-d-all" onclick="setTxDateFilter('all')"
       style="flex:1;padding:7px;border-radius:20px;border:1.5px solid var(--pr);background:var(--pr);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">همه تاریخ‌ها</button>
   </div>
@@ -466,6 +506,17 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
       <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--t2);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:var(--rd);display:inline-block"></span>هزینه</span>
     </div>
   </div>
+  <div class="card" id="budgetCard" style="display:none">
+    <div class="card-t" style="display:flex;justify-content:space-between;align-items:center">بودجه ماه جاری
+      <button onclick="openBudgetMgr()" style="background:none;border:none;font-size:12px;font-weight:700;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif">ویرایش</button>
+    </div>
+    <div id="budgetTbl"></div>
+  </div>
+  <div class="card">
+    <div class="card-t">پس‌انداز و روند دارایی</div>
+    <div id="savRate"></div>
+    <div id="assetTrend" style="margin-top:10px"></div>
+  </div>
   <div class="card"><div class="card-t">خلاصه سالانه</div><div id="ys"></div></div>
   <div class="card" id="propCard" style="display:none">
     <div class="card-t">سودآوری و بازدهی املاک</div>
@@ -489,6 +540,27 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
       <div class="stt-row" onclick="openNotifSettings()">
         <div class="stt-ic" style="background:linear-gradient(145deg,#FFD54F,#FF8F00)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
         <div class="stt-info"><strong>اعلان‌ها و یادآور</strong><span>تنظیم یادآور اجاره</span></div>
+        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+      </div>
+      <div class="stt-row" onclick="document.getElementById('thememdl').classList.add('on')">
+        <div class="stt-ic" style="background:linear-gradient(145deg,#4A5568,#1A202C)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></div>
+        <div class="stt-info"><strong>حالت نمایش</strong><span id="theme-lbl">خودکار (هماهنگ با سیستم)</span></div>
+        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stt-sec" style="margin-top:14px">
+    <div class="stt-sec-lbl">مالی</div>
+    <div class="stt-list">
+      <div class="stt-row" onclick="openBudgetMgr()">
+        <div class="stt-ic" style="background:linear-gradient(145deg,#2ECC71,#0E7A3C)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <div class="stt-info"><strong>بودجه ماهانه</strong><span id="budget-count">بدون سقف تعریف‌شده</span></div>
+        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+      </div>
+      <div class="stt-row" onclick="openLoanList()">
+        <div class="stt-ic" style="background:linear-gradient(145deg,#B0693C,#7A3E1D)"><svg viewBox="0 0 24 24" style="stroke:#fff"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/></svg></div>
+        <div class="stt-info"><strong>وام و اقساط</strong><span id="loan-count">بدون وام فعال</span></div>
         <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
       </div>
     </div>
@@ -1016,6 +1088,69 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 </div>
 </div>
 
+<!-- Budget manager -->
+<div class="ov" id="bdgm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2>بودجه ماهانه دسته‌ها</h2>
+  <div style="font-size:11.5px;color:var(--t3);line-height:1.7;margin-bottom:12px">برای هر دسته سقف ماهانه (تومان) تعیین کنید. خالی = بدون سقف. با رسیدن به ۸۰٪ و ۱۰۰٪ هشدار می‌گیرید.</div>
+  <div id="bdg-list" style="max-height:48vh;overflow-y:auto;margin-bottom:14px"></div>
+  <button class="btn btnp" onclick="saveBudgets()">ذخیره بودجه‌ها</button>
+  <button class="btn btns" onclick="cls('bdgm')">انصراف</button>
+</div>
+</div>
+
+<!-- Loan list -->
+<div class="ov" id="loanm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2>وام و اقساط</h2>
+  <div id="loan-list" style="max-height:52vh;overflow-y:auto;margin-bottom:12px"></div>
+  <button class="btn btnp" onclick="openLoanForm()">＋ وام جدید</button>
+  <button class="btn btns" onclick="cls('loanm')">بستن</button>
+</div>
+</div>
+
+<!-- Loan form -->
+<div class="ov" id="loanfm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2 id="loanfmt">وام جدید</h2>
+  <div class="fg"><label>عنوان وام</label><input type="text" id="loan-n" placeholder="مثلاً وام مسکن"></div>
+  <div class="fg"><label>مانده بدهی — مجموع اقساط باقی‌مانده (تومان)</label><input type="text" inputmode="numeric" id="loan-rem" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+  <div class="fg"><label>مبلغ هر قسط (تومان)</label><input type="text" inputmode="numeric" id="loan-inst" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+  <div class="fg"><label>روز سررسید در ماه</label><input type="number" id="loan-day" min="1" max="31" placeholder="مثلاً ۵"></div>
+  <div style="font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:12px">با «ثبت قسط»، یک هزینه با دستهٔ «قسط و وام» ثبت و مانده بدهی کم می‌شود. مانده وام از خالص دارایی کسر می‌گردد.</div>
+  <button class="btn btnp" onclick="saveLoan()">ذخیره</button>
+  <button class="btn btnd" id="dloanb" style="display:none" onclick="delLoan()">حذف وام</button>
+  <button class="btn btns" onclick="cls('loanfm')">انصراف</button>
+</div>
+</div>
+
+<!-- Loan pay sheet -->
+<div class="ov" id="loanpaym">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2 id="loanpay-title">پرداخت قسط</h2>
+  <div class="fg"><label>مبلغ (تومان)</label><input type="text" inputmode="numeric" id="loanpay-amt" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+  <div class="fg"><label>پرداخت از حساب</label><select id="loanpay-acc"></select></div>
+  <button class="btn btnp" onclick="confirmPayInstallment()">ثبت پرداخت</button>
+  <button class="btn btns" onclick="cls('loanpaym')">انصراف</button>
+</div>
+</div>
+
+<!-- Theme picker -->
+<div class="ov" id="thememdl">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2>حالت نمایش</h2>
+  <button class="btn btns" onclick="setTheme('auto')">🌗 خودکار (هماهنگ با سیستم)</button>
+  <button class="btn btns" onclick="setTheme('light')">☀️ روشن</button>
+  <button class="btn btns" onclick="setTheme('dark')">🌙 تیره</button>
+  <button class="btn btns" onclick="cls('thememdl')" style="margin-top:6px">بستن</button>
+</div>
+</div>
+
 <script>
 // ============================================================
 // CONSTANTS
@@ -1115,6 +1250,7 @@ function def(){
     sm:today().m-1,
     appName:'سرمایه',
     tx:[],ten:[],pay:{},
+    budgets:{},loans:[],theme:'auto',
     notifLog:[],smsLog:[],
     cats:{
       income:[
@@ -1349,6 +1485,25 @@ function migrateState(s){
     s.savingsV1=true;
   }
 
+  // ---- Recurring savings reminders migration (one-time) ----
+  // Recurring items that referenced the removed e6 expense category become
+  // "savings reminders": they now match against transfers INTO the savings
+  // account instead of e6 expenses (which no longer exist), otherwise the
+  // reminder would fire every month forever.
+  if(!s.savingsV2){
+    if(Array.isArray(s.recurring)){
+      s.recurring.forEach(r=>{
+        if(r.cat==='e6'){ r.isSavings=true; r.cat='sav'; if(!r.dsc) r.dsc='پس‌انداز'; }
+      });
+    }
+    s.savingsV2=true;
+  }
+
+  // ---- Budgets / Loans / Theme defaults ----
+  if(!s.budgets||typeof s.budgets!=='object') s.budgets={};
+  if(!Array.isArray(s.loans)) s.loans=[];
+  if(!s.theme) s.theme='auto';
+
   return s;
 }
 
@@ -1422,8 +1577,65 @@ function annualCollected(tid,y){
   return s;
 }
 function totals(txs){let i=0,e=0;txs.forEach(t=>{if(t.isTransfer||t.isOpening)return;if(t.tp==='income')i+=t.a;else e+=t.a;});return{i,e,b:i-e};}
-// Net worth = sum of every account's current balance (opening balance + its own income/expense/transfer legs)
-function netWorth(){return (ST.accounts||[]).reduce((s,a)=>s+calcAccBalance(a.id),0);}
+// ---- Assets / Liabilities ----
+function assetsTotal(){return (ST.accounts||[]).reduce((s,a)=>s+calcAccBalance(a.id),0);}
+function debtsTotal(){return (ST.loans||[]).reduce((s,l)=>s+(l.active!==false?(l.remaining||0):0),0);}
+// Net worth = assets (account balances) − liabilities (remaining loan principal)
+function netWorth(){return assetsTotal()-debtsTotal();}
+// Account balances as of end of Jalali month (m 0-based, y). Opening balances are tx too.
+function assetsAt(m,y){
+  const lim=y*12+m;
+  return (ST.accounts||[]).reduce((s,acc)=>{
+    let b=acc.initBalance||0;
+    ST.tx.forEach(t=>{
+      if(t.accId!==acc.id) return;
+      if(((t.y||0)*12+(t.m||0))>lim) return;
+      b+=t.tp==='income'?t.a:-t.a;
+    });
+    return s+b;
+  },0);
+}
+// Net flow into the savings account during month (deposits − withdrawals, opening excluded)
+function savingsFlow(m,y){
+  let s=0;
+  ST.tx.forEach(t=>{
+    if(t.accId!==SAVINGS_ACC_ID||t.isOpening) return;
+    if(t.m!==m||t.y!==y) return;
+    s+=t.tp==='income'?t.a:-t.a;
+  });
+  return s;
+}
+// Jalali leap year (33-year cycle approximation — exact for 1244–1473)
+function isJLeap(y){return [1,5,9,13,17,22,26,30].includes(((y%33)+33)%33);}
+function jMaxDay(m,y){return m<6?31:m<11?30:(isJLeap(y)?30:29);}
+// Create the dedicated savings account on demand (shared with migration)
+function ensureSavingsAccount(){
+  if(!ST.accounts) ST.accounts=[];
+  let sav=ST.accounts.find(a=>a.id===SAVINGS_ACC_ID);
+  if(!sav){
+    const t=today();
+    sav={id:SAVINGS_ACC_ID,bank:'پس‌انداز',name:'',accno:'',cardno:'',last4:'',exp:'',iban:'',
+         color:'#4A42B0',initDate:{d:t.d,m:t.m-1,y:t.y},initBalance:0,openTxId:null};
+    ST.accounts.push(sav);
+  }
+  return sav;
+}
+// ---- Theme ----
+function applyTheme(){
+  const pref=ST.theme||'auto';
+  const dark=pref==='dark'||(pref==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute('content',dark?'#0C1322':'#1456A8');
+}
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if((ST.theme||'auto')==='auto')applyTheme();});
+}
+async function setTheme(v){ST.theme=v;applyTheme();updateThemeLabel();cls('thememdl');await sv();}
+function updateThemeLabel(){
+  const el=document.getElementById('theme-lbl');
+  if(el) el.textContent={auto:'خودکار (هماهنگ با سیستم)',light:'روشن',dark:'تیره'}[ST.theme||'auto'];
+}
 
 // ============================================================
 // MONTH SELECTOR (pill in header corner)
@@ -1536,6 +1748,12 @@ function rDash(){
   const nwHint=document.getElementById('netWorthHint');
   if(nwEl){
     nwEl.textContent=nf(netWorth());
+    const debt=debtsTotal();
+    const bd=document.getElementById('netWorthBreak');
+    if(bd){
+      if(debt>0){bd.style.display='block';bd.textContent=`دارایی ${nf(assetsTotal())} − بدهی ${nf(debt)} تومان`;}
+      else bd.style.display='none';
+    }
     if(nwHint) nwHint.style.display=(ST.accounts&&ST.accounts.length)?'none':'block';
   }
   const rentAlrtEl=document.getElementById('dash-rent-alrt');
@@ -1659,7 +1877,7 @@ function setTxFilter(f){
     const btn=document.getElementById('fltr-'+k);
     if(!btn)return;
     const active=k===f;
-    btn.style.background=active?'var(--pr)':'#fff';
+    btn.style.background=active?'var(--pr)':'var(--inp-bg)';
     btn.style.color=active?'#fff':'var(--t2)';
     btn.style.borderColor=active?'var(--pr)':'var(--border)';
     btn.style.fontWeight=active?'700':'600';
@@ -1683,7 +1901,7 @@ function setTxDateFilter(f){
     const btn=document.getElementById('fltr-d-'+k);
     if(!btn)return;
     const active=k===f;
-    btn.style.background=active?'var(--pr)':'#fff';
+    btn.style.background=active?'var(--pr)':'var(--inp-bg)';
     btn.style.color=active?'#fff':'var(--t2)';
     btn.style.borderColor=active?'var(--pr)':'var(--border)';
     btn.style.fontWeight=active?'700':'600';
@@ -1771,7 +1989,7 @@ async function saveTx(){
   if(!day||day<1||day>31){ntf('⚠️ روز باید بین ۱ تا ۳۱ باشد');hiErr('tday');return;}
   if(!y||y<1380||y>1450){ntf('⚠️ سال وارد شده معتبر نیست (۱۳۸۰–۱۴۵۰)');hiErr('tyr');return;}
   // Month-day validation (Jalali: months 1-6 = 31 days, 7-11 = 30 days, 12 = 29/30)
-  const maxDay=m<6?31:m<11?30:29;
+  const maxDay=jMaxDay(m,y);
   if(day>maxDay){ntf(`⚠️ ماه ${toFa(pad2(m+1))} حداکثر ${toFa(maxDay)} روز دارد`);hiErr('tday');return;}
   const accId=document.getElementById('tacc')?.value||'';
   // --- Duplicate detection (new transactions only, not edits) ---
@@ -1793,6 +2011,7 @@ async function finishSaveTx(a,cat,dsc,day,m,y,accId){
   else ST.tx.push(rec);
   // Keep the tenant payment record's amount in sync if this tx is linked to a rent payment
   if(rec.isRent&&rec.payKey&&ST.pay[rec.payKey]) ST.pay[rec.payKey].amount=a;
+  if(txtp==='expense') budgetWarn(cat,m,y);
   cls('txm');ntf('✅ ذخیره شد');
   rDash();rTx();rTen();
   await sv();
@@ -2100,7 +2319,7 @@ async function saveSms(){
   if(!cat||cat===''||cat==='انتخاب کنید...'){ntf('⚠️ دسته‌بندی را انتخاب کنید');hiErr('scat');return;}
   if(!day||day<1||day>31){ntf('⚠️ روز باید بین ۱ تا ۳۱ باشد');hiErr('sday');return;}
   if(y<1380||y>1450){ntf('⚠️ سال وارد شده معتبر نیست');hiErr('syr');return;}
-  const maxDay=m<6?31:m<11?30:29;
+  const maxDay=jMaxDay(m,y);
   if(day>maxDay){ntf(`⚠️ ماه ${toFa(pad2(m+1))} حداکثر ${toFa(maxDay)} روز دارد`);hiErr('sday');return;}
   const isDup=ST.tx.some(t=>!t.isTransfer&&!t.isRent&&!t.isOpening&&t.tp===smtp&&t.a===a&&t.day===day&&t.m===m&&t.y===y&&(t.accId||'')===(accId||''));
   if(isDup){
@@ -2125,7 +2344,7 @@ function openCat(tp){
   document.getElementById('cnm').value='';
   const grid=document.getElementById('cion-grid');
   grid.innerHTML=Object.keys(ICONS).map((k,idx)=>
-    `<button type="button" onclick="pickCatIcon('${k}')" id="cicon-${k}" style="aspect-ratio:1;border-radius:12px;border:1.5px solid ${idx===0?'var(--pr)':'var(--border)'};background:${idx===0?'var(--prl)':'#fff'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:${idx===0?'var(--pr)':'var(--t2)'}"><svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS[k]}</svg></button>`
+    `<button type="button" onclick="pickCatIcon('${k}')" id="cicon-${k}" style="aspect-ratio:1;border-radius:12px;border:1.5px solid ${idx===0?'var(--pr)':'var(--border)'};background:${idx===0?'var(--prl)':'var(--inp-bg)'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:${idx===0?'var(--pr)':'var(--t2)'}"><svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS[k]}</svg></button>`
   ).join('');
   document.getElementById('cion').value=Object.keys(ICONS)[0];
   document.getElementById('ctyp').value=tp;
@@ -2137,7 +2356,7 @@ function pickCatIcon(key){
     const el=document.getElementById('cicon-'+k);if(!el)return;
     const active=k===key;
     el.style.borderColor=active?'var(--pr)':'var(--border)';
-    el.style.background=active?'var(--prl)':'#fff';
+    el.style.background=active?'var(--prl)':'var(--inp-bg)';
     el.style.color=active?'var(--pr)':'var(--t2)';
   });
 }
@@ -2214,7 +2433,7 @@ function depStatusHtml(ten){
   if(ten.depReceived){
     return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--ppl);border-radius:12px;padding:9px 12px;margin-bottom:10px;font-size:12px">
       <span style="color:var(--pp);font-weight:600">ودیعه نزد شماست ${ten.depReceivedDate?'— دریافت: '+ten.depReceivedDate:''}</span>
-      <button onclick="event.stopPropagation();openDepDateModal('${ten.id}','returned')" style="background:#fff;border:none;border-radius:8px;padding:5px 9px;color:var(--pp);font-size:11px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ثبت بازگشت</button>
+      <button onclick="event.stopPropagation();openDepDateModal('${ten.id}','returned')" style="background:var(--inp-bg);border:none;border-radius:8px;padding:5px 9px;color:var(--pp);font-size:11px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ثبت بازگشت</button>
     </div>`;
   }
   return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:12px;padding:9px 12px;margin-bottom:10px;font-size:12px">
@@ -2237,7 +2456,7 @@ async function confirmDepDate(){
   const d=parseInt(document.getElementById('dd-day').value)||1;
   const m=parseInt(document.getElementById('dd-mon').value)||0;
   const y=parseInt(document.getElementById('dd-year').value)||today().y;
-  const maxDay=m<6?31:m<11?30:29;
+  const maxDay=jMaxDay(m,y);
   if(d<1||d>maxDay){ntf(`⚠️ ماه ${toFa(pad2(m+1))} حداکثر ${toFa(maxDay)} روز دارد`);hiErr('dd-day');return;}
   if(!y||y<1380||y>1450){ntf('⚠️ سال معتبر نیست (۱۳۸۰–۱۴۵۰)');hiErr('dd-year');return;}
   const t=ST.ten.find(x=>x.id===depDateTid);if(!t){cls('depdatem');return;}
@@ -2439,7 +2658,7 @@ function openPay(tid){
           ${isPaid||isPartial?'ویرایش پرداخت':'ثبت پرداخت'}
         </button>
         ${isPaid||isPartial?`<button onclick="clearPay('${tid}','${y}','${m}')"
-          style="padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--t3);font-size:12px;cursor:pointer;font-family:'Vazirmatn',sans-serif">حذف</button>`:''}
+          style="padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t3);font-size:12px;cursor:pointer;font-family:'Vazirmatn',sans-serif">حذف</button>`:''}
       </div>
       <div id="payform_${tid}_${y}_${m}" style="display:none;background:var(--bg);border-radius:12px;padding:12px;width:100%">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -2456,7 +2675,7 @@ function openPay(tid){
           <button onclick="savePay('${tid}','${y}','${m}','partial')"
             style="flex:1;padding:8px;border-radius:10px;border:none;background:#F0A500;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ناقص</button>
           <button onclick="document.getElementById('payform_${tid}_${y}_${m}').style.display='none'"
-            style="padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--t2);font-size:12px;cursor:pointer;font-family:'Vazirmatn',sans-serif">لغو</button>
+            style="padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:12px;cursor:pointer;font-family:'Vazirmatn',sans-serif">لغو</button>
         </div>
       </div>
     </div>`;
@@ -2577,6 +2796,8 @@ function rPropTable(){
 function rRep(){
   const curTxs=getTx(SM);const{e:curExp}=totals(curTxs);
   rDonut(curTxs,curExp);
+  rBudgets();
+  rSavingsAndTrend();
   rPropTable();
   const t=today();
   const last6=[];
@@ -2609,6 +2830,56 @@ function rRep(){
     <div class="rrow"><span class="rlb">مانده کل سال ${toFa(SY)}</span><span class="rv" style="color:${ab>=0?'var(--gr)':'var(--rd)'}">${ab>=0?'+':''}${nf(ab)} ت</span></div>`;
 }
 
+// Savings rate (deposits into savings ÷ income) + 6-month total-assets sparkline
+function rSavingsAndTrend(){
+  const srBox=document.getElementById('savRate');
+  const trBox=document.getElementById('assetTrend');
+  if(!srBox) return;
+  // month + year savings rate
+  const{i:mInc}=totals(getTx(SM,SY));
+  const mSav=savingsFlow(SM,SY);
+  let yInc=0,ySav=0;
+  for(let k=0;k<12;k++){yInc+=totals(getTx(k,SY)).i;ySav+=savingsFlow(k,SY);}
+  const fmtRate=(sav,inc)=>inc>0?toFa(Math.round((sav/inc)*100))+'٪':'—';
+  const rateCol=(sav,inc)=>inc<=0?'var(--t3)':(sav/inc)>=0.2?'var(--gr)':(sav/inc)>0?'var(--am)':'var(--t3)';
+  srBox.innerHTML=`
+    <div class="rrow"><span class="rlb">نرخ پس‌انداز ماه جاری</span><span class="rv" style="color:${rateCol(mSav,mInc)}">${fmtRate(mSav,mInc)}${mInc>0?' ('+nf(mSav)+' ت)':''}</span></div>
+    <div class="rrow"><span class="rlb">نرخ پس‌انداز سال ${toFa(SY)}</span><span class="rv" style="color:${rateCol(ySav,yInc)}">${fmtRate(ySav,yInc)}${yInc>0?' ('+nf(ySav)+' ت)':''}</span></div>`;
+  // 6-month end-of-month total assets sparkline
+  if(!trBox) return;
+  if(!(ST.accounts||[]).length){trBox.innerHTML='';return;}
+  const t=today();
+  const pts=[];
+  for(let k=5;k>=0;k--){
+    let mm=t.m-1-k,yy=t.y;
+    while(mm<0){mm+=12;yy--;}
+    pts.push({m:mm,y:yy,v:assetsAt(mm,yy)});
+  }
+  const vals=pts.map(p=>p.v);
+  const lo=Math.min(...vals),hi=Math.max(...vals);
+  const span=hi-lo||1;
+  const W=300,H=64,P=6;
+  const xy=pts.map((p,i)=>{
+    const x=P+i*(W-2*P)/5;
+    const y=H-P-((p.v-lo)/span)*(H-2*P);
+    return {x,y};
+  });
+  const line=xy.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' ');
+  const area=line+` L${xy[5].x.toFixed(1)} ${H-2} L${xy[0].x.toFixed(1)} ${H-2} Z`;
+  trBox.innerHTML=`
+    <div style="font-size:11.5px;font-weight:700;color:var(--t2);margin-bottom:6px">روند موجودی حساب‌ها (۶ ماه اخیر)</div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" preserveAspectRatio="none">
+      <path d="${area}" fill="var(--prl)" opacity=".8"/>
+      <path d="${line}" fill="none" stroke="var(--pr)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${xy.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="var(--pr)"/>`).join('')}
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:3px">
+      ${pts.map(p=>`<span>${toFa(pad2(p.m+1))}</span>`).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--t2);margin-top:5px">
+      <span>${nf(pts[0].v)} ت</span><span>اکنون: ${nf(pts[5].v)} ت</span>
+    </div>`;
+}
 function showBarTip(ev,label,inc,exp){
   ev.stopPropagation();
   const tip=document.getElementById('barTip');
@@ -2637,6 +2908,9 @@ function rSett(){
   document.getElementById('cat-exp-count').textContent=`${ST.cats.expense.length} دسته`;
   updateNotifStatus();
   updateRecCount();
+  updateBudgetCount();
+  updateLoanCount();
+  updateThemeLabel();
   updateLockStatusLabel();
   if(fbReady) renderCloudPanel();
 }
@@ -2834,8 +3108,13 @@ async function markNotifRead(id){
 // EXPORT / BACKUP / RESTORE
 // ============================================================
 function exportCSV(){
-  let csv='\uFEFFنوع,دسته‌بندی,مبلغ,توضیحات,روز,ماه,سال\n';
-  ST.tx.forEach(t=>{const cat=getCat(t.tp,t.cat);csv+=`"${t.tp==='income'?'درآمد':'هزینه'}","${cat.n}",${t.a},"${t.dsc||''}",${t.day},${t.m+1},${t.y||1404}\n`;});
+  let csv='\uFEFFنوع,دسته‌بندی,مبلغ,توضیحات,روز,ماه,سال,حساب,نوع رکورد\n';
+  ST.tx.forEach(t=>{
+    const cat=t.isTransfer?{n:'انتقال'}:getCat(t.tp,t.cat);
+    const accName=t.accId?(((ST.accounts||[]).find(x=>x.id===t.accId)||{}).bank||''):'';
+    const kind=t.isOpening?'موجودی اولیه':t.isTransfer?'انتقال':t.isRent?'اجاره':t.loanId?'قسط وام':'عادی';
+    csv+=`"${t.tp==='income'?'درآمد':'هزینه'}","${cat.n}",${t.a},"${(t.dsc||'').replace(/"/g,'""')}",${t.day},${t.m+1},${t.y||1404},"${accName}","${kind}"\n`;
+  });
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download='sarmaye.csv';a.click();URL.revokeObjectURL(a.href);ntf('📥 CSV دانلود شد');
 }
@@ -3014,7 +3293,7 @@ function openRecurring(){
   // Build inline manager in a simple alert-style
   const lines=list.map((r,i)=>{
     const cat=getCat(r.tp,r.cat);
-    return `<div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:11px 13px;border:1px solid var(--border);margin-bottom:8px">
+    return `<div style="display:flex;align-items:center;gap:10px;background:var(--inp-bg);border-radius:12px;padding:11px 13px;border:1px solid var(--border);margin-bottom:8px">
       <span style="width:34px;height:34px;border-radius:10px;background:${r.tp==='income'?'var(--grl)':'var(--rdl)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
         <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:${r.tp==='income'?'var(--gr)':'var(--rd)'};stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS[cat.i]||ICONS.more}</svg>
       </span>
@@ -3099,6 +3378,10 @@ function chkRecurring(){
   // Check which ones are NOT already in this month's transactions
   const thisMonthTx=getTx(t.m-1,t.y);
   const pending=reminders.filter(r=>{
+    if(r.isSavings){
+      // savings reminders are satisfied by a transfer INTO the savings account this month
+      return !thisMonthTx.some(tx=>tx.isTransfer&&tx.tp==='income'&&tx.accId===SAVINGS_ACC_ID&&tx.a===r.amt);
+    }
     return !thisMonthTx.some(tx=>tx.cat===r.cat&&tx.tp===r.tp&&tx.a===r.amt);
   });
   if(pending.length){
@@ -3114,8 +3397,207 @@ function chkRecurring(){
 }
 
 // ============================================================
-// ACCOUNTS SYSTEM
+// BUDGETS (monthly cap per expense category)
 // ============================================================
+function spentInCat(catId,m,y){
+  let s=0;
+  ST.tx.forEach(t=>{if(t.tp==='expense'&&!t.isTransfer&&!t.isOpening&&t.cat===catId&&t.m===m&&t.y===y)s+=t.a;});
+  return s;
+}
+function openBudgetMgr(){
+  const box=document.getElementById('bdg-list');
+  box.innerHTML=(ST.cats.expense||[]).map(c=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <span style="width:34px;height:34px;border-radius:11px;background:${c.c}22;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg viewBox="0 0 24 24" style="width:17px;height:17px;stroke:${c.c};stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS[c.i]||ICONS.more}</svg>
+      </span>
+      <span style="flex:1;font-size:13px;font-weight:700;color:var(--t1)">${esc(c.n)}</span>
+      <input type="text" inputmode="numeric" id="bdg-${c.id}" value="${ST.budgets[c.id]?nf(ST.budgets[c.id]):''}" placeholder="بدون سقف"
+        oninput="this.value=this.value?nf(toLn(this.value)):''"
+        style="width:120px;padding:8px 10px;border-radius:11px;border:1.5px solid var(--border);background:var(--inp-bg);font-size:13px;color:var(--t1);font-family:'Vazirmatn',sans-serif;outline:none;text-align:left;direction:ltr">
+    </div>`).join('');
+  document.getElementById('bdgm').classList.add('on');
+}
+async function saveBudgets(){
+  (ST.cats.expense||[]).forEach(c=>{
+    const el=document.getElementById('bdg-'+c.id);
+    if(!el) return;
+    const v=toLn(el.value)||0;
+    if(v>0) ST.budgets[c.id]=v; else delete ST.budgets[c.id];
+  });
+  await sv();cls('bdgm');ntf('✅ بودجه‌ها ذخیره شد');updateBudgetCount();
+  rRep();
+}
+function updateBudgetCount(){
+  const el=document.getElementById('budget-count');
+  if(el){const n=Object.keys(ST.budgets||{}).length;el.textContent=n?`${toFa(n)} دسته دارای سقف`:'بدون سقف تعریف‌شده';}
+}
+function rBudgets(){
+  const card=document.getElementById('budgetCard');
+  const box=document.getElementById('budgetTbl');
+  if(!card) return;
+  const ids=Object.keys(ST.budgets||{});
+  if(!ids.length){card.style.display='none';return;}
+  card.style.display='block';
+  box.innerHTML=ids.map(id=>{
+    const c=getCat('expense',id);
+    const cap=ST.budgets[id];
+    const sp=spentInCat(id,SM,SY);
+    const pct=Math.min(100,Math.round((sp/cap)*100));
+    const col=pct>=100?'var(--rd)':pct>=80?'var(--am)':'var(--gr)';
+    return `<div style="padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--t1);margin-bottom:6px">
+        <span>${esc(c.n)}</span>
+        <span style="color:${col}">${nf(sp)} از ${nf(cap)} ت</span>
+      </div>
+      <div style="height:7px;border-radius:5px;background:var(--prl);overflow:hidden">
+        <div style="height:100%;width:${pct}%;border-radius:5px;background:${col};transition:width .4s"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+// Warn right after saving an expense that pushes a category past 80% / 100% of budget
+function budgetWarn(catId,m,y){
+  const cap=(ST.budgets||{})[catId];
+  if(!cap) return;
+  const sp=spentInCat(catId,m,y);
+  const pct=Math.round((sp/cap)*100);
+  const c=getCat('expense',catId);
+  if(pct>=100) setTimeout(()=>ntf(`🚨 بودجه «${c.n}» تمام شد (${toFa(pct)}٪)`),700);
+  else if(pct>=80) setTimeout(()=>ntf(`⚠️ ${toFa(pct)}٪ بودجه «${c.n}» مصرف شد`),700);
+}
+
+// ============================================================
+// LOANS (liabilities — reduce net worth; installments post as expenses)
+// ============================================================
+let eLoanId=null;
+function ensureLoanCat(){
+  if(!(ST.cats.expense||[]).some(c=>c.id==='e8')){
+    ST.cats.expense.push({id:'e8',n:'قسط و وام',i:'coin',c:'#8C4A2F'});
+  }
+}
+function openLoanList(){
+  const box=document.getElementById('loan-list');
+  const loans=ST.loans||[];
+  if(!loans.length){
+    box.innerHTML='<div style="text-align:center;padding:18px;color:var(--t3);font-size:13px">وامی ثبت نشده است</div>';
+  } else {
+    box.innerHTML=loans.map(l=>{
+      const done=l.remaining<=0||l.active===false;
+      const paid=(l.total||0)-(l.remaining||0);
+      const pct=l.total>0?Math.min(100,Math.round((paid/l.total)*100)):0;
+      return `<div style="background:var(--bg);border-radius:14px;border:1px solid var(--border);padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:13.5px;font-weight:800;color:var(--t1)">${esc(l.n)}</span>
+          <span style="font-size:12px;font-weight:700;color:${done?'var(--gr)':'var(--rd)'}">${done?'تسویه شد ✓':'مانده: '+nf(l.remaining)+' ت'}</span>
+        </div>
+        <div style="height:6px;border-radius:4px;background:var(--prl);overflow:hidden;margin-bottom:7px">
+          <div style="height:100%;width:${pct}%;background:var(--gr);border-radius:4px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:var(--t3)">قسط ${nf(l.inst)} ت · سررسید روز ${toFa(l.day)}</span>
+          <div style="display:flex;gap:6px">
+            ${done?'':`<button onclick="payInstallment('${l.id}')" style="padding:6px 12px;border-radius:11px;border:none;background:var(--grl);color:var(--gr);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ثبت قسط</button>`}
+            <button onclick="openLoanForm('${l.id}')" style="padding:6px 12px;border-radius:11px;border:none;background:var(--prl);color:var(--pr);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ویرایش</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('loanm').classList.add('on');
+}
+function openLoanForm(id){
+  eLoanId=id||null;
+  const l=id?(ST.loans||[]).find(x=>x.id===id):null;
+  document.getElementById('loanfmt').textContent=l?'ویرایش وام':'وام جدید';
+  document.getElementById('loan-n').value=l?l.n:'';
+  document.getElementById('loan-rem').value=l?nf(l.remaining):'';
+  document.getElementById('loan-inst').value=l?nf(l.inst):'';
+  document.getElementById('loan-day').value=l?l.day:'';
+  document.getElementById('dloanb').style.display=l?'block':'none';
+  cls('loanm');document.getElementById('loanfm').classList.add('on');
+}
+async function saveLoan(){
+  const n=document.getElementById('loan-n').value.trim();
+  const rem=toLn(document.getElementById('loan-rem').value)||0;
+  const inst=toLn(document.getElementById('loan-inst').value)||0;
+  const day=parseInt(document.getElementById('loan-day').value);
+  if(!n){ntf('⚠️ عنوان وام الزامی است');hiErr('loan-n');return;}
+  if(rem<=0){ntf('⚠️ مانده بدهی باید بزرگتر از صفر باشد');hiErr('loan-rem');return;}
+  if(inst<=0||inst>rem){ntf('⚠️ مبلغ قسط نامعتبر است');hiErr('loan-inst');return;}
+  if(!day||day<1||day>31){ntf('⚠️ روز سررسید باید بین ۱ تا ۳۱ باشد');hiErr('loan-day');return;}
+  if(!ST.loans) ST.loans=[];
+  if(eLoanId){
+    const idx=ST.loans.findIndex(l=>l.id===eLoanId);
+    if(idx>=0) ST.loans[idx]={...ST.loans[idx],n,remaining:rem,inst,day,active:rem>0};
+  } else {
+    ST.loans.push({id:uid(),n,total:rem,remaining:rem,inst,day,active:true});
+  }
+  ensureLoanCat();
+  await sv();cls('loanfm');ntf('✅ وام ذخیره شد');
+  updateLoanCount();rDash();openLoanList();
+}
+async function delLoan(){
+  if(!eLoanId) return;
+  if(!confirm('این وام حذف شود؟ اقساط پرداخت‌شدهٔ قبلی در تراکنش‌ها باقی می‌مانند.')) return;
+  ST.loans=(ST.loans||[]).filter(l=>l.id!==eLoanId);
+  await sv();cls('loanfm');ntf('🗑️ حذف شد');
+  updateLoanCount();rDash();openLoanList();
+}
+// Pay one installment: MUST debit a real account, otherwise net worth would
+// wrongly rise (debt falls while cash stays). Opens a small pay sheet.
+let payLoanId=null;
+function payInstallment(id){
+  const l=(ST.loans||[]).find(x=>x.id===id);
+  if(!l||l.remaining<=0) return;
+  payLoanId=id;
+  const sel=document.getElementById('loanpay-acc');
+  const accs=(ST.accounts||[]).filter(a=>a.id!==SAVINGS_ACC_ID);
+  if(!accs.length){ntf('⚠️ ابتدا یک حساب بانکی ثبت کنید');return;}
+  sel.innerHTML=accs.map(a=>`<option value="${a.id}">${esc(a.bank)}${a.name?' - '+esc(a.name):''} (${nf(calcAccBalance(a.id))} ت)</option>`).join('');
+  document.getElementById('loanpay-title').textContent='قسط «'+l.n+'»';
+  document.getElementById('loanpay-amt').value=nf(Math.min(l.inst,l.remaining));
+  cls('loanm');document.getElementById('loanpaym').classList.add('on');
+}
+async function confirmPayInstallment(){
+  const l=(ST.loans||[]).find(x=>x.id===payLoanId);
+  if(!l) return;
+  const amt=toLn(document.getElementById('loanpay-amt').value)||0;
+  const accId=document.getElementById('loanpay-acc').value;
+  if(amt<=0||amt>l.remaining){ntf('⚠️ مبلغ قسط نامعتبر است');hiErr('loanpay-amt');return;}
+  if(!accId){ntf('⚠️ حساب پرداخت را انتخاب کنید');return;}
+  if(calcAccBalance(accId)<amt&&!confirm('موجودی حساب کمتر از مبلغ قسط است. ادامه می‌دهید؟')) return;
+  ensureLoanCat();
+  const t=today();
+  ST.tx.push({id:uid(),tp:'expense',cat:'e8',a:amt,dsc:'قسط '+l.n,day:t.d,m:t.m-1,y:t.y,accId,loanId:l.id});
+  l.remaining=Math.max(0,l.remaining-amt);
+  if(l.remaining<=0){l.active=false;setTimeout(()=>ntf(`🎉 وام «${l.n}» تسویه شد!`),900);}
+  budgetWarn('e8',t.m-1,t.y);
+  await sv();cls('loanpaym');ntf('✅ قسط ثبت شد');
+  updateLoanCount();rDash();rTx();
+}
+function updateLoanCount(){
+  const el=document.getElementById('loan-count');
+  if(el){
+    const act=(ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0);
+    el.textContent=act.length?`${toFa(act.length)} وام فعال — بدهی ${nf(debtsTotal())} ت`:'بدون وام فعال';
+  }
+}
+// Loan installment due reminder (same cadence as recurring reminders)
+function chkLoansDue(){
+  const loans=(ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0);
+  if(!loans.length) return;
+  const t=today();
+  const due=loans.filter(l=>{
+    if(t.d<l.day) return false;
+    // already paid this month?
+    return !ST.tx.some(tx=>tx.loanId===l.id&&tx.m===t.m-1&&tx.y===t.y);
+  });
+  if(due.length){
+    ntf(`🔔 قسط سررسیدشده: ${due.map(l=>l.n).join('، ')}`);
+  }
+}
+
 const ACC_COLORS=['#1456A8','#1A8A4A','#C0392B','#7B1515','#4A42B0','#B5600A'];
 let eAccId=null, selAccColor='#1456A8';
 
@@ -3126,7 +3608,16 @@ function openAccList(){
   if(!acc.length){
     content.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">هنوز حسابی ثبت نشده</div>';
   } else {
-    content.innerHTML=acc.map(a=>{
+    const totalBal=acc.reduce((s,a)=>s+calcAccBalance(a.id),0);
+    const debt=debtsTotal();
+    const sumRow=`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--prl);border-radius:14px;padding:12px 14px;margin-bottom:10px">
+      <span style="font-size:12.5px;font-weight:700;color:var(--pr)">جمع موجودی حساب‌ها</span>
+      <span style="font-size:15px;font-weight:800;color:var(--pr)">${nf(totalBal)} ت</span>
+    </div>${debt>0?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--rdl);border-radius:14px;padding:10px 14px;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:700;color:var(--rd)">بدهی وام‌ها</span>
+      <span style="font-size:13.5px;font-weight:800;color:var(--rd)">−${nf(debt)} ت</span>
+    </div>`:''}`;
+    content.innerHTML=sumRow+acc.map(a=>{
       const bal=calcAccBalance(a.id);
       const cardDisp=a.cardno?a.cardno:(a.last4?'****-****-****-'+a.last4:'');
       const details=[
@@ -3345,6 +3836,20 @@ function fillAccSelects(){
 }
 
 let etrans=null; // id of the tx leg being edited, or null when creating a new transfer
+// Quick savings: one-tap transfer with destination preset to the savings account
+async function openSavingsQuick(){
+  ensureSavingsAccount();
+  const others=(ST.accounts||[]).filter(a=>a.id!==SAVINGS_ACC_ID);
+  if(!others.length){ntf('⚠️ ابتدا یک حساب بانکی ثبت کنید');await sv();return;}
+  await sv(); // persist auto-created savings account
+  openTransfer();
+  setTimeout(()=>{
+    const toSel=document.getElementById('trans-to');
+    if(toSel) toSel.value=SAVINGS_ACC_ID;
+    const fromSel=document.getElementById('trans-from');
+    if(fromSel&&fromSel.value===SAVINGS_ACC_ID&&others[0]) fromSel.value=others[0].id;
+  },60);
+}
 function openTransfer(id){
   if(!ST.accounts||ST.accounts.length<2){
     ntf('⚠️ حداقل ۲ حساب برای انتقال لازم است');return;
@@ -3413,7 +3918,7 @@ async function doTransfer(){
   if(fromId===toId){ntf('⚠️ حساب مبدا و مقصد یکسان است');return;}
   if(!amt||amt<=0){ntf('⚠️ مبلغ باید بزرگتر از صفر باشد');hiErr('trans-amt');return;}
   if(amt>100000000000){ntf('⚠️ مبلغ انتقال غیرمنطقی است');hiErr('trans-amt');return;}
-  if(day<1||day>31){ntf('⚠️ روز نامعتبر است');return;}
+  if(day<1||day>jMaxDay(m,y)){ntf('⚠️ روز با طول ماه انتخابی سازگار نیست');return;}
 
   if(etrans){
     // Editing an existing transfer — update both linked legs together so they never desync
@@ -3772,8 +4277,10 @@ async function init(){
   // Check if weekly LOCAL-FILE backup reminder is needed — skipped for users who
   // already have automatic cloud backup running, to avoid two competing prompts
   setTimeout(()=>{ if(!(fbReady&&fbAuth&&fbAuth.currentUser)) chkAutoBackup(); }, 1500);
+  applyTheme();
   setTimeout(chkDue, 2000);
   setTimeout(chkRecurring, 3000);
+  setTimeout(chkLoansDue, 3500);
   setInterval(chkDue, 3600000);
   // Auto-request notification permission on first launch
   if('Notification' in window && Notification.permission==='default'){
