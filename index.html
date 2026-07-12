@@ -446,6 +446,9 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <!-- Active loans summary (fills the previously-empty space; hidden when no loans) -->
   <div id="dashLoans"></div>
 
+  <!-- FX remittance summary (hidden when no deals) -->
+  <div id="dashFx"></div>
+
 <!-- Last 5 transactions -->
   <div style="padding:14px 14px 4px;display:flex;align-items:center;justify-content:space-between;margin-top:4px">
     <span style="font-size:14px;font-weight:800;color:var(--t1)">آخرین تراکنش‌ها</span>
@@ -575,6 +578,11 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
       <div class="stt-row" onclick="openLoanList()">
         <div class="stt-ic" style="background:linear-gradient(145deg,#B0693C,#7A3E1D)"><svg viewBox="0 0 24 24" style="stroke:#fff"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/></svg></div>
         <div class="stt-info"><strong>وام و اقساط</strong><span id="loan-count">بدون وام فعال</span></div>
+        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+      </div>
+      <div class="stt-row" onclick="openFxList()">
+        <div class="stt-ic" style="background:linear-gradient(145deg,#7B68EE,#3B2E9E)"><svg viewBox="0 0 24 24" style="stroke:#fff"><circle cx="12" cy="12" r="9"/><path d="M14.5 8.5A4 4 0 0010 8c-2 .8-2.6 3-2.6 4s.6 3.2 2.6 4a4 4 0 004.5-.5M6 10.5h6M6 13.5h6"/></svg></div>
+        <div class="stt-info"><strong>حواله ارزی</strong><span id="fx-count">بدون حواله</span></div>
         <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
       </div>
     </div>
@@ -1153,6 +1161,58 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 </div>
 </div>
 
+<!-- FX remittance: list -->
+<div class="ov" id="fxm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2>حواله ارزی (یورو ↔ تومان)</h2>
+  <div id="fx-sum" style="margin-bottom:12px"></div>
+  <div id="fx-list" style="max-height:44vh;overflow-y:auto;margin-bottom:12px"></div>
+  <button class="btn btnp" onclick="openFxForm()">＋ حواله جدید</button>
+  <button class="btn btns" onclick="cls('fxm')">بستن</button>
+</div>
+</div>
+
+<!-- FX remittance: form -->
+<div class="ov" id="fxfm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2 id="fxfmt">حواله جدید</h2>
+  <div class="fg"><label>فرستنده (در آلمان)</label><input type="text" id="fx-sender" placeholder="نام فرستنده"></div>
+  <div class="fg"><label>گیرنده (در ایران)</label><input type="text" id="fx-receiver" placeholder="نام گیرنده"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="fg"><label>یورو دریافتی همکار</label><input type="text" inputmode="numeric" id="fx-eur" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):'';fxSuggestToman()"></div>
+    <div class="fg"><label>نرخ توافقی (ت/€)</label><input type="text" inputmode="numeric" id="fx-rate" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):'';fxSuggestToman()"></div>
+  </div>
+  <div class="fg"><label>تومان پرداختی به گیرنده</label><input type="text" inputmode="numeric" id="fx-toman" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="fg"><label>کارمزد من (تومان)</label><input type="text" inputmode="numeric" id="fx-fee" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+    <div class="fg"><label>سهم همکار (یورو)</label><input type="text" inputmode="numeric" id="fx-pfee" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:10px">
+    <div class="fg"><label>روز</label><input type="number" id="fx-day" min="1" max="31"></div>
+    <div class="fg"><label>ماه</label><select id="fx-mon"></select></div>
+    <div class="fg"><label>سال</label><input type="number" id="fx-yr"></div>
+  </div>
+  <div style="font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:12px">سهم یورویی من در هر حواله = یوروی دریافتی − سهم همکار. این مبلغ پس از «تکمیل» حواله به انباشته اضافه می‌شود و در خالص دارایی شمرده نمی‌شود.</div>
+  <button class="btn btnp" onclick="saveFx()">ذخیره</button>
+  <button class="btn btnd" id="dfxb" style="display:none" onclick="delFx()">حذف حواله</button>
+  <button class="btn btns" onclick="cls('fxfm')">انصراف</button>
+</div>
+</div>
+
+<!-- FX remittance: pay sheet -->
+<div class="ov" id="fxpaym">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2 id="fxpay-title">پرداخت حواله</h2>
+  <div class="fg"><label>پرداخت از حساب</label><select id="fxpay-acc"></select></div>
+  <div style="font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:12px">این پرداخت از موجودی حساب کسر می‌شود ولی در «هزینهٔ ماه» و نمودارها نمی‌آید (تبدیل دارایی است، نه مصرف).</div>
+  <button class="btn btnp" onclick="confirmFxPay()">ثبت پرداخت و تکمیل حواله</button>
+  <button class="btn btns" onclick="cls('fxpaym')">انصراف</button>
+</div>
+</div>
+
 <!-- Theme picker -->
 <div class="ov" id="thememdl">
 <div class="mdl">
@@ -1264,7 +1324,7 @@ function def(){
     sm:today().m-1,
     appName:'سرمایه',
     tx:[],ten:[],pay:{},
-    budgets:{},loans:[],theme:'auto',
+    budgets:{},loans:[],theme:'auto',fx:[],
     notifLog:[],smsLog:[],
     cats:{
       income:[
@@ -1513,10 +1573,11 @@ function migrateState(s){
     s.savingsV2=true;
   }
 
-  // ---- Budgets / Loans / Theme defaults ----
+  // ---- Budgets / Loans / Theme / FX defaults ----
   if(!s.budgets||typeof s.budgets!=='object') s.budgets={};
   if(!Array.isArray(s.loans)) s.loans=[];
   if(!s.theme) s.theme='auto';
+  if(!Array.isArray(s.fx)) s.fx=[];
 
   return s;
 }
@@ -1756,6 +1817,27 @@ function rDash(){
   const t=today();
   document.getElementById('td').textContent=`${t.wd} ${fmtDate(t.d,t.m-1,t.y)}`;
   updateMonthLabel();
+  // FX remittance mini-card on the dashboard
+  const dfx=document.getElementById('dashFx');
+  if(dfx){
+    const deals=ST.fx||[];
+    if(!deals.length){dfx.innerHTML='';}
+    else{
+      const pool=fxPoolEur();
+      const pend=deals.filter(d=>d.status!=='done').length;
+      dfx.innerHTML=`<div style="padding:12px 14px 0">
+        <div onclick="openFxList()" style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:12px">
+          <span style="width:40px;height:40px;border-radius:13px;background:var(--ppl);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:800;color:var(--pp)">€</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;color:var(--t2)">انباشته یورویی حواله‌ها</div>
+            <div style="font-size:17px;font-weight:800;color:var(--t1)">€ ${nf(pool)}</div>
+          </div>
+          ${pend?`<span style="font-size:10.5px;font-weight:800;color:var(--am);background:var(--aml);padding:4px 10px;border-radius:10px;flex-shrink:0">${toFa(pend)} در جریان</span>`:''}
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--t3);stroke-width:2;fill:none;flex-shrink:0"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+      </div>`;
+    }
+  }
   const txs=getTx(SM);const{i,e,b}=totals(txs);
   document.getElementById('di').textContent=nf(i);
   document.getElementById('de').textContent=nf(e);
@@ -1894,6 +1976,18 @@ function txHtml(t){
         <div class="txd">${fmtDate(t.day,t.m,t.y||1404)} · جزو درآمد/هزینه محاسبه نمی‌شود</div>
       </div>
       <div class="txa" style="color:var(--t2)">${nf(t.a)} ت</div>
+    </div>`;
+  }
+  if(t.fxId){
+    return `<div class="txi" onclick="openFxList()">
+      <div class="txic" style="background:linear-gradient(145deg,#7B68EE,#3B2E9E)">
+        <span style="font-size:19px;font-weight:800;color:#fff">€</span>
+      </div>
+      <div class="txin">
+        <div class="txt">${esc(t.dsc||'حواله ارزی')}</div>
+        <div class="txd">${fmtDate(t.day,t.m,t.y||1404)} · جزو درآمد/هزینه محاسبه نمی‌شود</div>
+      </div>
+      <div class="txa" style="color:var(--t2)">-${nf(t.a)} ت</div>
     </div>`;
   }
   if(t.isTransfer){
@@ -2073,6 +2167,8 @@ async function delTx(){
   if(delObj&&delObj.isRent&&delObj.payKey&&ST.pay[delObj.payKey]) delete ST.pay[delObj.payKey];
   if(delObj&&delObj.isOpening){const acc=(ST.accounts||[]).find(a=>a.openTxId===delObj.id);if(acc)acc.openTxId=null;}
   if(delObj&&delObj.isTransfer){const pair=findTransferPair(delObj);if(pair) ST.tx=ST.tx.filter(t=>t.id!==pair.id);}
+  // If an FX payout leg is removed, roll the deal back to "یورو دریافت شد"
+  if(delObj&&delObj.fxId){const d=(ST.fx||[]).find(x=>x.id===delObj.fxId);if(d){d.status='eur';d.txId=null;}}
   cls('txm');ntf('🗑️ حذف شد');
   rDash();rTx();rTen();
   await sv();
@@ -2961,6 +3057,7 @@ function rSett(){
   updateRecCount();
   updateBudgetCount();
   updateLoanCount();
+  updateFxCount();
   updateThemeLabel();
   updateLockStatusLabel();
   if(fbReady) renderCloudPanel();
@@ -3163,7 +3260,7 @@ function exportCSV(){
   ST.tx.forEach(t=>{
     const cat=t.isTransfer?{n:'انتقال'}:getCat(t.tp,t.cat);
     const accName=t.accId?(((ST.accounts||[]).find(x=>x.id===t.accId)||{}).bank||''):'';
-    const kind=t.isOpening?'موجودی اولیه':t.isTransfer?'انتقال':t.isRent?'اجاره':t.loanId?'قسط وام':'عادی';
+    const kind=t.isOpening?'موجودی اولیه':t.fxId?'حواله ارزی':t.isTransfer?'انتقال':t.isRent?'اجاره':t.loanId?'قسط وام':'عادی';
     csv+=`"${t.tp==='income'?'درآمد':'هزینه'}","${cat.n}",${t.a},"${(t.dsc||'').replace(/"/g,'""')}",${t.day},${t.m+1},${t.y||1404},"${accName}","${kind}"\n`;
   });
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
@@ -3634,6 +3731,17 @@ function updateLoanCount(){
     el.textContent=act.length?`${toFa(act.length)} وام فعال — بدهی ${nf(debtsTotal())} ت`:'بدون وام فعال';
   }
 }
+function updateFxCount(){
+  const el=document.getElementById('fx-count');
+  if(el){
+    const deals=ST.fx||[];
+    if(!deals.length){el.textContent='بدون حواله';}
+    else{
+      const pend=deals.filter(d=>d.status!=='done').length;
+      el.textContent=`€ ${nf(fxPoolEur())} انباشته${pend?' — '+toFa(pend)+' در جریان':''}`;
+    }
+  }
+}
 // Loan installment due reminder (same cadence as recurring reminders)
 function chkLoansDue(){
   const loans=(ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0);
@@ -3647,6 +3755,167 @@ function chkLoansDue(){
   if(due.length){
     ntf(`🔔 قسط سررسیدشده: ${due.map(l=>l.n).join('، ')}`);
   }
+}
+
+// ============================================================
+// FX REMITTANCE LEDGER (حواله ارزی)
+// Partner receives EUR abroad; we pay Toman locally. My accrued
+// EUR claim = eur − partnerFeeEur, counted ONLY when the deal is
+// 'done'. By user's choice this claim is NOT in net worth; it has
+// its own ledger. The Toman payout posts as a LONE isTransfer leg
+// (unique transferId, no pair) so the account balance drops but
+// monthly expenses/charts stay untouched.
+// Statuses: reg (ثبت شد) → eur (یورو دریافت شد) → done (تکمیل)
+// ============================================================
+let eFxId=null, payFxId=null;
+function fxPoolEur(){return (ST.fx||[]).filter(d=>d.status==='done').reduce((s,d)=>s+((d.eur||0)-(d.pfee||0)),0);}
+function fxFeeTotals(){
+  let toman=0,eur=0;
+  (ST.fx||[]).filter(d=>d.status==='done').forEach(d=>{
+    toman+=(d.fee||0);
+    if(d.rate>0) eur+=(d.fee||0)/d.rate;
+  });
+  return{toman,eur:Math.round(eur*100)/100};
+}
+const FX_ST={reg:{t:'ثبت شد',c:'var(--am)',bg:'var(--aml)'},eur:{t:'یورو دریافت شد',c:'var(--pr)',bg:'var(--prl)'},done:{t:'تکمیل شد',c:'var(--gr)',bg:'var(--grl)'}};
+function openFxList(){
+  const box=document.getElementById('fx-list');
+  const sum=document.getElementById('fx-sum');
+  const deals=[...(ST.fx||[])].sort((a,b)=>(b.created||0)-(a.created||0));
+  const pool=fxPoolEur();
+  const fees=fxFeeTotals();
+  const pend=deals.filter(d=>d.status!=='done').length;
+  sum.innerHTML=`
+    <div class="rrow"><span class="rlb">انباشته یورویی من</span><span class="rv" style="color:var(--pr);font-size:15px">€ ${nf(pool)}</span></div>
+    <div class="rrow"><span class="rlb">جمع کارمزد کسب‌شده</span><span class="rv" style="color:var(--gr)">${nf(fees.toman)} ت (≈ € ${toFa(fees.eur)})</span></div>
+    <div class="rrow"><span class="rlb">حواله‌های در جریان</span><span class="rv" style="color:${pend?'var(--am)':'var(--t3)'}">${toFa(pend)}</span></div>`;
+  if(!deals.length){
+    box.innerHTML='<div style="text-align:center;padding:16px;color:var(--t3);font-size:13px">حواله‌ای ثبت نشده است</div>';
+  } else {
+    box.innerHTML=deals.map(d=>{
+      const st=FX_ST[d.status]||FX_ST.reg;
+      const myEur=(d.eur||0)-(d.pfee||0);
+      const next=d.status==='reg'
+        ?`<button onclick="fxAdvance('${d.id}')" style="padding:5px 11px;border-radius:10px;border:none;background:var(--prl);color:var(--pr);font-size:10.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">یورو رسید ✓</button>`
+        :d.status==='eur'
+        ?`<button onclick="fxOpenPay('${d.id}')" style="padding:5px 11px;border-radius:10px;border:none;background:var(--grl);color:var(--gr);font-size:10.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">پرداخت تومان</button>`
+        :'';
+      return `<div style="background:var(--bg);border-radius:14px;border:1px solid var(--border);padding:11px 13px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:12.5px;font-weight:800;color:var(--t1)">€ ${nf(d.eur)} <span style="font-weight:500;color:var(--t3)">@ ${nf(d.rate)}</span></span>
+          <span style="font-size:10px;font-weight:800;color:${st.c};background:${st.bg};padding:3px 9px;border-radius:9px">${st.t}</span>
+        </div>
+        <div style="font-size:11px;color:var(--t2);line-height:1.8">
+          فرستنده: ${esc(d.sender||'—')} · گیرنده: ${esc(d.receiver||'—')}<br>
+          پرداختی: ${nf(d.toman)} ت · کارمزد من: ${nf(d.fee)} ت · سهم همکار: € ${nf(d.pfee)} · سهم من: <b style="color:var(--pr)">€ ${nf(myEur)}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
+          <span style="font-size:10px;color:var(--t3)">${toFa(d.day)}/${toFa(pad2(d.m+1))}/${toFa(d.y)}</span>
+          <div style="display:flex;gap:6px">${next}
+            <button onclick="openFxForm('${d.id}')" style="padding:5px 11px;border-radius:10px;border:none;background:var(--prl);color:var(--pr);font-size:10.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ویرایش</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('fxm').classList.add('on');
+}
+function openFxForm(id){
+  eFxId=id||null;
+  const d=id?(ST.fx||[]).find(x=>x.id===id):null;
+  const t=today();
+  document.getElementById('fxfmt').textContent=d?'ویرایش حواله':'حواله جدید';
+  document.getElementById('fx-sender').value=d?d.sender:'';
+  document.getElementById('fx-receiver').value=d?d.receiver:'';
+  document.getElementById('fx-eur').value=d?nf(d.eur):'';
+  document.getElementById('fx-rate').value=d?nf(d.rate):'';
+  document.getElementById('fx-toman').value=d?nf(d.toman):'';
+  document.getElementById('fx-fee').value=d?nf(d.fee):'';
+  document.getElementById('fx-pfee').value=d?nf(d.pfee):'';
+  document.getElementById('fx-day').value=d?d.day:t.d;
+  fillMon('fx-mon',d?d.m:t.m-1);
+  document.getElementById('fx-yr').value=d?d.y:t.y;
+  document.getElementById('dfxb').style.display=d?'block':'none';
+  cls('fxm');document.getElementById('fxfm').classList.add('on');
+}
+function fxSuggestToman(){
+  const eur=toLn(document.getElementById('fx-eur').value)||0;
+  const rate=toLn(document.getElementById('fx-rate').value)||0;
+  const tEl=document.getElementById('fx-toman');
+  if(eur>0&&rate>0&&!toLn(tEl.value)) tEl.value=nf(eur*rate);
+}
+async function saveFx(){
+  const sender=document.getElementById('fx-sender').value.trim();
+  const receiver=document.getElementById('fx-receiver').value.trim();
+  const eur=toLn(document.getElementById('fx-eur').value)||0;
+  const rate=toLn(document.getElementById('fx-rate').value)||0;
+  const toman=toLn(document.getElementById('fx-toman').value)||0;
+  const fee=toLn(document.getElementById('fx-fee').value)||0;
+  const pfee=toLn(document.getElementById('fx-pfee').value)||0;
+  const day=parseInt(document.getElementById('fx-day').value);
+  const m=parseInt(document.getElementById('fx-mon').value);
+  const y=parseInt(document.getElementById('fx-yr').value)||today().y;
+  if(eur<=0){ntf('⚠️ مبلغ یورو باید بزرگتر از صفر باشد');hiErr('fx-eur');return;}
+  if(rate<=0){ntf('⚠️ نرخ توافقی الزامی است');hiErr('fx-rate');return;}
+  if(toman<=0){ntf('⚠️ مبلغ تومانی پرداختی الزامی است');hiErr('fx-toman');return;}
+  if(pfee<0||pfee>=eur){ntf('⚠️ سهم همکار باید کمتر از کل یورو باشد');hiErr('fx-pfee');return;}
+  if(!day||day<1||day>jMaxDay(m,y)){ntf('⚠️ روز با طول ماه سازگار نیست');hiErr('fx-day');return;}
+  if(!ST.fx) ST.fx=[];
+  if(eFxId){
+    const d=ST.fx.find(x=>x.id===eFxId);
+    if(d){
+      Object.assign(d,{sender,receiver,eur,rate,toman,fee,pfee,day,m,y});
+      if(d.status==='done'&&d.txId){
+        const tx=ST.tx.find(t=>t.id===d.txId);
+        if(tx){tx.a=toman;tx.day=day;tx.m=m;tx.y=y;tx.dsc='حواله ارزی — '+(receiver||sender||'');}
+      }
+    }
+  } else {
+    ST.fx.push({id:uid(),sender,receiver,eur,rate,toman,fee,pfee,day,m,y,status:'reg',txId:null,created:Date.now()});
+  }
+  await sv();cls('fxfm');ntf('✅ حواله ذخیره شد');
+  rDash();openFxList();
+}
+async function delFx(){
+  if(!eFxId) return;
+  const d=(ST.fx||[]).find(x=>x.id===eFxId);
+  if(!d) return;
+  const msg=d.status==='done'?'این حواله حذف شود؟ تراکنش پرداخت مرتبط هم حذف می‌شود.':'این حواله حذف شود؟';
+  if(!confirm(msg)) return;
+  if(d.txId) ST.tx=ST.tx.filter(t=>t.id!==d.txId);
+  ST.fx=ST.fx.filter(x=>x.id!==eFxId);
+  await sv();cls('fxfm');ntf('🗑️ حذف شد');
+  rDash();rTx();openFxList();
+}
+async function fxAdvance(id){
+  const d=(ST.fx||[]).find(x=>x.id===id);
+  if(!d||d.status!=='reg') return;
+  d.status='eur';
+  await sv();ntf('✅ دریافت یورو ثبت شد');
+  rDash();openFxList();
+}
+function fxOpenPay(id){
+  const d=(ST.fx||[]).find(x=>x.id===id);
+  if(!d||d.status!=='eur') return;
+  payFxId=id;
+  const accs=(ST.accounts||[]).filter(a=>a.id!==SAVINGS_ACC_ID);
+  if(!accs.length){ntf('⚠️ ابتدا یک حساب بانکی ثبت کنید');return;}
+  document.getElementById('fxpay-acc').innerHTML=accs.map(a=>`<option value="${a.id}">${esc(a.bank)}${a.name?' - '+esc(a.name):''} (${nf(calcAccBalance(a.id))} ت)</option>`).join('');
+  document.getElementById('fxpay-title').textContent='پرداخت '+nf(d.toman)+' تومان به '+(d.receiver||'گیرنده');
+  cls('fxm');document.getElementById('fxpaym').classList.add('on');
+}
+async function confirmFxPay(){
+  const d=(ST.fx||[]).find(x=>x.id===payFxId);
+  if(!d||d.status!=='eur') return;
+  const accId=document.getElementById('fxpay-acc').value;
+  if(!accId){ntf('⚠️ حساب پرداخت را انتخاب کنید');return;}
+  if(calcAccBalance(accId)<d.toman&&!confirm('موجودی حساب کمتر از مبلغ حواله است. ادامه می‌دهید؟')) return;
+  const txId=uid();
+  ST.tx.push({id:txId,tp:'expense',cat:'transfer',a:d.toman,dsc:'حواله ارزی — '+(d.receiver||d.sender||''),
+    day:d.day,m:d.m,y:d.y,accId,isTransfer:true,transferId:'fx_'+d.id,fxId:d.id});
+  d.status='done';d.txId=txId;
+  await sv();cls('fxpaym');ntf('✅ حواله تکمیل شد');
+  rDash();rTx();openFxList();
 }
 
 const ACC_COLORS=['#1456A8','#1A8A4A','#C0392B','#7B1515','#4A42B0','#B5600A'];
