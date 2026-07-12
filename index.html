@@ -2841,6 +2841,15 @@ function openPay(tid){
   document.getElementById('paymt').textContent='پرداخت‌های '+t.n;
   const td=today();
 
+  // Deposit-to account (per-tenant preference). New/edited rent payments will be
+  // posted as income INTO this account so balances & net worth reflect collections.
+  const accs=(ST.accounts||[]).filter(a=>a.id!==SAVINGS_ACC_ID);
+  const accSel=`<div class="fg" style="margin-bottom:12px"><label>واریز اجاره به حساب</label>
+    <select id="pay-acc" onchange="setTenAcc('${tid}',this.value)">
+      <option value="">— بدون حساب (فقط ثبت درآمد) —</option>
+      ${accs.map(a=>`<option value="${a.id}"${(t.accId===a.id)?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('')}
+    </select></div>`;
+
   // First payment = one month after contract start, same day (user-confirmed rule).
   const firstIdx=pFirstIdx(tenPeriods(t)[0]);
   const endIdx=contractEnd(t).idx;
@@ -2927,7 +2936,7 @@ function openPay(tid){
     </div>`;
   });
 
-  document.getElementById('payc').innerHTML=h;
+  document.getElementById('payc').innerHTML=accSel+h;
   document.getElementById('paym').classList.add('on');
 }
 
@@ -2938,6 +2947,11 @@ function showPayForm(tid,y,m){
   document.getElementById(`payform_${tid}_${y}_${m}`).style.display='block';
 }
 
+async function setTenAcc(tid,accId){
+  const t=ST.ten.find(x=>x.id===tid);if(!t)return;
+  t.accId=accId||'';
+  await sv();
+}
 async function savePay(tid,y,m,status){
   const amtEl=document.getElementById(`pamt_${tid}_${y}_${m}`);
   const dateEl=document.getElementById(`pdate_${tid}_${y}_${m}`);
@@ -2955,7 +2969,10 @@ async function savePay(tid,y,m,status){
     const dm=date?normDigits(date).match(/(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,2})/):null;
     if(dm){const dd=parseInt(dm[3]);if(dd>=1&&dd<=31)day=dd;}
     const cat=ten&&ten.tp==='تجاری'?'s3':'s2';
-    const txRec={id:txId,tp:'income',cat,a:amount,dsc:`اجاره ${ten?ten.n:''}${status==='partial'?' (ناقص)':''}`.trim(),day,m:parseInt(m),y:parseInt(y),isRent:true,tenantId:tid,payKey:key};
+    const accSelEl=document.getElementById('pay-acc');
+    const accId=(accSelEl?accSelEl.value:(ten&&ten.accId)||'')||'';
+    if(ten) ten.accId=accId;
+    const txRec={id:txId,tp:'income',cat,a:amount,dsc:`اجاره ${ten?ten.n:''}${status==='partial'?' (ناقص)':''}`.trim(),day,m:parseInt(m),y:parseInt(y),isRent:true,tenantId:tid,payKey:key,accId};
     const idx=ST.tx.findIndex(t=>t.id===txId);
     if(idx>=0) ST.tx[idx]=txRec; else ST.tx.push(txRec);
     rec.txId=txId;
@@ -3066,10 +3083,13 @@ function rPropTable(){
                              :`<span class="rv" style="color:var(--t3);font-size:12px">اجاره شروع نشده</span>`;
     const collectedLine=started?`دریافتی ${toFa(y)}: ${nf(collected)} از ${nf(expected)} ت (${toFa(months)} ماه)`
                                :`اجاره در سال ${toFa(y)} هنوز آغاز نشده`;
+    // Realized yield: actual cash collected this year ÷ property value —
+    // the honest counterpart to the contractual gross yield.
+    const realYield=(ten.val>0&&started)?((collected/ten.val)*100).toFixed(1):null;
     let yieldLine;
     if(grossYield===null){ yieldLine='بازدهی: ارزش ملک ثبت نشده'; }
-    else if(effYield!==null){ yieldLine=`بازدهی ناخالص ${toFa(grossYield)}٪ · مؤثر ${toFa(effYield)}٪`; }
-    else { yieldLine=`بازدهی ناخالص سالانه: ${toFa(grossYield)}٪`; }
+    else if(effYield!==null){ yieldLine=`ناخالص ${toFa(grossYield)}٪ · مؤثر ${toFa(effYield)}٪${realYield!==null?' · تحقق‌یافته '+toFa(realYield)+'٪':''}`; }
+    else { yieldLine=`بازدهی ناخالص ${toFa(grossYield)}٪${realYield!==null?' · تحقق‌یافته '+toFa(realYield)+'٪':''}`; }
     return `<div class="rrow" style="align-items:flex-start;flex-direction:column;gap:6px;padding:12px 0">
       <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
         <span class="rlb" style="font-weight:700;color:var(--t1)">${esc(ten.n)} <span style="font-weight:500;color:var(--t3)">· ${esc(ten.unit)}</span></span>
@@ -3237,6 +3257,10 @@ function openCatMgr(tp){
   document.getElementById('catmgr').classList.add('on');
 }
 async function delCat(tp,id){
+  // System-linked categories: rent payments auto-post to s2/s3 and loan
+  // installments to e8 — deleting them would orphan future auto-records.
+  const SYS={s2:'اجاره آپارتمان (متصل به بخش اجاره‌ها)',s3:'اجاره تجاری (متصل به بخش اجاره‌ها)',e8:'قسط و وام (متصل به بخش وام‌ها)'};
+  if(SYS[id]){ntf('🔒 دسته «'+SYS[id]+'» توسط سیستم استفاده می‌شود و قابل حذف نیست');return;}
   if(ST.cats[tp].length<=1){ntf('⚠️ حداقل یک دسته لازم است');return;}
   ST.cats[tp]=ST.cats[tp].filter(c=>c.id!==id);
   await sv();ntf('🗑️ حذف شد');openCatMgr(tp);
