@@ -227,7 +227,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 .dategrid{display:grid;grid-template-columns:1fr 1.5fr 1.2fr;gap:8px}
 
 /* Tenants */
-.tcrd{background:var(--card);border:0.5px solid var(--border);border-radius:var(--rad);box-shadow:var(--sh);margin:12px 14px 0;overflow:hidden;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+.tcrd{background:var(--card);border:0.5px solid var(--border);border-radius:var(--rad);box-shadow:var(--sh);overflow:hidden;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);display:flex;flex-direction:column;min-height:265px}
 .thdr{padding:15px 16px;display:flex;align-items:center;gap:13px;cursor:pointer}
 .tav{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(0,0,0,0.12)}
 .tav svg{width:26px;height:26px;stroke:#fff;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
@@ -501,7 +501,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     </div>
   </div>
   <div id="alrt"></div>
-  <div id="tl" style="padding-bottom:8px"></div>
+  <div id="tl" style="padding:12px 14px 8px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-items:start"></div>
 </div>
 
 <!-- SCREEN 3: Reports -->
@@ -790,8 +790,10 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
       <input type="number" id="tstart_y" inputmode="numeric" placeholder="سال">
     </div>
   </div>
+  <div class="fg"><label>مدت قرارداد (ماه)</label><input type="number" id="tdur" min="1" max="60" inputmode="numeric" placeholder="۱۲"></div>
   <div class="fg"><label>یادداشت</label><textarea id="tnote" rows="2"></textarea></div>
   <button class="btn btnp" onclick="saveTen()">ذخیره</button>
+  <button class="btn btns" id="renewb" style="display:none;background:var(--grl);color:var(--gr)" onclick="openRenew()">🔄 تمدید قرارداد (دوره جدید)</button>
   <button class="btn btns" onclick="cls('tenm')">انصراف</button>
   <button class="btn btnd" id="dtenb" style="display:none" onclick="delTen()"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>حذف واحد</button>
 </div>
@@ -1213,6 +1215,27 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 </div>
 </div>
 
+<!-- Renewal -->
+<div class="ov" id="renewm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2>تمدید قرارداد</h2>
+  <div id="renew-info" style="font-size:11.5px;color:var(--t3);line-height:1.8;margin-bottom:12px"></div>
+  <div class="fg"><label>تاریخ شروع دوره جدید</label>
+    <div style="display:grid;grid-template-columns:1fr 1.5fr 1.2fr;gap:8px">
+      <input type="number" id="rn-d" min="1" max="31" inputmode="numeric" placeholder="روز">
+      <select id="rn-m"></select>
+      <input type="number" id="rn-y" inputmode="numeric" placeholder="سال">
+    </div>
+  </div>
+  <div class="fg"><label>اجاره ماهانه دوره جدید (تومان)</label><input type="number" id="rn-rent" inputmode="numeric"></div>
+  <div class="fg"><label>مدت دوره جدید (ماه)</label><input type="number" id="rn-dur" min="1" max="60" value="12" inputmode="numeric"></div>
+  <div style="font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:12px">دوره قبلی با نرخ خودش در تاریخچه حفظ می‌شود؛ درصد وصولی هر سال با اجاره همان دوره محاسبه می‌گردد.</div>
+  <button class="btn btnp" onclick="saveRenew()">ثبت تمدید</button>
+  <button class="btn btns" onclick="cls('renewm')">انصراف</button>
+</div>
+</div>
+
 <!-- Theme picker -->
 <div class="ov" id="thememdl">
 <div class="mdl">
@@ -1579,6 +1602,21 @@ function migrateState(s){
   if(!s.theme) s.theme='auto';
   if(!Array.isArray(s.fx)) s.fx=[];
 
+  // ---- Tenant contract periods (one-time) ----
+  // (a) The stored due day of legacy tenants could differ from the contract start
+  //     day (e.g. due=5 while start=10th) — payments are due on the START day.
+  // (b) Build the periods array so renewals with new rents keep history accurate.
+  if(!s.tenPeriodsV1){
+    (s.ten||[]).forEach(ten=>{
+      if(ten.start_d) ten.due=ten.start_d;
+      if(!Array.isArray(ten.periods)||!ten.periods.length){
+        ten.periods=[{sd:ten.start_d||1,sm:ten.start_m!==undefined?ten.start_m:0,
+                      sy:ten.start_y||1404,dur:12,rent:ten.rent||0}];
+      }
+    });
+    s.tenPeriodsV1=true;
+  }
+
   return s;
 }
 
@@ -1799,16 +1837,12 @@ function unpaidRentSummary(){
   const t=today();
   let total=0,count=0;
   (ST.ten||[]).forEach(ten=>{
-    const startM=ten.start_m!==undefined?ten.start_m:0;
-    const firstRentM=(startM+1)%12;
-    const firstRentY=(ten.start_y||t.y)+(startM+1>11?1:0);
-    const curVal=t.y*100+(t.m-1);
-    const firstVal=firstRentY*100+firstRentM;
-    if(curVal<firstVal) return; // rent not due yet for this tenant
+    const r=rentFor(ten,t.m-1,t.y);
+    if(r<=0) return; // no rent due this month (before start or contract ended)
     const key=`${ten.id}_${t.y}_${t.m-1}`;
     const pay=ST.pay[key];
     if(pay&&pay.status==='paid') return;
-    const owed=pay&&pay.status==='partial'?Math.max(0,(ten.rent||0)-(pay.amount||0)):(ten.rent||0);
+    const owed=pay&&pay.status==='partial'?Math.max(0,r-(pay.amount||0)):r;
     if(owed>0){total+=owed;count++;}
   });
   return{total,count};
@@ -2528,17 +2562,18 @@ function rTen(){
   }
   let up=[];
   list.innerHTML=ST.ten.map(ten=>{
-    const key=`${ten.id}_${t.y}_${t.m}`;const pay=ST.pay[key];
+    const key=`${ten.id}_${t.y}_${t.m-1}`;const pay=ST.pay[key];
     const isPaid=pay&&pay.status==='paid';
     const isPartial=pay&&pay.status==='partial';
-    const startM=ten.start_m!==undefined?ten.start_m:0;
-    const firstRentM=(startM+1)%12;
-    const firstRentY=(ten.start_y||t.y)+(startM+1>11?1:0);
-    const curVal=t.y*100+(t.m-1);
-    const firstVal=firstRentY*100+firstRentM;
-    const rentDue=curVal>=firstVal;
+    const curIdx=t.y*12+(t.m-1);
+    const ce=contractEnd(ten);
+    const ended=curIdx>ce.idx;
+    const rentDue=rentFor(ten,t.m-1,t.y)>0;
+    const arr=tenArrears(ten);
     if(rentDue&&!isPaid&&!isPartial)up.push(ten.n);
-    const sb=isPaid
+    const sb=ended
+      ?`<span class="bdg" style="background:var(--rdl);color:var(--rd)">پایان قرارداد — تمدید کنید</span>`
+      :isPaid
       ?`<span class="bdg bg"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>پرداخت</span>`
       :isPartial
         ?`<span class="bdg" style="background:#FFF3CD;color:#856404">ناقص</span>`
@@ -2546,22 +2581,28 @@ function rTen(){
           ?`<span class="bdg br2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>در انتظار</span>`
           :`<span class="bdg" style="background:var(--bg);color:var(--t3)">قرارداد جاری</span>`;
     return `<div class="tcrd">
-      <div class="thdr" onclick="tog('tb${ten.id}')">
-        <div class="tav" style="background:${ten.tp==='تجاری'?'linear-gradient(145deg,#7B68EE,#4A42B0)':' linear-gradient(145deg,#F5A623,#E07B00)'}"><svg viewBox="0 0 24 24" style="width:26px;height:26px;stroke:#fff;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS[ten.tp==='تجاری'?'building':'home']||ICONS.home}</svg></div>
-        <div class="tin"><div class="tn">${esc(ten.n)}</div><div class="tu">${esc(ten.unit)} · ${ten.tp} · سررسید ${toFa(ten.due)}ام</div></div>
+      <div style="padding:14px 13px 12px;display:flex;flex-direction:column;gap:9px;flex:1">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="tav" style="width:42px;height:42px;border-radius:13px;background:${ten.tp==='تجاری'?'linear-gradient(145deg,#7B68EE,#4A42B0)':'linear-gradient(145deg,#F5A623,#E07B00)'}"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:#fff;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS[ten.tp==='تجاری'?'building':'home']||ICONS.home}</svg></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13.5px;font-weight:800;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ten.n)}</div>
+            <div style="font-size:10.5px;color:var(--t2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ten.unit)} · ${ten.tp}</div>
+          </div>
+        </div>
         <div>${sb}</div>
-      </div>
-      <div class="tbody" id="tb${ten.id}">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-          <div style="background:var(--bg);border-radius:12px;padding:10px"><div style="color:var(--t2);font-size:11.5px;font-weight:600">اجاره ماهانه</div><div style="font-weight:700;color:var(--pr);font-size:14px;margin-top:3px">${nf(ten.rent)} ت</div></div>
-          <div style="background:var(--bg);border-radius:12px;padding:10px"><div style="color:var(--t2);font-size:11.5px;font-weight:600">ودیعه</div><div style="font-weight:700;font-size:14px;margin-top:3px">${nf(ten.dep)} ت</div></div>
+        <div style="background:var(--bg);border-radius:12px;padding:9px 11px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px"><span style="color:var(--t2);font-weight:600">اجاره ماهانه</span><b style="color:var(--pr)">${nf(ten.rent)} ت</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px"><span style="color:var(--t2);font-weight:600">ودیعه</span><b style="color:var(--t1)">${nf(ten.dep)} ت</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--t2);font-weight:600">سررسید</span><b style="color:var(--t1)">${toFa(ten.due)}ام هر ماه</b></div>
+          ${arr.owed>0?`<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px;padding-top:5px;border-top:1px dashed var(--border)"><span style="color:var(--rd);font-weight:700">معوق (${toFa(arr.months)} ماه)</span><b style="color:var(--rd)">${nf(arr.owed)} ت</b></div>`:''}
         </div>
         ${depStatusHtml(ten)}
-        ${ten.note?`<div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.7">${esc(ten.note)}</div>`:''}
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button onclick="openPay('${ten.id}')" style="flex:1;padding:11px;border-radius:12px;border:none;background:var(--prl);color:var(--pr);font-size:13px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">سابقه پرداخت</button>
-          <button onclick="openTM('${ten.id}')" style="padding:11px 16px;border-radius:12px;border:none;background:var(--bg);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">ویرایش</button>
-          ${(rentDue&&!isPaid)?`<button onclick="openSmsRemind('${ten.id}')" style="flex:1;padding:11px;border-radius:12px;border:none;background:var(--ppl);color:var(--pp);font-size:13px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">📩 یادآور پیامکی</button>`:''}
+        <div style="display:flex;flex-direction:column;gap:7px;margin-top:auto">
+          <button onclick="openPay('${ten.id}')" style="width:100%;padding:10px;border-radius:12px;border:none;background:var(--prl);color:var(--pr);font-size:12px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">سابقه پرداخت</button>
+          <div style="display:flex;gap:7px">
+            <button onclick="openTM('${ten.id}')" style="flex:1;padding:9px;border-radius:12px;border:none;background:var(--bg);color:var(--t2);font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">ویرایش</button>
+            ${(rentDue&&!isPaid)?`<button onclick="openSmsRemind('${ten.id}')" style="flex:1.4;padding:9px;border-radius:12px;border:none;background:var(--ppl);color:var(--pp);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">📩 یادآور</button>`:''}
+          </div>
         </div>
       </div>
     </div>`;
@@ -2690,15 +2731,55 @@ function openTM(id){
     document.getElementById('tstart_d').value=t.start_d||1;
     document.getElementById('tstart_y').value=t.start_y||today().y;
     fillMon('tstart_m', t.start_m!==undefined?t.start_m:today().m-1);
+    const lp=tenPeriods(t).slice(-1)[0];
+    document.getElementById('tdur').value=lp.dur||12;
+    document.getElementById('renewb').style.display='block';
     document.getElementById('dtenb').style.display='block';
   } else {
     document.getElementById('tenmt').textContent='واحد جدید';
     ['tnm','tunit','trent','tdep','tval','tnote'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('tstart_d').value=today().d;
     document.getElementById('tstart_y').value=today().y;
+    document.getElementById('tdur').value=12;
+    document.getElementById('renewb').style.display='none';
     document.getElementById('dtenb').style.display='none';
   }
   document.getElementById('tenm').classList.add('on');
+}
+// ---- Contract renewal: appends a NEW period, preserving old-period rents ----
+function openRenew(){
+  if(!eten) return;
+  const t=ST.ten.find(x=>x.id===eten);if(!t)return;
+  const ps=tenPeriods(t);const lp=ps[ps.length-1];
+  const nextIdx=lp.sy*12+lp.sm+(lp.dur||12); // anniversary: old start + duration
+  document.getElementById('renew-info').textContent=
+    `دوره فعلی «${t.n}» تا ${fmtMonthYear(contractEnd(t).m,contractEnd(t).y)} (اجاره ${nf(lp.rent)} ت). دوره جدید معمولاً از سالگرد قرارداد شروع می‌شود.`;
+  document.getElementById('rn-d').value=lp.sd;
+  fillMon('rn-m',nextIdx%12);
+  document.getElementById('rn-y').value=Math.floor(nextIdx/12);
+  document.getElementById('rn-rent').value=lp.rent;
+  document.getElementById('rn-dur').value=12;
+  cls('tenm');document.getElementById('renewm').classList.add('on');
+}
+async function saveRenew(){
+  const t=ST.ten.find(x=>x.id===eten);if(!t)return;
+  const sd=parseInt(document.getElementById('rn-d').value)||1;
+  const sm=parseInt(document.getElementById('rn-m').value)||0;
+  const sy=parseInt(document.getElementById('rn-y').value)||today().y;
+  const rent=toLn(document.getElementById('rn-rent').value)||0;
+  const dur=parseInt(document.getElementById('rn-dur').value)||12;
+  if(rent<=0){ntf('⚠️ اجاره دوره جدید الزامی است');hiErr('rn-rent');return;}
+  if(sd<1||sd>31){ntf('⚠️ روز شروع نامعتبر است');hiErr('rn-d');return;}
+  if(dur<1||dur>60){ntf('⚠️ مدت دوره باید بین ۱ تا ۶۰ ماه باشد');hiErr('rn-dur');return;}
+  const ps=tenPeriods(t).slice();
+  const lastEnd=pLastIdx(ps[ps.length-1]);
+  if(sy*12+sm+1<=lastEnd){ntf('⚠️ شروع دوره جدید با دوره قبلی هم‌پوشانی دارد');hiErr('rn-y');return;}
+  ps.push({sd,sm,sy,dur,rent});
+  t.periods=ps;
+  t.rent=rent;t.due=sd;                 // mirrors for card display & legacy readers
+  t.start_d=sd;t.start_m=sm;t.start_y=sy; // legacy fields follow current period
+  await sv();cls('renewm');ntf('✅ قرارداد تمدید شد');
+  rTen();rDash();
 }
 async function saveTen(){
   const n=document.getElementById('tnm').value.trim();
@@ -2712,6 +2793,7 @@ async function saveTen(){
   const start_d=parseInt(document.getElementById('tstart_d').value)||1;
   const start_m=parseInt(document.getElementById('tstart_m').value)||0;
   const start_y=parseInt(document.getElementById('tstart_y').value)||today().y;
+  const dur=parseInt(document.getElementById('tdur').value)||12;
   // --- Validation ---
   if(!n){ntf('⚠️ نام مستاجر الزامی است');hiErr('tnm');return;}
   if(!unit){ntf('⚠️ نام/شماره واحد الزامی است');hiErr('tunit');return;}
@@ -2721,8 +2803,17 @@ async function saveTen(){
   if(val<0){ntf('⚠️ ارزش ملک نمی‌تواند منفی باشد');hiErr('tval');return;}
   if(!start_d||start_d<1||start_d>31){ntf('⚠️ روز شروع باید بین ۱ تا ۳۱ باشد');hiErr('tstart_d');return;}
   if(!start_y||start_y<1380||start_y>1450){ntf('⚠️ سال شروع معتبر نیست (۱۳۸۰–۱۴۵۰)');hiErr('tstart_y');return;}
-  if(eten){const idx=ST.ten.findIndex(t=>t.id===eten);ST.ten[idx]={...ST.ten[idx],n,unit,tp,rent,dep,val,due,note,start_d,start_m,start_y};}
-  else ST.ten.push({id:uid(),n,unit,tp,rent,dep,val,due,note,start_d,start_m,start_y});
+  if(dur<1||dur>60){ntf('⚠️ مدت قرارداد باید بین ۱ تا ۶۰ ماه باشد');hiErr('tdur');return;}
+  const perEntry={sd:start_d,sm:start_m,sy:start_y,dur,rent};
+  if(eten){
+    const idx=ST.ten.findIndex(t=>t.id===eten);
+    const prev=ST.ten[idx];
+    const periods=tenPeriods(prev).slice();
+    periods[periods.length-1]=perEntry; // editing adjusts the CURRENT period
+    ST.ten[idx]={...prev,n,unit,tp,rent,dep,val,due,note,start_d,start_m,start_y,periods};
+  } else {
+    ST.ten.push({id:uid(),n,unit,tp,rent,dep,val,due,note,start_d,start_m,start_y,periods:[perEntry]});
+  }
   await sv();cls('tenm');ntf('✅ ذخیره شد');rTen();
 }
 async function delTen(){
@@ -2739,11 +2830,9 @@ function openPay(tid){
   document.getElementById('paymt').textContent='پرداخت‌های '+t.n;
   const td=today();
 
-  // Contract start: e.g. 1405/03/01 → first rent month = startM+1
-  const startY=t.start_y||td.y;
-  const startM=t.start_m!==undefined?t.start_m:0; // 0-based month of contract start
-  const firstRentM=(startM+1)%12;                  // 0-based first rent month
-  const firstRentY=startM+1>11?startY+1:startY;
+  // First payment = one month after contract start, same day (user-confirmed rule).
+  const firstIdx=pFirstIdx(tenPeriods(t)[0]);
+  const endIdx=contractEnd(t).idx;
 
   // Always show 12 months of current year (0-based: 0=فروردین ... 11=اسفند)
   const months=Array.from({length:12},(_,i)=>i);
@@ -2756,20 +2845,20 @@ function openPay(tid){
     const isPaid=pay&&pay.status==='paid';
     const isPartial=pay&&pay.status==='partial';
 
-    // Is this month before first rent month? (grey, disabled)
-    const curVal=y*100+m;
-    const firstVal=firstRentY*100+firstRentM;
-    const isBeforeContract=curVal<firstVal;
+    // Outside the contract? (grey, disabled)
+    const idx=y*12+m;
+    const isBeforeContract=idx<firstIdx;
+    const isAfterContract=idx>endIdx;
+    const mRent=rentFor(t,m,y);
 
     // Is this a future month (no due yet)?
     const isFuture=y>td.y||(y===td.y&&m>td.m-1);
 
-    if(isBeforeContract){
-      // Grey, disabled - part of contract period but no rent due
+    if(isBeforeContract||isAfterContract){
       h+=`<div class="pr" style="opacity:.38;padding:11px 0">
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--t3)">${fmtMonthYear(m,y)}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">قبل از شروع اجاره</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${isBeforeContract?'قبل از شروع اجاره':'خارج از قرارداد — تمدید نشده'}</div>
         </div>
         <span style="font-size:12px;color:var(--t3)">—</span>
       </div>`;
@@ -2783,7 +2872,7 @@ function openPay(tid){
       if(pay.date) statusHtml+=`<div style="font-size:10.5px;color:var(--t3);margin-top:3px">${pay.date} · ${nf(pay.amount||t.rent)} ت</div>`;
     } else if(isPartial){
       statusHtml=`<span class="bdg" style="background:#FFF3CD;color:#856404">ناقص</span>`;
-      statusHtml+=`<div style="font-size:10.5px;color:var(--am);margin-top:3px">${nf(pay.amount)} از ${nf(t.rent)} ت${pay.date?' · '+pay.date:''}</div>`;
+      statusHtml+=`<div style="font-size:10.5px;color:var(--am);margin-top:3px">${nf(pay.amount)} از ${nf(mRent)} ت${pay.date?' · '+pay.date:''}</div>`;
     } else if(isFuture){
       statusHtml=`<span style="font-size:12px;color:var(--t3)">آینده</span>`;
     } else {
@@ -2794,7 +2883,7 @@ function openPay(tid){
       <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
         <div>
           <div style="font-size:14px;font-weight:700">${fmtMonthYear(m,y)}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">اجاره: ${nf(t.rent)} تومان</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">اجاره: ${nf(mRent)} تومان</div>
         </div>
         <div style="text-align:left">${statusHtml}</div>
       </div>
@@ -2882,24 +2971,63 @@ async function clearPay(tid,y,m){
 // ============================================================
 // REPORTS
 // ============================================================
-// Number of rent-due months for a tenant within Jalali year y, counted only up to
-// the current month (so mid-year tenants aren't unfairly shown as under-collected).
-// Mirrors the start-date logic used in unpaidRentSummary/chkDue: first rent is the
-// month AFTER the contract start month.
-function expectedRentMonths(ten,y){
-  const t=today();
-  const startM=ten.start_m!==undefined?ten.start_m:0;
-  const firstRentM=(startM+1)%12;
-  const firstRentY=(ten.start_y||t.y)+(startM+1>11?1:0);
-  let startIdx;
-  if(firstRentY<y) startIdx=0;
-  else if(firstRentY===y) startIdx=firstRentM;
-  else return 0;                 // rent starts after year y
-  let endIdx;
-  if(y<t.y) endIdx=11;
-  else if(y===t.y) endIdx=t.m-1; // up to current month only
-  else return 0;                 // future year
-  return Math.max(0,endIdx-startIdx+1);
+// ============================================================
+// CONTRACT PERIODS ENGINE
+// A tenant has one or more contract periods [{sd,sm,sy,dur,rent}].
+// Rule (user-confirmed): first payment is ONE MONTH AFTER the
+// contract start, on the SAME day-of-month. Start 1404/04/10 with
+// dur=12 → payments مرداد۱۴۰۴..تیر۱۴۰۵, each due on the 10th.
+// Renewals append a new period with its own rent, so historical
+// collection %s are computed against the rent OF THAT PERIOD.
+// ============================================================
+function tenPeriods(ten){
+  if(Array.isArray(ten.periods)&&ten.periods.length) return ten.periods;
+  return [{sd:ten.start_d||1,sm:ten.start_m!==undefined?ten.start_m:0,sy:ten.start_y||today().y,dur:ten.dur_m||12,rent:ten.rent||0}];
+}
+function pFirstIdx(p){return p.sy*12+p.sm+1;}            // absolute index of first rent month
+function pLastIdx(p){return p.sy*12+p.sm+(p.dur||12);}   // absolute index of last rent month
+// Rent amount owed for Jalali month (m 0-based, y), 0 = outside any period
+function rentFor(ten,m,y){
+  const idx=y*12+m;
+  for(const p of tenPeriods(ten)){
+    if(idx>=pFirstIdx(p)&&idx<=pLastIdx(p)) return p.rent||0;
+  }
+  return 0;
+}
+function contractEnd(ten){
+  const ps=tenPeriods(ten);const p=ps[ps.length-1];const idx=pLastIdx(p);
+  return{m:idx%12,y:Math.floor(idx/12),sd:p.sd,idx};
+}
+// Expected rent within year y, only months already due (≤ current month), bounded by periods
+function expectedRent(ten,y){
+  const t=today();const curIdx=t.y*12+(t.m-1);
+  let months=0,amount=0;
+  for(let m=0;m<12;m++){
+    if(y*12+m>curIdx) break;
+    const r=rentFor(ten,m,y);
+    if(r>0){months++;amount+=r;}
+  }
+  return{months,amount};
+}
+function expectedRentMonths(ten,y){return expectedRent(ten,y).months;}
+// Total arrears across ALL years: sum of unpaid/short amounts for every due month
+function tenArrears(ten){
+  const t=today();const curIdx=t.y*12+(t.m-1);
+  const ps=tenPeriods(ten);
+  const fromY=Math.floor(pFirstIdx(ps[0])/12);
+  let owed=0,months=0;
+  for(let y=fromY;y<=t.y;y++){
+    for(let m=0;m<12;m++){
+      if(y*12+m>curIdx) break;
+      const r=rentFor(ten,m,y);
+      if(r<=0) continue;
+      const pay=ST.pay[`${ten.id}_${y}_${m}`];
+      if(pay&&pay.status==='paid') continue;
+      const paid=pay?(pay.amount||0):0;
+      if(paid<r){owed+=r-paid;months++;}
+    }
+  }
+  return{owed,months};
 }
 function rPropTable(){
   const card=document.getElementById('propCard');
@@ -2909,8 +3037,7 @@ function rPropTable(){
   const y=SY;
   box.innerHTML=ST.ten.map(ten=>{
     const collected=annualCollected(ten.id,y);
-    const months=expectedRentMonths(ten,y);
-    const expected=(ten.rent||0)*months;
+    const{months,amount:expected}=expectedRent(ten,y);
     const started=months>0;
     const growth=expected>0?Math.round((collected/expected)*100):(collected>0?100:0);
     // Gross annual yield uses the CONTRACT rent (rent×12), not partial collections.
@@ -3153,15 +3280,15 @@ function chkDue(){
   const t=today();
   const pending=[];
   const depPending=[];
+  const renewals=[];
   ST.ten.forEach(ten=>{
-    const startM=ten.start_m!==undefined?ten.start_m:0;
-    const firstRentM=(startM+1)%12;
-    const firstRentY=(ten.start_y||t.y)+(startM+1>11?1:0);
-    const curVal=t.y*100+(t.m-1);
-    const firstVal=firstRentY*100+firstRentM;
-    if(curVal<firstVal) return; // rent not started yet
-    // due day = start_d
-    const dueDay=ten.start_d||1;
+    // Renewal reminder: current month is the LAST rent month of the last period (or later)
+    const ce=contractEnd(ten);
+    const curIdx=t.y*12+(t.m-1);
+    if(curIdx>=ce.idx) renewals.push(ten.n);
+    const r=rentFor(ten,t.m-1,t.y);
+    if(r<=0) return; // no rent due this month
+    const dueDay=(tenPeriods(ten).slice(-1)[0].sd)||ten.start_d||1;
     if(t.d>=dueDay){
       const key=`${ten.id}_${t.y}_${t.m-1}`;
       const pay=ST.pay[key];
@@ -3169,7 +3296,7 @@ function chkDue(){
         pending.push(ten);
         if(Notification.permission==='granted'){
           const msg=pay&&pay.status==='partial'
-            ?`${ten.n} — اجاره ${fmtMonthYear(t.m-1,t.y)} ناقص است (${nf(pay.amount)} از ${nf(ten.rent)} تومان)`
+            ?`${ten.n} — اجاره ${fmtMonthYear(t.m-1,t.y)} ناقص است (${nf(pay.amount)} از ${nf(rentFor(ten,t.m-1,t.y))} تومان)`
             :`${ten.n} — اجاره ${fmtMonthYear(t.m-1,t.y)} پرداخت نشده`;
           new Notification('سرمایه — یادآور اجاره',{body:msg,icon:'icon-192.png'});
         }
@@ -3205,6 +3332,9 @@ function chkDue(){
     });
     ST.notifLog=ST.notifLog.slice(0,30);
     sv();
+  }
+  if(renewals.length){
+    ntf(`📋 قرارداد رو به پایان: ${renewals.join('، ')} — از «ویرایش واحد» تمدید کنید`);
   }
   chkNotifBadge();
 }
