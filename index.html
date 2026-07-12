@@ -292,7 +292,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 .cat-chip-del{background:none;border:none;color:var(--rd);cursor:pointer;font-size:15px;line-height:1;padding:0 0 0 4px}
 
 /* Notification badge */
-.ntf-badge{position:absolute;top:-2px;left:-2px;width:9px;height:9px;border-radius:50%;background:#E53E3E;border:2px solid #1456A8}
+.ntf-badge{position:absolute;top:-4px;left:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:#FF5252;color:#fff;font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.85);line-height:1}
 
 /* Error shake + fadeIn animations */
 @keyframes errShake{
@@ -335,7 +335,13 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
         <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
         <span class="ntf-badge" id="nb0" style="display:none"></span>
       </div>
-      <h1>سرمایه</h1>
+      <div style="display:flex;align-items:center;gap:9px;min-width:0">
+        <img src="icon-192.png" alt="" style="width:36px;height:36px;border-radius:11px;border:1.5px solid rgba(255,255,255,.4);box-shadow:0 3px 10px rgba(0,0,0,.28);flex-shrink:0">
+        <div style="min-width:0">
+          <h1 style="font-size:17.5px;letter-spacing:.3px;line-height:1.15">سرمایه</h1>
+          <div style="font-size:9.5px;font-weight:600;opacity:.85;letter-spacing:.5px;margin-top:1px">مدیریت مالی شخصی</div>
+        </div>
+      </div>
       <div class="month-picker-wrap">
         <div class="month-pill" onclick="togglePicker('mp0')" aria-label="انتخاب ماه">
           <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -420,12 +426,12 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
       </span>
       انتقال
     </button>
-    <button onclick="openSavingsQuick()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11.5px;font-weight:700;transition:opacity .15s"
+    <button onclick="openFxList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11.5px;font-weight:700;transition:opacity .15s"
       onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
       <span style="width:44px;height:44px;border-radius:14px;background:var(--pkl);display:flex;align-items:center;justify-content:center">
-        <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:var(--pk);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M19 9V6a2 2 0 00-2-2h-1.5L14 2h-4l-1.5 2H7a2 2 0 00-2 2v3M3 11h2M2 9h3v6.5A1.5 1.5 0 006.5 17H7v3h3v-3h4v3h3v-3h.5a1.5 1.5 0 001.5-1.5V9M16 13h.01"/></svg>
+        <span style="font-size:21px;font-weight:800;color:var(--pk)">€</span>
       </span>
-      پس‌انداز
+      حواله ارزی
     </button>
     <button onclick="openAccList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--gr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11.5px;font-weight:700;transition:opacity .15s"
       onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
@@ -570,6 +576,11 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <div class="stt-sec" style="margin-top:14px">
     <div class="stt-sec-lbl">مالی</div>
     <div class="stt-list">
+      <div class="stt-row" onclick="openSavingsQuick()">
+        <div class="stt-ic" style="background:linear-gradient(145deg,#E58BB4,#B04A7A)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M19 9V6a2 2 0 00-2-2h-1.5L14 2h-4l-1.5 2H7a2 2 0 00-2 2v3M3 11h2M2 9h3v6.5A1.5 1.5 0 006.5 17H7v3h3v-3h4v3h3v-3h.5a1.5 1.5 0 001.5-1.5V9M16 13h.01"/></svg></div>
+        <div class="stt-info"><strong>پس‌انداز سریع</strong><span>انتقال به حساب پس‌انداز</span></div>
+        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+      </div>
       <div class="stt-row" onclick="openBudgetMgr()">
         <div class="stt-ic" style="background:linear-gradient(145deg,#2ECC71,#0E7A3C)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
         <div class="stt-info"><strong>بودجه ماهانه</strong><span id="budget-count">بدون سقف تعریف‌شده</span></div>
@@ -2883,7 +2894,7 @@ function openPay(tid){
       <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
         <div>
           <div style="font-size:14px;font-weight:700">${fmtMonthYear(m,y)}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">اجاره: ${nf(mRent)} تومان</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">سررسید ${toFa(dueDayFor(t,m,y))} ${MFA[m]} · اجاره ${nf(mRent)} تومان</div>
         </div>
         <div style="text-align:left">${statusHtml}</div>
       </div>
@@ -2993,6 +3004,11 @@ function rentFor(ten,m,y){
     if(idx>=pFirstIdx(p)&&idx<=pLastIdx(p)) return p.rent||0;
   }
   return 0;
+}
+function dueDayFor(ten,m,y){
+  const idx=y*12+m;
+  for(const p of tenPeriods(ten)){if(idx>=pFirstIdx(p)&&idx<=pLastIdx(p))return p.sd||1;}
+  return (tenPeriods(ten)[0].sd)||1;
 }
 function contractEnd(ten){
   const ps=tenPeriods(ten);const p=ps[ps.length-1];const idx=pLastIdx(p);
@@ -3285,7 +3301,7 @@ function chkDue(){
     // Renewal reminder: current month is the LAST rent month of the last period (or later)
     const ce=contractEnd(ten);
     const curIdx=t.y*12+(t.m-1);
-    if(curIdx>=ce.idx) renewals.push(ten.n);
+    if(curIdx>=ce.idx) renewals.push(ten);
     const r=rentFor(ten,t.m-1,t.y);
     if(r<=0) return; // no rent due this month
     const dueDay=(tenPeriods(ten).slice(-1)[0].sd)||ten.start_d||1;
@@ -3334,7 +3350,15 @@ function chkDue(){
     sv();
   }
   if(renewals.length){
-    ntf(`📋 قرارداد رو به پایان: ${renewals.join('، ')} — از «ویرایش واحد» تمدید کنید`);
+    if(!ST.notifLog) ST.notifLog=[];
+    const dstr=`${t.y}/${t.m}/${t.d}`;
+    let added=false;
+    renewals.forEach(r=>{
+      const exists=ST.notifLog.find(n=>n.type==='renew'&&n.tenId===r.id&&n.date===dstr);
+      if(!exists){ST.notifLog.unshift({id:uid(),tenId:r.id,tenName:r.n,type:'renew',date:dstr,month:pad2(t.m),year:t.y,read:false});added=true;}
+    });
+    if(added){ST.notifLog=ST.notifLog.slice(0,30);sv();}
+    ntf(`📋 قرارداد رو به پایان: ${renewals.map(r=>r.n).join('، ')} — تمدید کنید`);
   }
   chkNotifBadge();
 }
@@ -3342,7 +3366,10 @@ function chkDue(){
 function chkNotifBadge(){
   const unread=(ST.notifLog||[]).filter(n=>!n.read).length;
   const badge=document.getElementById('nb0');
-  if(badge) badge.style.display=unread>0?'block':'none';
+  if(badge){
+    badge.style.display=unread>0?'flex':'none';
+    badge.textContent=unread>9?'۹+':toFa(unread);
+  }
 }
 function openNotifPanel(){
   const list=document.getElementById('notif-panel-list');
@@ -3350,41 +3377,65 @@ function openNotifPanel(){
   if(!logs.length){
     list.innerHTML=emptyHtml('more','اعلانی ندارید');
   } else {
-    list.innerHTML=logs.map(n=>{
-      if(n.type==='deposit'){
-        return `<div class="txi" style="${n.read?'opacity:.6':''}">
-        <div class="txic" style="background:var(--ppl)"><svg viewBox="0 0 24 24" style="stroke:var(--pp);width:21px;height:21px;stroke-width:1.8;fill:none"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div>
+    const CFG={
+      rent:  {bg:'var(--aml)',c:'var(--am)',ttl:n=>'یادآور اجاره: '+esc(n.tenName),act:n=>`gotoTenant('${n.tenId}','${n.id}')`,icon:'<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>'},
+      deposit:{bg:'var(--ppl)',c:'var(--pp)',ttl:n=>'یادآور ودیعه: '+esc(n.tenName)+(n.depAmount?' — '+nf(n.depAmount)+' ت':''),act:n=>`gotoTenant('${n.tenId}','${n.id}')`,icon:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>'},
+      loan:  {bg:'var(--rdl)',c:'var(--rd)',ttl:n=>'قسط سررسیدشده: '+esc(n.tenName),act:n=>`gotoLoan('${n.id}')`,icon:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/>'},
+      renew: {bg:'var(--grl)',c:'var(--gr)',ttl:n=>'تمدید قرارداد: '+esc(n.tenName),act:n=>`gotoRenew('${n.tenId}','${n.id}')`,icon:'<path d="M21 12a9 9 0 11-2.6-6.3M21 4v5h-5"/>'}
+    };
+    const hdr=`<div style="display:flex;gap:8px;margin-bottom:10px">
+      <button onclick="markAllNotifRead()" style="flex:1;padding:8px;border-radius:11px;border:none;background:var(--prl);color:var(--pr);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">✓ خواندن همه</button>
+      <button onclick="clearNotifLog()" style="flex:1;padding:8px;border-radius:11px;border:none;background:var(--rdl);color:var(--rd);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">🗑 پاک کردن همه</button>
+    </div>`;
+    list.innerHTML=hdr+logs.map(n=>{
+      const cfg=CFG[n.type]||CFG.rent;
+      return `<div class="txi" style="${n.read?'opacity:.55':''};cursor:pointer" onclick="${cfg.act(n)}">
+        <div class="txic" style="background:${cfg.bg}"><svg viewBox="0 0 24 24" style="stroke:${cfg.c};width:21px;height:21px;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${cfg.icon}</svg></div>
         <div class="txin">
-          <div class="txt">یادآور ودیعه: ${esc(n.tenName)}${n.depAmount?' — '+nf(n.depAmount)+' ت':''}</div>
-          <div class="txd">${toFa(n.month)}/${toFa(n.year)} — تاریخ: ${n.date}</div>
+          <div class="txt">${cfg.ttl(n)}</div>
+          <div class="txd">${n.date} — برای مشاهده لمس کنید</div>
         </div>
-        ${!n.read?`<button onclick="markNotifRead('${n.id}')" style="background:var(--prl);border:none;border-radius:8px;padding:5px 8px;font-size:11px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif">خواندم</button>`:''}
-      </div>`;
-      }
-      return `
-      <div class="txi" style="${n.read?'opacity:.6':''}">
-        <div class="txic" style="background:var(--aml)"><svg viewBox="0 0 24 24" style="stroke:var(--am);width:21px;height:21px;stroke-width:1.8;fill:none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
-        <div class="txin">
-          <div class="txt">یادآور اجاره: ${esc(n.tenName)}</div>
-          <div class="txd">${toFa(n.month)}/${toFa(n.year)} — تاریخ: ${n.date}</div>
-        </div>
-        ${!n.read?`<button onclick="markNotifRead('${n.id}')" style="background:var(--prl);border:none;border-radius:8px;padding:5px 8px;font-size:11px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif">خواندم</button>`:''}
+        ${!n.read?`<button onclick="event.stopPropagation();markNotifRead('${n.id}')" style="background:var(--prl);border:none;border-radius:8px;padding:5px 8px;font-size:11px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;flex-shrink:0">خواندم</button>`:''}
       </div>`;
     }).join('');
   }
-  // Do NOT mark all as read on open — only markNotifRead() does that
   chkNotifBadge();
   document.getElementById('notifpanel').classList.add('on');
 }
+// deep-links from notifications
+async function gotoTenant(tid,nid){
+  await markNotifRead(nid);
+  cls('notifpanel');
+  nav(2,document.querySelectorAll('.nb')[2]);
+  if(tid&&(ST.ten||[]).some(t=>t.id===tid)) setTimeout(()=>openPay(tid),150);
+}
+async function gotoRenew(tid,nid){
+  await markNotifRead(nid);
+  cls('notifpanel');
+  nav(2,document.querySelectorAll('.nb')[2]);
+  if(tid&&(ST.ten||[]).some(t=>t.id===tid)) setTimeout(()=>{openTM(tid);},150);
+}
+async function gotoLoan(nid){
+  await markNotifRead(nid);
+  cls('notifpanel');
+  openLoanList();
+}
+async function markAllNotifRead(){
+  (ST.notifLog||[]).forEach(n=>n.read=true);
+  await sv();openNotifPanel();
+}
 async function markNotifRead(id){
   const n=(ST.notifLog||[]).find(x=>x.id===id);
-  if(n){n.read=true;await sv();}
-  openNotifPanel();
+  if(n&&!n.read){n.read=true;await sv();}
+  chkNotifBadge();
+  const p=document.getElementById('notifpanel');
+  if(p&&p.classList.contains('on')) openNotifPanel();
 }
-
-// ============================================================
-// EXPORT / BACKUP / RESTORE
-// ============================================================
+async function clearNotifLog(){
+  if(!confirm('همه اعلان‌ها پاک شوند؟')) return;
+  ST.notifLog=[];
+  await sv();openNotifPanel();
+}
 function exportCSV(){
   let csv='\uFEFFنوع,دسته‌بندی,مبلغ,توضیحات,روز,ماه,سال,حساب,نوع رکورد\n';
   ST.tx.forEach(t=>{
@@ -3883,6 +3934,14 @@ function chkLoansDue(){
     return !ST.tx.some(tx=>tx.loanId===l.id&&tx.m===t.m-1&&tx.y===t.y);
   });
   if(due.length){
+    if(!ST.notifLog) ST.notifLog=[];
+    const dstr=`${t.y}/${t.m}/${t.d}`;
+    let added=false;
+    due.forEach(l=>{
+      const exists=ST.notifLog.find(n=>n.type==='loan'&&n.loanId===l.id&&n.date===dstr);
+      if(!exists){ST.notifLog.unshift({id:uid(),loanId:l.id,tenName:l.n,type:'loan',date:dstr,month:pad2(t.m),year:t.y,read:false});added=true;}
+    });
+    if(added){ST.notifLog=ST.notifLog.slice(0,30);sv();chkNotifBadge();}
     ntf(`🔔 قسط سررسیدشده: ${due.map(l=>l.n).join('، ')}`);
   }
 }
