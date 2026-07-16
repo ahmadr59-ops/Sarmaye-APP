@@ -40,7 +40,7 @@
   });
 </script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=Lalezar&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 html{width:100%;overflow-x:hidden}
 :root{
@@ -338,7 +338,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
       <div style="display:flex;align-items:center;gap:9px;min-width:0">
         <img src="icon-192.png" alt="" style="width:36px;height:36px;border-radius:11px;border:1.5px solid rgba(255,255,255,.4);box-shadow:0 3px 10px rgba(0,0,0,.28);flex-shrink:0">
         <div style="min-width:0">
-          <h1 style="font-size:17.5px;letter-spacing:.3px;line-height:1.15">سرمایه</h1>
+          <h1 style="font-family:'Lalezar','Vazirmatn',sans-serif;font-size:23px;font-weight:400;letter-spacing:.5px;line-height:1.05;background:linear-gradient(180deg,#FFE9A8 0%,#F0C75E 45%,#C9962E 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 1px 2px rgba(0,0,0,.15);padding-bottom:1px">سرمایه</h1>
           <div style="font-size:9.5px;font-weight:600;opacity:.85;letter-spacing:.5px;margin-top:1px">مدیریت مالی شخصی</div>
         </div>
       </div>
@@ -478,22 +478,26 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
       style="width:100%;padding:11px 14px;border-radius:16px;border:1.5px solid var(--border);background:var(--inp-bg);font-size:13.5px;color:var(--t1);font-family:'Vazirmatn',sans-serif;outline:none">
   </div>
   <!-- Filter bar -->
-  <div style="display:flex;gap:8px;padding:10px 14px 0">
-    <button id="fltr-all"  onclick="setTxFilter('all')"
-      style="flex:1;padding:8px;border-radius:20px;border:1.5px solid var(--pr);background:var(--pr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">همه</button>
-    <button id="fltr-income" onclick="setTxFilter('income')"
-      style="flex:1;padding:8px;border-radius:20px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">درآمد</button>
-    <button id="fltr-expense" onclick="setTxFilter('expense')"
-      style="flex:1;padding:8px;border-radius:20px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">هزینه</button>
+  <style>
+    .fpill{display:inline-flex;align-items:center;gap:6px;padding:9px 15px;border-radius:16px;border:1.5px solid var(--border);
+      background:var(--card);color:var(--t2);font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif;
+      white-space:nowrap;box-shadow:var(--sh);transition:all .18s;flex-shrink:0}
+    .fpill.on{color:#fff;border-color:transparent;font-weight:800;transform:translateY(-1px);box-shadow:0 5px 14px rgba(13,77,181,.28)}
+    .fpill .fdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .frow{display:flex;gap:8px;padding:9px 14px 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    .frow::-webkit-scrollbar{display:none}
+  </style>
+  <div class="frow">
+    <button id="fltr-all" class="fpill on" onclick="setTxFilter('all')" style="background:var(--grad)">همه</button>
+    <button id="fltr-income" class="fpill" onclick="setTxFilter('income')"><span class="fdot" style="background:var(--gr)"></span>درآمد</button>
+    <button id="fltr-expense" class="fpill" onclick="setTxFilter('expense')"><span class="fdot" style="background:var(--rd)"></span>هزینه</button>
   </div>
-  <div style="display:flex;gap:8px;padding:8px 14px 0">
-    <button id="fltr-d-week" onclick="setTxDateFilter('week')"
-      style="flex:1;padding:7px;border-radius:20px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">هفته اخیر</button>
-    <button id="fltr-d-month" onclick="setTxDateFilter('month')"
-      style="flex:1;padding:7px;border-radius:20px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">ماه جاری</button>
-    <button id="fltr-d-all" onclick="setTxDateFilter('all')"
-      style="flex:1;padding:7px;border-radius:20px;border:1.5px solid var(--pr);background:var(--pr);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">همه تاریخ‌ها</button>
+  <div class="frow">
+    <button id="fltr-d-all" class="fpill on" onclick="setTxDateFilter('all')" style="background:var(--grad)">همه زمان‌ها</button>
+    <button id="fltr-d-month" class="fpill" onclick="setTxDateFilter('month')">ماه جاری</button>
+    <button id="fltr-d-week" class="fpill" onclick="setTxDateFilter('week')">هفته اخیر</button>
   </div>
+  <div class="frow" id="fltr-acc-row"></div>
   <div class="card" style="padding:6px 16px;margin-top:10px"><div id="txl"></div></div>
 </div>
 
@@ -1358,7 +1362,7 @@ function def(){
     sm:today().m-1,
     appName:'سرمایه',
     tx:[],ten:[],pay:{},
-    budgets:{},loans:[],theme:'auto',fx:[],
+    budgets:{},loans:[],theme:'auto',fx:[],dismissed:{},
     notifLog:[],smsLog:[],
     cats:{
       income:[
@@ -1612,6 +1616,7 @@ function migrateState(s){
   if(!Array.isArray(s.loans)) s.loans=[];
   if(!s.theme) s.theme='auto';
   if(!Array.isArray(s.fx)) s.fx=[];
+  if(!s.dismissed||typeof s.dismissed!=='object') s.dismissed={};
 
   // ---- Tenant contract periods (one-time) ----
   // (a) The stored due day of legacy tenants could differ from the contract start
@@ -1898,37 +1903,69 @@ function rDash(){
     }
     if(nwHint) nwHint.style.display=(ST.accounts&&ST.accounts.length)?'none':'block';
   }
-  // Active loans mini-card on the dashboard
+  // Due-items alert card: loans / rents / renewals needing action TODAY.
+  // Rows are dismissible; dismissals are keyed by month so unresolved items
+  // return next month. Paid/settled items never appear.
   const dl=document.getElementById('dashLoans');
   if(dl){
-    const act=(ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0);
-    if(!act.length){dl.innerHTML='';}
+    const mk=`_${t.y}_${t.m-1}`;
+    Object.keys(ST.dismissed||{}).forEach(k=>{if(!k.endsWith(mk))delete ST.dismissed[k];});
+    const items=[];
+    (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0).forEach(l=>{
+      if(t.d<l.day) return;
+      if(ST.tx.some(tx=>tx.loanId===l.id&&tx.m===t.m-1&&tx.y===t.y)) return;
+      const key=`loan_${l.id}${mk}`;
+      if(ST.dismissed[key]) return;
+      items.push({key,icon:'loan',c:'var(--rd)',bg:'var(--rdl)',
+        t:`قسط «${esc(l.n)}» — ${nf(Math.min(l.inst,l.remaining))} ت`,
+        sub:`سررسید ${toFa(l.day)}ام این ماه`,
+        act:`payInstallment('${l.id}')`,actL:'ثبت قسط'});
+    });
+    (ST.ten||[]).forEach(ten=>{
+      const r=rentFor(ten,t.m-1,t.y);
+      if(r<=0) return;
+      const pay=ST.pay[`${ten.id}_${t.y}_${t.m-1}`];
+      if(pay&&(pay.status==='paid'||pay.status==='partial')) return;
+      const dd=dueDayFor(ten,t.m-1,t.y);
+      if(t.d<dd) return;
+      const key=`rent_${ten.id}${mk}`;
+      if(ST.dismissed[key]) return;
+      items.push({key,icon:'home',c:'var(--am)',bg:'var(--aml)',
+        t:`اجاره «${esc(ten.n)}» — ${nf(r)} ت`,
+        sub:`سررسید ${toFa(dd)}ام این ماه`,
+        act:`openPay('${ten.id}')`,actL:'ثبت پرداخت'});
+    });
+    (ST.ten||[]).forEach(ten=>{
+      const curIdx=t.y*12+(t.m-1);
+      if(curIdx<contractEnd(ten).idx) return;
+      const key=`renew_${ten.id}${mk}`;
+      if(ST.dismissed[key]) return;
+      items.push({key,icon:'renew',c:'var(--gr)',bg:'var(--grl)',
+        t:`تمدید قرارداد «${esc(ten.n)}»`,
+        sub:'دوره قرارداد به پایان رسیده',
+        act:`openTM('${ten.id}')`,actL:'تمدید'});
+    });
+    if(!items.length){dl.innerHTML='';}
     else{
-      const t=today();
+      const IC={
+        loan:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/>',
+        home:'<path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
+        renew:'<path d="M21 12a9 9 0 11-2.6-6.3M21 4v5h-5"/>'
+      };
       dl.innerHTML=`<div style="padding:12px 14px 0">
-        <div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
-            <span style="font-size:13px;font-weight:800;color:var(--t1)">وام‌های فعال</span>
-            <button onclick="openLoanList()" style="background:none;border:none;font-size:11.5px;font-weight:700;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif">مدیریت ←</button>
-          </div>
-          ${act.map(l=>{
-            const paid=(l.total||0)-(l.remaining||0);
-            const pct=l.total>0?Math.min(100,Math.round((paid/l.total)*100)):0;
-            const paidThisMonth=ST.tx.some(tx=>tx.loanId===l.id&&tx.m===t.m-1&&tx.y===t.y);
-            const dueSoon=!paidThisMonth&&t.d>=l.day;
-            return `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                <span style="font-size:12.5px;font-weight:700;color:var(--t1)">${esc(l.n)}${dueSoon?' <span style="font-size:10px;font-weight:800;color:var(--rd)">● سررسید</span>':''}</span>
-                <span style="font-size:12px;font-weight:700;color:var(--rd)">${nf(l.remaining)} ت</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="flex:1;height:5px;border-radius:4px;background:var(--prl);overflow:hidden">
-                  <div style="height:100%;width:${pct}%;background:var(--gr);border-radius:4px"></div>
-                </div>
-                <button onclick="payInstallment('${l.id}')" style="padding:4px 11px;border-radius:10px;border:none;background:var(--grl);color:var(--gr);font-size:10.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif;flex-shrink:0">ثبت قسط</button>
-              </div>
-            </div>`;
-          }).join('')}
+        <div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;border-right:3px solid var(--am)">
+          <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:8px">⏰ سررسیدهای در انتظار</div>
+          ${items.map(it=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="width:34px;height:34px;border-radius:11px;background:${it.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg viewBox="0 0 24 24" style="width:17px;height:17px;stroke:${it.c};stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round">${IC[it.icon]}</svg>
+            </span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:var(--t1)">${it.t}</div>
+              <div style="font-size:10.5px;color:var(--t3);margin-top:1px">${it.sub}</div>
+            </div>
+            <button onclick="${it.act}" style="padding:6px 11px;border-radius:10px;border:none;background:${it.bg};color:${it.c};font-size:10.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif;flex-shrink:0">${it.actL}</button>
+            <button onclick="dismissDue('${it.key}')" title="نمایش نده" style="width:26px;height:26px;border-radius:9px;border:none;background:var(--bg);color:var(--t3);font-size:13px;cursor:pointer;flex-shrink:0">✕</button>
+          </div>`).join('')}
         </div>
       </div>`;
     }
@@ -2060,18 +2097,38 @@ function txHtml(t){
     <div class="txa" style="color:${isI?'var(--gr)':'var(--rd)'}">${isI?'+':'-'}${nf(t.a)} ت</div>
   </div>`;
 }
+let txAccFilter='';
+function pillState(btn,active,bg){
+  btn.classList.toggle('on',active);
+  btn.style.background=active?bg:'var(--card)';
+  btn.style.color=active?'#fff':'var(--t2)';
+}
 function setTxFilter(f){
   txFilter=f;
+  const BG={all:'var(--grad)',income:'linear-gradient(145deg,#2FA95C,#166F38)',expense:'linear-gradient(145deg,#E4574A,#A72E22)'};
   ['all','income','expense'].forEach(k=>{
     const btn=document.getElementById('fltr-'+k);
-    if(!btn)return;
-    const active=k===f;
-    btn.style.background=active?'var(--pr)':'var(--inp-bg)';
-    btn.style.color=active?'#fff':'var(--t2)';
-    btn.style.borderColor=active?'var(--pr)':'var(--border)';
-    btn.style.fontWeight=active?'700':'600';
+    if(btn) pillState(btn,k===f,BG[k]);
   });
   rTx();
+}
+function setTxAccFilter(id){
+  txAccFilter=id;
+  renderAccFilterChips();
+  rTx();
+}
+function renderAccFilterChips(){
+  const row=document.getElementById('fltr-acc-row');
+  if(!row) return;
+  const accs=ST.accounts||[];
+  if(!accs.length){row.innerHTML='';return;}
+  const chip=(id,label,color)=>{
+    const active=txAccFilter===id;
+    return `<button class="fpill${active?' on':''}" onclick="setTxAccFilter('${id}')"
+      style="background:${active?'var(--grad)':'var(--card)'};color:${active?'#fff':'var(--t2)'}">
+      ${color?`<span class="fdot" style="background:${color}"></span>`:''}${label}</button>`;
+  };
+  row.innerHTML=chip('','همه حساب‌ها','')+accs.map(a=>chip(a.id,esc(a.bank)+(a.name?' - '+esc(a.name):''),a.color||'var(--pr)')).join('');
 }
 
 function sortByDate(txs){
@@ -2088,12 +2145,7 @@ function setTxDateFilter(f){
   txDateFilter=f;
   ['week','month','all'].forEach(k=>{
     const btn=document.getElementById('fltr-d-'+k);
-    if(!btn)return;
-    const active=k===f;
-    btn.style.background=active?'var(--pr)':'var(--inp-bg)';
-    btn.style.color=active?'#fff':'var(--t2)';
-    btn.style.borderColor=active?'var(--pr)':'var(--border)';
-    btn.style.fontWeight=active?'700':'600';
+    if(btn) pillState(btn,k===f,'var(--grad)');
   });
   rTx();
 }
@@ -2102,9 +2154,11 @@ function setTxSearch(v){
   rTx();
 }
 function rTx(){
+  renderAccFilterChips();
   let txs=sortByDate([...ST.tx]); // ALL transactions, no month filter
   if(txFilter==='income') txs=txs.filter(t=>t.tp==='income');
   else if(txFilter==='expense') txs=txs.filter(t=>t.tp==='expense');
+  if(txAccFilter) txs=txs.filter(t=>t.accId===txAccFilter);
   if(txDateFilter==='week'||txDateFilter==='month'){
     const t=today();
     const todayOrd=jalOrdinal(t.y,t.m-1,t.d);
@@ -3808,6 +3862,11 @@ function rBudgets(){
       </div>
     </div>`;
   }).join('');
+}
+async function dismissDue(key){
+  if(!ST.dismissed) ST.dismissed={};
+  ST.dismissed[key]=true;
+  await sv();rDash();
 }
 // Warn right after saving an expense that pushes a category past 80% / 100% of budget
 function budgetWarn(catId,m,y){
