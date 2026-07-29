@@ -511,6 +511,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     </div>
   </div>
   <div id="alrt"></div>
+  <div id="depNotice"></div>
   <div id="tl" style="padding:12px 14px 8px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-items:start"></div>
 </div>
 
@@ -649,6 +650,11 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
         <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
       </div>
       <input type="file" id="imp2" accept=".json" style="display:none" onchange="restore(this)">
+      <div class="stt-row" id="v1-row" style="display:none" onclick="openV1Modal()">
+        <div class="stt-ic" style="background:linear-gradient(145deg,#B5600A,#7A3F05)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M21 12a9 9 0 11-2.6-6.3M21 4v5h-5"/></svg></div>
+        <div class="stt-info"><strong>نسخهٔ پیش از ارتقا (v1)</strong><span id="v1-lbl">دانلود یا بازگردانی داده‌های قبل از ارتقا</span></div>
+        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+      </div>
       <div class="stt-row" onclick="exportCSV()">
         <div class="stt-ic" style="background:linear-gradient(145deg,#FFD54F,#FF8F00)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
         <div class="stt-info"><strong>خروجی CSV</strong><span>صدور تراکنش‌ها برای Excel</span></div>
@@ -793,7 +799,9 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <div class="mh"></div>
   <h2 id="tenmt">واحد جدید</h2>
   <div class="fg"><label>نام مستاجر</label><input type="text" id="tnm" placeholder="نام و نام خانوادگی"></div>
+  <div class="fg"><label>شماره تماس مستاجر — اختیاری</label><input type="tel" id="tphone" inputmode="tel" placeholder="۰۹۱۲..."></div>
   <div class="fg"><label>نام/شماره واحد</label><input type="text" id="tunit" placeholder="مثال: واحد ۳ - طبقه دوم"></div>
+  <div class="fg"><label>آدرس ملک — اختیاری</label><input type="text" id="taddr" placeholder="مثال: تهران، خیابان ..."></div>
   <div class="fg"><label>نوع ملک</label><select id="ttyp"><option value="مسکونی">مسکونی</option><option value="تجاری">تجاری</option></select></div>
   <div class="fg"><label>اجاره ماهانه (تومان)</label><input type="number" id="trent" inputmode="numeric"></div>
   <div class="fg"><label>ودیعه (تومان)</label><input type="number" id="tdep" inputmode="numeric"></div>
@@ -828,7 +836,9 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 <div class="ov" id="depdatem">
 <div class="mdl">
   <div class="mh"></div>
-  <h2 id="dd-title">تاریخ دریافت ودیعه</h2>
+  <h2 id="dd-title">ثبت دریافت ودیعه</h2>
+  <div id="dd-sub" style="font-size:11.5px;color:var(--t2);line-height:1.85;margin-bottom:12px"></div>
+  <div class="fg"><label>حساب</label><select id="dd-acc"></select></div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
     <div class="fg"><label>روز</label><input type="number" id="dd-day" min="1" max="31" inputmode="numeric"></div>
     <div class="fg"><label>ماه</label><select id="dd-mon"></select></div>
@@ -1006,6 +1016,18 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 </div>
 </div>
 
+<!-- MODAL: pre-upgrade (schema v1) snapshot -->
+<div class="ov" id="v1m">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2>نسخهٔ پیش از ارتقا</h2>
+  <div id="v1-info" style="font-size:12.5px;color:var(--t2);line-height:1.9;margin-bottom:14px"></div>
+  <button class="btn btnp" onclick="downloadV1Backup()">📥 دانلود فایل نسخهٔ v1</button>
+  <button class="btn btnd" onclick="rollbackToV1()">↩️ بازگردانی کامل به نسخهٔ v1</button>
+  <button class="btn btns" onclick="cls('v1m')">بستن</button>
+</div>
+</div>
+
 <!-- MODAL: Transfer between accounts -->
 <div class="ov" id="transm">
 <div class="mdl">
@@ -1159,7 +1181,12 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <div class="fg"><label>مانده بدهی — مجموع اقساط باقی‌مانده (تومان)</label><input type="text" inputmode="numeric" id="loan-rem" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
   <div class="fg"><label>مبلغ هر قسط (تومان)</label><input type="text" inputmode="numeric" id="loan-inst" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
   <div class="fg"><label>روز سررسید در ماه</label><input type="number" id="loan-day" min="1" max="31" placeholder="مثلاً ۵"></div>
-  <div style="font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:12px">با «ثبت قسط»، یک هزینه با دستهٔ «قسط و وام» ثبت و مانده بدهی کم می‌شود. مانده وام از خالص دارایی کسر می‌گردد.</div>
+  <div class="fg"><label>سهم سود/کارمزد در هر قسط (تومان) — پیش‌فرض ۰</label><input type="text" inputmode="numeric" id="loan-int" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+  <div id="loan-disb-wrap" class="fg"><label>واریز مبلغ وام به حساب — اختیاری</label><select id="loan-disb-acc"></select></div>
+  <div style="font-size:11px;color:var(--t3);line-height:1.85;margin-bottom:12px">
+    <b>هر قسط دو بخش دارد:</b> بازپرداخت <b>اصل</b> (کاهش بدهی — هزینه نیست و در سود و زیان نمی‌آید) و <b>سود/کارمزد</b> (هزینهٔ مالی و بخشی از هزینه‌های ماه).<br>
+    اگر «واریز مبلغ وام به حساب» را انتخاب کنید، دریافت وام به‌صورت افزایش نقدینگی + ایجاد بدهی ثبت می‌شود و <b>درآمد محسوب نمی‌شود</b>.
+  </div>
   <button class="btn btnp" onclick="saveLoan()">ذخیره</button>
   <button class="btn btnd" id="dloanb" style="display:none" onclick="delLoan()">حذف وام</button>
   <button class="btn btns" onclick="cls('loanfm')">انصراف</button>
@@ -1171,7 +1198,9 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 <div class="mdl">
   <div class="mh"></div>
   <h2 id="loanpay-title">پرداخت قسط</h2>
-  <div class="fg"><label>مبلغ (تومان)</label><input type="text" inputmode="numeric" id="loanpay-amt" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+  <div class="fg"><label>مبلغ کل قسط (تومان)</label><input type="text" inputmode="numeric" id="loanpay-amt" oninput="this.value=this.value?nf(toLn(this.value)):'';loanSplitPreview()"></div>
+  <div class="fg"><label>از این مبلغ، سود/کارمزد (تومان)</label><input type="text" inputmode="numeric" id="loanpay-int" oninput="this.value=this.value?nf(toLn(this.value)):'';loanSplitPreview()"></div>
+  <div id="loanpay-split" style="font-size:11.5px;line-height:1.9;background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:12px;color:var(--t2)"></div>
   <div class="fg"><label>پرداخت از حساب</label><select id="loanpay-acc"></select></div>
   <button class="btn btnp" onclick="confirmPayInstallment()">ثبت پرداخت</button>
   <button class="btn btns" onclick="cls('loanpaym')">انصراف</button>
@@ -1356,12 +1385,15 @@ function cancelDupSave(){
 let curScreen=0;
 let catMgrType='income';
 let pendingNotifs=[];
+let pendingV1BackupOffer=false;
 
 function def(){
   return{
     sm:today().m-1,
     appName:'سرمایه',
     tx:[],ten:[],pay:{},
+    schemaVersion:SCHEMA_VERSION,
+    properties:[],tenants:[],rentalContracts:[],rentPayments:[],
     budgets:{},loans:[],theme:'auto',fx:[],dismissed:{},
     notifLog:[],smsLog:[],
     cats:{
@@ -1391,6 +1423,13 @@ async function loadState(){
   try{
     const saved=await dbGet('state');
     if(saved){
+      // Snapshot the untouched pre-v2 state before any structural migration runs.
+      if((saved.schemaVersion||1)<SCHEMA_VERSION){
+        try{
+          await dbSet('state_v1_backup',{savedAt:Date.now(),version:saved.schemaVersion||1,state:saved});
+          pendingV1BackupOffer=true;
+        }catch(e){}
+      }
       const merged={...def(),...saved,cats:{
         income:saved.cats?.income||def().cats.income,
         expense:saved.cats?.expense||def().cats.expense
@@ -1633,6 +1672,134 @@ function migrateState(s){
     s.tenPeriodsV1=true;
   }
 
+  // ---- Schema v2 (properties / tenants / contracts / payments / nature) ----
+  s=migrateV2(s);
+
+  return s;
+}
+
+// ============================================================
+// SCHEMA v2 MIGRATION
+// Rules honoured here:
+//  * Reversible — nothing is deleted. ST._legacy keeps the original ten/pay,
+//    and a full pre-migration snapshot is written to IndexedDB by loadState().
+//  * Idempotent — migrateV2(migrateV2(s)) === migrateV2(s).
+//  * Safe — historical figures are NEVER restated. Legacy installments stay
+//    fully expensed (grandfathered) and legacy deposits stay financially
+//    unposted, so every report you have already seen keeps its numbers.
+// ============================================================
+// Parse a Persian-formatted date string ("۱۴۰۵/۰۴/۰۱") back to {y,m,d}, m 0-based.
+function parseFaDate(str){
+  if(!str) return null;
+  const m=normDigits(String(str)).match(/(\d{3,4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+  if(!m) return null;
+  const y=parseInt(m[1]),mo=parseInt(m[2])-1,d=parseInt(m[3]);
+  if(!y||mo<0||mo>11||d<1||d>31) return null;
+  return {y,m:mo,d};
+}
+function migrateV2(s){
+  ensureV2Shape(s);
+  if(s.schemaVersion>=2) return s;
+
+  // ---------- 0. Keep the originals verbatim ----------
+  try{
+    s._legacy={ten:JSON.parse(JSON.stringify(s.ten||[])),pay:JSON.parse(JSON.stringify(s.pay||{})),migratedAt:Date.now()};
+  }catch(e){ s._legacy={ten:[],pay:{},migratedAt:Date.now()}; }
+
+  // ---------- 1. Tag every transaction with a nature ----------
+  (s.tx||[]).forEach(t=>{
+    if(t.nature) return;
+    if(t.isOpening)      t.nature='opening';
+    else if(t.isTransfer)t.nature='transfer';
+    else if(t.fxId)      t.nature='fx';
+    else {
+      t.nature='operating';
+      // Grandfathered: pre-v2 installments were booked 100% as expense. They stay
+      // that way so past months keep the totals you already reconciled.
+      if(t.loanId) t.legacyInstallment=true;
+    }
+  });
+
+  // ---------- 2. ten[] → properties[] + tenants[] + rentalContracts[] ----------
+  (s.ten||[]).forEach(t=>{
+    const pid='p_'+t.id, tid='t_'+t.id;
+    if(!s.properties.some(p=>p.id===pid)) s.properties.push({
+      id:pid,name:t.unit||t.n||'ملک',address:'',unit:t.unit||'',
+      type:(t.tp==='تجاری')?'commercial':'residential',
+      area:0,value:t.val||0,valueDate:null,note:'',archived:false});
+    if(!s.tenants.some(x=>x.id===tid)) s.tenants.push({
+      id:tid,name:t.n||'',phone:t.phone||'',nationalId:'',note:t.note||'',archived:false});
+    // NOTE: contract.id deliberately reuses ten.id so every existing
+    // tx.tenantId / ST.pay key / notifLog entry keeps resolving.
+    if(!s.rentalContracts.some(c=>c.id===t.id)) s.rentalContracts.push({
+      id:t.id,propertyId:pid,tenantId:tid,
+      periods:(Array.isArray(t.periods)&&t.periods.length)?t.periods
+        :[{sd:t.start_d||1,sm:t.start_m!==undefined?t.start_m:0,sy:t.start_y||1404,dur:t.dur_m||12,rent:t.rent||0}],
+      deposit:t.dep||0,depositAccId:'',
+      depositReceivedDate:t.depReceived?(parseFaDate(t.depReceivedDate)||null):null,
+      depositReturnedDate:t.depReturned?(parseFaDate(t.depReturnedDate)||null):null,
+      depositTxIds:{received:null,returned:null},
+      incomeAccId:t.accId||'',status:'active',terminatedAt:null,note:t.note||''});
+  });
+
+  // ---------- 3. pay{} → rentPayments[] ----------
+  Object.keys(s.pay||{}).forEach(key=>{
+    const rec=s.pay[key]; if(!rec) return;
+    const parts=key.split('_');
+    if(parts.length<3) return;
+    const m=parseInt(parts.pop()), y=parseInt(parts.pop()), cid=parts.join('_');
+    if(isNaN(m)||isNaN(y)) return;
+    const amount=rec.amount||0;
+    if(amount<=0) return;
+    if(s.rentPayments.some(p=>p.legacyKey===key)) return;
+    const c=s.rentalContracts.find(x=>x.id===cid);
+    const parsed=parseFaDate(rec.date);
+    // No recorded pay date → fall back to the due day of that rent period.
+    const due=c?(function(){for(const p of c.periods){const i=y*12+m;
+      if(i>=p.sy*12+p.sm+1&&i<=p.sy*12+p.sm+(p.dur||12))return p.sd||1;}return 1;})():1;
+    const linked=(s.tx||[]).find(t=>t.id===rec.txId);
+    s.rentPayments.push({
+      id:uid(),legacyKey:key,contractId:cid,
+      propertyId:c?c.propertyId:'',tenantId:c?c.tenantId:'',
+      rentPeriod:{y,m},
+      payDate:parsed||{y,m,d:due},
+      amount,accId:linked?(linked.accId||''):'',txId:rec.txId||null,note:''});
+    // Give the linked income tx its accrual period. Its CASH date is left
+    // untouched on purpose — restating it would move income between months.
+    if(linked){
+      linked.rentPeriod={y,m};
+      linked.contractId=cid;
+      if(c){linked.propertyId=c.propertyId;linked.tenantId=c.tenantId;}
+      linked.legacyRentDate=true;
+    }
+  });
+
+  // ---------- 4. Loans: total → principalTotal, interest defaults ----------
+  (s.loans||[]).forEach(l=>{
+    if(l.principalTotal===undefined) l.principalTotal=l.total||l.remaining||0;
+    if(l.defaultInterest===undefined) l.defaultInterest=0;
+    if(l.disbursementTxId===undefined) l.disbursementTxId=null;
+  });
+
+  // ---------- 5. Accounts: archive flag ----------
+  (s.accounts||[]).forEach(a=>{ if(a.archived===undefined) a.archived=false; });
+
+  s.schemaVersion=2;
+  return s;
+}
+// Guarantees the v2 containers exist. Safe to call on already-migrated state.
+function ensureV2Shape(s){
+  if(!Array.isArray(s.properties))      s.properties=[];
+  if(!Array.isArray(s.tenants))         s.tenants=[];
+  if(!Array.isArray(s.rentalContracts)) s.rentalContracts=[];
+  if(!Array.isArray(s.rentPayments))    s.rentPayments=[];
+  if(!Array.isArray(s.ten))             s.ten=[];
+  if(!s.pay||typeof s.pay!=='object')   s.pay={};
+  (s.rentalContracts||[]).forEach(c=>{
+    if(!c.depositTxIds) c.depositTxIds={received:null,returned:null};
+    if(!c.status) c.status='active';
+    if(!Array.isArray(c.periods)||!c.periods.length) c.periods=[{sd:1,sm:0,sy:1404,dur:12,rent:0}];
+  });
   return s;
 }
 
@@ -1659,7 +1826,8 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v22';
+const APP_VERSION='v23';
+const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
   'بانک ملت':'bank-mellat.png',
@@ -1697,26 +1865,81 @@ function gToJ(gy,gm,gd){
 }
 const WD=['یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه','شنبه'];
 function today(){const n=new Date();const j=gToJ(n.getFullYear(),n.getMonth()+1,n.getDate());j.wd=WD[n.getDay()];return j;}
-function getCat(tp,id){return ST.cats[tp]?.find(c=>c.id===id)||{n:'سایر',i:'more',c:'#65728C'};}
+function todayYMD(){const t=today();return{y:t.y,m:t.m-1,d:t.d};}
+// System-owned pseudo categories. They never appear in the category manager but
+// need a stable label wherever a transaction is rendered or exported.
+const SYS_CATS={
+  transfer:{n:'انتقال',i:'swap',c:'#546E7A'},
+  opening:{n:'موجودی اولیه',i:'coin',c:'#65728C'},
+  deposit:{n:'ودیعه',i:'home',c:'#4A42B0'},
+  loan:{n:'اصل وام',i:'coin',c:'#8C6A3F'}
+};
+function getCat(tp,id){
+  return ST.cats[tp]?.find(c=>c.id===id)||SYS_CATS[id]||{n:'سایر',i:'more',c:'#65728C'};
+}
 function getTx(m,y){ if(y===undefined) y=SY; return ST.tx.filter(t=>t.m===m && (t.y!==undefined?t.y:SY)===y); }
+// Rent attributed to year y by ACCRUAL period (rent performance view).
 function annualCollected(tid,y){
+  return (ST.rentPayments||[]).reduce((s,p)=>
+    s+((p.contractId===tid&&p.rentPeriod&&p.rentPeriod.y===+y)?(p.amount||0):0),0);
+}
+// Rent that physically arrived during year y (cash-flow view).
+function annualCollectedCash(tid,y){
+  return (ST.rentPayments||[]).reduce((s,p)=>
+    s+((p.contractId===tid&&p.payDate&&p.payDate.y===+y)?(p.amount||0):0),0);
+}
+// ============================================================
+// ACCOUNTING CORE v2
+// Every transaction carries a `nature` — the SINGLE source of truth for
+// whether it belongs in the profit & loss statement. Cash effect is always
+// the same (income → +a, expense → −a); only P&L membership differs.
+//   operating        → real income / expense          → in P&L
+//   transfer         → between own accounts           → out
+//   opening          → opening balance                → out
+//   deposit          → tenant deposit (cash ↔ liability) → out
+//   loanDisbursement → loan received (cash ↔ liability)  → out
+//   loanPrincipal    → principal repaid (cash ↔ liability) → out
+//   fx               → remittance leg                 → out
+// natureOf() infers the value for any pre-v2 record, so the app stays
+// correct even if a migration is skipped or a backup is restored.
+// ============================================================
+function natureOf(t){
+  if(t.nature) return t.nature;
+  if(t.isOpening) return 'opening';
+  if(t.isTransfer) return 'transfer';
+  if(t.fxId) return 'fx';
+  return 'operating';
+}
+function isPnL(t){return natureOf(t)==='operating';}
+function totals(txs){let i=0,e=0;txs.forEach(t=>{if(!isPnL(t))return;if(t.tp==='income')i+=t.a;else e+=t.a;});return{i,e,b:i-e};}
+// ---- Assets / Liabilities ----
+// Archived accounts still hold money — they stay in every calculation and are
+// hidden only from the pickers used to create NEW records.
+function assetsTotal(){return (ST.accounts||[]).reduce((s,a)=>s+calcAccBalance(a.id),0);}
+function loansDebt(){return (ST.loans||[]).reduce((s,l)=>s+(l.active!==false?(l.remaining||0):0),0);}
+function debtsTotal(){return loansDebt();} // legacy alias — kept so old call sites keep working
+// Deposit liability is DERIVED from the deposit transactions themselves, so the
+// cash side and the liability side can never drift apart.
+function depositLiability(){
   let s=0;
-  Object.keys(ST.pay).forEach(k=>{
-    if(k.startsWith(tid+'_'+y+'_')) s+=ST.pay[k].amount||0;
-  });
+  (ST.tx||[]).forEach(t=>{if(natureOf(t)!=='deposit')return;s+=t.tp==='income'?t.a:-t.a;});
   return s;
 }
-function totals(txs){let i=0,e=0;txs.forEach(t=>{if(t.isTransfer||t.isOpening)return;if(t.tp==='income')i+=t.a;else e+=t.a;});return{i,e,b:i-e};}
-// ---- Assets / Liabilities ----
-function assetsTotal(){return (ST.accounts||[]).reduce((s,a)=>s+calcAccBalance(a.id),0);}
-function debtsTotal(){return (ST.loans||[]).reduce((s,l)=>s+(l.active!==false?(l.remaining||0):0),0);}
-// Net worth = assets (account balances) − liabilities (remaining loan principal)
-function netWorth(){return assetsTotal()-debtsTotal();}
+function totalLiabilities(){return loansDebt()+depositLiability();}
+// Net worth = assets − (loan principal + deposits held on behalf of tenants)
+function netWorth(){return assetsTotal()-totalLiabilities();}
+// Deposits that exist on a contract but were never posted financially (pre-v2
+// data). They are NOT counted as a liability because no cash was recorded for
+// them either — the rent screen offers a one-tap fix instead.
+function unpostedDeposits(){
+  return (ST.rentalContracts||[]).filter(c=>
+    (c.deposit||0)>0 && c.depositReceivedDate && !c.depositTxIds?.received && !c.depositReturnedDate);
+}
 // Account balances as of end of Jalali month (m 0-based, y). Opening balances are tx too.
 function assetsAt(m,y){
   const lim=y*12+m;
   return (ST.accounts||[]).reduce((s,acc)=>{
-    let b=acc.initBalance||0;
+    let b=acc.initBalance||0; // always 0 post-migration; opening balances are tx
     ST.tx.forEach(t=>{
       if(t.accId!==acc.id) return;
       if(((t.y||0)*12+(t.m||0))>lim) return;
@@ -1852,13 +2075,10 @@ document.addEventListener('click',e=>{if(!e.target.closest('.month-picker-wrap')
 function unpaidRentSummary(){
   const t=today();
   let total=0,count=0;
-  (ST.ten||[]).forEach(ten=>{
+  tenList().forEach(ten=>{
     const r=rentFor(ten,t.m-1,t.y);
-    if(r<=0) return; // no rent due this month (before start or contract ended)
-    const key=`${ten.id}_${t.y}_${t.m-1}`;
-    const pay=ST.pay[key];
-    if(pay&&pay.status==='paid') return;
-    const owed=pay&&pay.status==='partial'?Math.max(0,r-(pay.amount||0)):r;
+    if(r<=0) return; // no rent due this month (before start, ended, or terminated)
+    const owed=Math.max(0,r-paidFor(ten.id,t.y,t.m-1));
     if(owed>0){total+=owed;count++;}
   });
   return{total,count};
@@ -1895,10 +2115,15 @@ function rDash(){
   const nwHint=document.getElementById('netWorthHint');
   if(nwEl){
     nwEl.textContent=nf(netWorth());
-    const debt=debtsTotal();
+    const debt=loansDebt(), dep=depositLiability();
     const bd=document.getElementById('netWorthBreak');
     if(bd){
-      if(debt>0){bd.style.display='block';bd.textContent=`دارایی ${nf(assetsTotal())} − بدهی ${nf(debt)} تومان`;}
+      if(debt>0||dep!==0){
+        bd.style.display='block';
+        bd.textContent=`دارایی ${nf(assetsTotal())}`
+          +(debt>0?` − وام ${nf(debt)}`:'')
+          +(dep!==0?` − ودیعه ${nf(dep)}`:'')+' تومان';
+      }
       else bd.style.display='none';
     }
     if(nwHint) nwHint.style.display=(ST.accounts&&ST.accounts.length)?'none':'block';
@@ -1913,7 +2138,7 @@ function rDash(){
     const items=[];
     (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0).forEach(l=>{
       if(t.d<l.day) return;
-      if(ST.tx.some(tx=>tx.loanId===l.id&&tx.m===t.m-1&&tx.y===t.y)) return;
+      if(ST.tx.some(tx=>tx.loanId===l.id&&tx.installmentId&&tx.m===t.m-1&&tx.y===t.y)) return;
       const key=`loan_${l.id}${mk}`;
       if(ST.dismissed[key]) return;
       items.push({key,icon:'loan',c:'var(--rd)',bg:'var(--rdl)',
@@ -1921,11 +2146,10 @@ function rDash(){
         sub:`سررسید ${toFa(l.day)}ام این ماه`,
         act:`payInstallment('${l.id}')`,actL:'ثبت قسط'});
     });
-    (ST.ten||[]).forEach(ten=>{
+    tenList().forEach(ten=>{
       const r=rentFor(ten,t.m-1,t.y);
       if(r<=0) return;
-      const pay=ST.pay[`${ten.id}_${t.y}_${t.m-1}`];
-      if(pay&&(pay.status==='paid'||pay.status==='partial')) return;
+      if(paidFor(ten.id,t.y,t.m-1)>0) return;
       const dd=dueDayFor(ten,t.m-1,t.y);
       if(t.d<dd) return;
       const key=`rent_${ten.id}${mk}`;
@@ -1935,8 +2159,9 @@ function rDash(){
         sub:`سررسید ${toFa(dd)}ام این ماه`,
         act:`openPay('${ten.id}')`,actL:'ثبت پرداخت'});
     });
-    (ST.ten||[]).forEach(ten=>{
+    tenList().forEach(ten=>{
       const curIdx=t.y*12+(t.m-1);
+      if(ten.status==='terminated') return;
       if(curIdx<contractEnd(ten).idx) return;
       const key=`renew_${ten.id}${mk}`;
       if(ST.dismissed[key]) return;
@@ -2072,6 +2297,27 @@ function txHtml(t){
       <div class="txa" style="color:var(--t2)">-${nf(t.a)} ت</div>
     </div>`;
   }
+  const nat=natureOf(t);
+  if(nat==='deposit'||nat==='loanPrincipal'||nat==='loanDisbursement'){
+    const META={
+      deposit:{g:'linear-gradient(145deg,#7B68EE,#4A42B0)',ic:ICONS.home||ICONS.more,
+        sub:'ودیعه — نقدینگی و بدهی؛ جزو درآمد/هزینه نیست'},
+      loanPrincipal:{g:'linear-gradient(145deg,#8C6A3F,#5C4526)',ic:ICONS.coin||ICONS.more,
+        sub:'بازپرداخت اصل — کاهش بدهی؛ هزینه محسوب نمی‌شود'},
+      loanDisbursement:{g:'linear-gradient(145deg,#8C6A3F,#5C4526)',ic:ICONS.coin||ICONS.more,
+        sub:'دریافت وام — نقدینگی و بدهی؛ درآمد محسوب نمی‌شود'}
+    }[nat];
+    return `<div class="txi">
+      <div class="txic" style="background:${META.g}">
+        <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:#fff;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${META.ic}</svg>
+      </div>
+      <div class="txin">
+        <div class="txt">${esc(t.dsc||'')}</div>
+        <div class="txd">${fmtDate(t.day,t.m,t.y||1404)} · ${META.sub}</div>
+      </div>
+      <div class="txa" style="color:var(--t2)">${isI?'+':'-'}${nf(t.a)} ت</div>
+    </div>`;
+  }
   if(t.isTransfer){
     return `<div class="txi" onclick="openTransfer('${t.id}')">
       <div class="txic" style="background:linear-gradient(145deg,#90A4AE,#546E7A)">
@@ -2092,7 +2338,7 @@ function txHtml(t){
     </div>
     <div class="txin">
       <div class="txt">${esc(cat.n)}${t.dsc?' · '+esc(t.dsc):''}</div>
-      <div class="txd">${fmtDate(t.day,t.m,t.y||1404)}</div>
+      <div class="txd">${fmtDate(t.day,t.m,t.y||1404)}${t.rentPeriod?` · دورهٔ ${fmtMonthYear(t.rentPeriod.m,t.rentPeriod.y)}`:''}</div>
     </div>
     <div class="txa" style="color:${isI?'var(--gr)':'var(--rd)'}">${isI?'+':'-'}${nf(t.a)} ت</div>
   </div>`;
@@ -2248,12 +2494,18 @@ async function saveTx(){
 async function finishSaveTx(a,cat,dsc,day,m,y,accId){
   const orig=etx?ST.tx.find(t=>t.id===etx):null;
   const rec={id:etx||uid(),tp:txtp,cat,a,dsc,day,m,y,accId};
-  if(orig&&orig.isRent){rec.isRent=true;rec.tenantId=orig.tenantId;rec.payKey=orig.payKey;}
+  if(orig&&orig.isRent){rec.isRent=true;rec.tenantId=orig.tenantId;rec.payKey=orig.payKey;
+    rec.contractId=orig.contractId;rec.propertyId=orig.propertyId;rec.rentPeriod=orig.rentPeriod;rec.nature='operating';}
   if(orig&&orig.isOpening){rec.isOpening=true;rec.tp='income';rec.cat='opening';}
   if(etx){const idx=ST.tx.findIndex(t=>t.id===etx);if(idx>=0)ST.tx[idx]=rec;else ST.tx.push(rec);}
   else ST.tx.push(rec);
   // Keep the tenant payment record's amount in sync if this tx is linked to a rent payment
-  if(rec.isRent&&rec.payKey&&ST.pay[rec.payKey]) ST.pay[rec.payKey].amount=a;
+  // Editing a rent tx from the transactions screen updates its payment record too.
+  if(rec.isRent){
+    const rp=(ST.rentPayments||[]).find(p=>p.txId===rec.id);
+    if(rp){rp.amount=a;rp.payDate={y,m,d:day};rp.accId=accId||'';}
+    if(rec.payKey&&ST.pay[rec.payKey]) ST.pay[rec.payKey].amount=a;
+  }
   if(txtp==='expense') budgetWarn(cat,m,y);
   cls('txm');ntf('✅ ذخیره شد');
   rDash();rTx();rTen();
@@ -2263,7 +2515,20 @@ async function delTx(){
   if(!etx)return;
   const delObj=ST.tx.find(t=>t.id===etx);
   ST.tx=ST.tx.filter(t=>t.id!==etx);
-  if(delObj&&delObj.isRent&&delObj.payKey&&ST.pay[delObj.payKey]) delete ST.pay[delObj.payKey];
+  if(delObj&&delObj.isRent){
+    const rp=(ST.rentPayments||[]).find(p=>p.txId===delObj.id);
+    if(rp){ if(rp.legacyKey&&ST.pay) delete ST.pay[rp.legacyKey];
+            ST.rentPayments=ST.rentPayments.filter(p=>p.id!==rp.id); }
+    if(delObj.payKey&&ST.pay[delObj.payKey]) delete ST.pay[delObj.payKey];
+  }
+  // Deleting a deposit leg unlinks it from its contract so the card offers a re-post.
+  if(delObj&&natureOf(delObj)==='deposit'&&delObj.contractId){
+    const c=getContract(delObj.contractId);
+    if(c&&c.depositTxIds){
+      if(c.depositTxIds.received===delObj.id){c.depositTxIds.received=null;c.depositReceivedDate=null;}
+      if(c.depositTxIds.returned===delObj.id){c.depositTxIds.returned=null;c.depositReturnedDate=null;}
+    }
+  }
   if(delObj&&delObj.isOpening){const acc=(ST.accounts||[]).find(a=>a.openTxId===delObj.id);if(acc)acc.openTxId=null;}
   if(delObj&&delObj.isTransfer){const pair=findTransferPair(delObj);if(pair) ST.tx=ST.tx.filter(t=>t.id!==pair.id);}
   // If an FX payout leg is removed, roll the deal back to "یورو دریافت شد"
@@ -2621,22 +2886,24 @@ async function saveCat(){
 // ============================================================
 function rTen(){
   const t=today();const list=document.getElementById('tl');const alrt=document.getElementById('alrt');
-  if(!ST.ten.length){
+  if(!contracts().length){
     list.innerHTML=emptyHtml('building','هنوز واحدی ثبت نشده. دکمه «واحد جدید» را بزنید');
-    alrt.innerHTML='';return;
+    alrt.innerHTML='';renderDepositNotice();return;
   }
   let up=[];
-  list.innerHTML=ST.ten.map(ten=>{
-    const key=`${ten.id}_${t.y}_${t.m-1}`;const pay=ST.pay[key];
-    const isPaid=pay&&pay.status==='paid';
-    const isPartial=pay&&pay.status==='partial';
+  list.innerHTML=tenList().map(ten=>{
+    const st=rentStatus(ten,t.y,t.m-1);
+    const isPaid=st.state==='paid'||st.state==='overpaid';
+    const isPartial=st.state==='partial';
     const curIdx=t.y*12+(t.m-1);
     const ce=contractEnd(ten);
-    const ended=curIdx>ce.idx;
+    const ended=ten.status==='terminated'||curIdx>ce.idx;
     const rentDue=rentFor(ten,t.m-1,t.y)>0;
     const arr=tenArrears(ten);
     if(rentDue&&!isPaid&&!isPartial)up.push(ten.n);
-    const sb=ended
+    const sb=ten.status==='terminated'
+      ?`<span class="bdg" style="background:var(--rdl);color:var(--rd)">قرارداد فسخ شده</span>`
+      :ended
       ?`<span class="bdg" style="background:var(--rdl);color:var(--rd)">پایان قرارداد — تمدید کنید</span>`
       :isPaid
       ?`<span class="bdg bg"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>پرداخت</span>`
@@ -2659,6 +2926,7 @@ function rTen(){
           <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px"><span style="color:var(--t2);font-weight:600">اجاره ماهانه</span><b style="color:var(--pr)">${nf(ten.rent)} ت</b></div>
           <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px"><span style="color:var(--t2);font-weight:600">ودیعه</span><b style="color:var(--t1)">${nf(ten.dep)} ت</b></div>
           <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--t2);font-weight:600">سررسید</span><b style="color:var(--t1)">${toFa(ten.due)}ام هر ماه</b></div>
+          ${isPartial?`<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px"><span style="color:var(--am);font-weight:700">پرداختی این ماه</span><b style="color:var(--am)">${nf(st.paid)} از ${nf(st.due)} ت</b></div>`:''}
           ${arr.owed>0?`<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px;padding-top:5px;border-top:1px dashed var(--border)"><span style="color:var(--rd);font-weight:700">معوق (${toFa(arr.months)} ماه)</span><b style="color:var(--rd)">${nf(arr.owed)} ت</b></div>`:''}
         </div>
         ${depStatusHtml(ten)}
@@ -2673,9 +2941,32 @@ function rTen(){
     </div>`;
   }).join('');
   alrt.innerHTML=up.length?`<div class="alrt"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>پرداخت نشده این ماه: ${up.join('، ')}</span></div>`:'';
+  renderDepositNotice();
+}
+// Pre-v2 deposits were a flag only — no cash, no liability. Migration keeps them
+// that way (nothing is restated) and surfaces a one-tap fix instead.
+function renderDepositNotice(){
+  const box=document.getElementById('depNotice');
+  if(!box) return;
+  const pend=unpostedDeposits();
+  if(!pend.length){box.innerHTML='';return;}
+  box.innerHTML=`<div style="background:var(--aml);border-radius:var(--rads);padding:12px 14px;margin:0 14px 12px;border-right:3px solid var(--am)">
+    <div style="font-size:12.5px;font-weight:800;color:var(--am);margin-bottom:4px">ودیعه‌های بدون ثبت مالی</div>
+    <div style="font-size:11.5px;color:var(--t2);line-height:1.8;margin-bottom:9px">${toFa(pend.length)} ودیعه از نسخهٔ قبلی فقط علامت‌گذاری شده و در نقدینگی و بدهی‌ها منظور نشده است. با ثبت مالی، ودیعه به‌عنوان «نقد + بدهی به مستأجر» وارد محاسبات می‌شود.</div>
+    ${pend.map(c=>{const v=cView(c);return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+      <div style="flex:1;min-width:0;font-size:11.5px;color:var(--t1);font-weight:700">${esc(v.n)} — ${nf(v.dep)} ت</div>
+      <button onclick="openDepDateModal('${c.id}','received')" style="padding:6px 12px;border-radius:10px;border:none;background:var(--am);color:#fff;font-size:11px;font-weight:800;cursor:pointer;font-family:'Vazirmatn',sans-serif">ثبت مالی</button>
+    </div>`;}).join('')}
+  </div>`;
 }
 function depStatusHtml(ten){
   if(!ten.dep) return '';
+  if(ten.depReceived&&!ten.depPosted&&!ten.depReturned){
+    return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--aml);border-radius:12px;padding:9px 12px;margin-bottom:10px;font-size:12px">
+      <span style="color:var(--am);font-weight:600">ودیعه بدون ثبت مالی</span>
+      <button onclick="event.stopPropagation();openDepDateModal('${ten.id}','received')" style="background:var(--am);border:none;border-radius:8px;padding:5px 9px;color:#fff;font-size:11px;font-weight:800;cursor:pointer;font-family:'Vazirmatn',sans-serif">ثبت مالی</button>
+    </div>`;
+  }
   if(ten.depReturned){
     return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:12px;padding:9px 12px;margin-bottom:10px;font-size:12px">
       <span style="color:var(--t2)">ودیعه بازگردانده شد ${ten.depReturnedDate?'— '+ten.depReturnedDate:''}</span>
@@ -2695,14 +2986,27 @@ function depStatusHtml(ten){
 }
 let depDateTid=null, depDateAction=null;
 function openDepDateModal(tid,action){
+  const c=getContract(tid); if(!c) return;
   depDateTid=tid; depDateAction=action;
-  document.getElementById('dd-title').textContent=action==='received'?'تاریخ دریافت ودیعه':'تاریخ بازگشت ودیعه';
+  const v=cView(c);
+  document.getElementById('dd-title').textContent=action==='received'?'ثبت دریافت ودیعه':'ثبت بازگشت ودیعه';
+  document.getElementById('dd-sub').innerHTML=action==='received'
+    ?`ودیعهٔ <b>${nf(v.dep)}</b> تومان از «${esc(v.n)}» به حساب انتخابی واریز و هم‌زمان به‌عنوان <b>بدهی به مستأجر</b> ثبت می‌شود. این مبلغ درآمد محسوب نمی‌شود.`
+    :`ودیعهٔ <b>${nf(v.dep)}</b> تومان به «${esc(v.n)}» بازگردانده می‌شود: کاهش نقدینگی و کاهش بدهی. این مبلغ هزینه محسوب نمی‌شود.`;
+  const sel=document.getElementById('dd-acc');
+  const accs=activeAccounts();
+  sel.innerHTML=accs.length?accs.map(a=>`<option value="${a.id}"${(c.depositAccId===a.id)?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''} (${nf(calcAccBalance(a.id))} ت)</option>`).join('')
+    :'<option value="">— حسابی ثبت نشده —</option>';
   const t=today();
-  document.getElementById('dd-day').value=t.d;
-  fillMon('dd-mon',t.m-1);
-  document.getElementById('dd-year').value=t.y;
+  const d=action==='received'?(c.depositReceivedDate||todayYMD()):todayYMD();
+  document.getElementById('dd-day').value=d.d;
+  fillMon('dd-mon',d.m);
+  document.getElementById('dd-year').value=d.y;
   document.getElementById('depdatem').classList.add('on');
 }
+// Deposit posting — the ONE place cash and the tenant liability are created
+// together. Both legs carry nature:'deposit', so they stay out of P&L while
+// still moving the account balance and the liability line of net worth.
 async function confirmDepDate(){
   if(!depDateTid)return;
   const d=parseInt(document.getElementById('dd-day').value)||1;
@@ -2711,24 +3015,47 @@ async function confirmDepDate(){
   const maxDay=jMaxDay(m,y);
   if(d<1||d>maxDay){ntf(`⚠️ ماه ${toFa(pad2(m+1))} حداکثر ${toFa(maxDay)} روز دارد`);hiErr('dd-day');return;}
   if(!y||y<1380||y>1450){ntf('⚠️ سال معتبر نیست (۱۳۸۰–۱۴۵۰)');hiErr('dd-year');return;}
-  const t=ST.ten.find(x=>x.id===depDateTid);if(!t){cls('depdatem');return;}
-  const dateStr=fmtDate(d,m,y);
+  const c=getContract(depDateTid);if(!c){cls('depdatem');return;}
+  const amount=c.deposit||0;
+  if(amount<=0){ntf('⚠️ مبلغ ودیعه برای این قرارداد صفر است');cls('depdatem');return;}
+  const accId=(document.getElementById('dd-acc')||{}).value||'';
+  if(!accId){ntf('⚠️ ابتدا یک حساب بانکی ثبت کنید');return;}
+  if(!c.depositTxIds) c.depositTxIds={received:null,returned:null};
+  const tenName=cTenant(c).name||'';
   if(depDateAction==='received'){
-    t.depReceived=true;t.depReceivedDate=dateStr;
-    ntf('✅ دریافت ودیعه ثبت شد');
+    if(c.depositTxIds.received) ST.tx=ST.tx.filter(t=>t.id!==c.depositTxIds.received);
+    const id=uid();
+    ST.tx.push({id,tp:'income',cat:'deposit',a:amount,dsc:`دریافت ودیعه — ${tenName}`,
+      day:d,m,y,accId,nature:'deposit',depositRole:'received',
+      contractId:c.id,tenantId:c.tenantId,propertyId:c.propertyId});
+    c.depositTxIds.received=id;
+    c.depositReceivedDate={y,m,d};
+    c.depositAccId=accId;
+    ntf('✅ ودیعه ثبت شد — نقدینگی + بدهی');
   } else {
-    t.depReturned=true;t.depReturnedDate=dateStr;
+    if(!c.depositTxIds.received){ntf('⚠️ ابتدا دریافت ودیعه را ثبت کنید');return;}
+    if(calcAccBalance(accId)<amount&&!confirm('موجودی حساب کمتر از مبلغ ودیعه است. ادامه می‌دهید؟')) return;
+    if(c.depositTxIds.returned) ST.tx=ST.tx.filter(t=>t.id!==c.depositTxIds.returned);
+    const id=uid();
+    ST.tx.push({id,tp:'expense',cat:'deposit',a:amount,dsc:`بازگشت ودیعه — ${tenName}`,
+      day:d,m,y,accId,nature:'deposit',depositRole:'returned',
+      contractId:c.id,tenantId:c.tenantId,propertyId:c.propertyId});
+    c.depositTxIds.returned=id;
+    c.depositReturnedDate={y,m,d};
     ntf('✅ بازگشت ودیعه ثبت شد');
   }
   cls('depdatem');
-  rTen();rDash();
   await sv();
+  rTen();rDash();rTx();
 }
 async function undoDepReturn(id){
-  const t=ST.ten.find(x=>x.id===id);if(!t)return;
-  t.depReturned=false;t.depReturnedDate=null;
-  rTen();rDash();
-  await sv();ntf('↩️ وضعیت بازگردانی شد');
+  const c=getContract(id);if(!c)return;
+  if(c.depositTxIds&&c.depositTxIds.returned){
+    ST.tx=ST.tx.filter(t=>t.id!==c.depositTxIds.returned);
+    c.depositTxIds.returned=null;
+  }
+  c.depositReturnedDate=null;
+  await sv();rTen();rDash();rTx();ntf('↩️ وضعیت بازگردانی شد');
 }
 // ============================================================
 // SMS RENT REMINDER (auto-generated text + simulated sending)
@@ -2746,7 +3073,7 @@ function genRentSmsText(ten){
   return lines.filter(Boolean).join('\n');
 }
 function openSmsRemind(tid){
-  const ten=ST.ten.find(x=>x.id===tid);if(!ten)return;
+  const ten=tenById(tid);if(!ten)return;
   smsRemindTid=tid;
   document.getElementById('smsr-text').value=genRentSmsText(ten);
   renderSmsLog(tid);
@@ -2770,7 +3097,7 @@ function copySmsText(){
 }
 async function simulateSendSms(){
   if(!smsRemindTid)return;
-  const ten=ST.ten.find(x=>x.id===smsRemindTid);if(!ten)return;
+  const ten=tenById(smsRemindTid);if(!ten)return;
   const t=today();
   const dateStr=fmtDate(t.d,t.m-1,t.y);
   if(!ST.smsLog)ST.smsLog=[];
@@ -2786,9 +3113,10 @@ function openTM(id){
   // Fill month select for start date
   fillMon('tstart_m', today().m-1);
   if(id){
-    const t=ST.ten.find(x=>x.id===id);if(!t)return;
+    const t=tenById(id);if(!t)return;
     document.getElementById('tenmt').textContent='ویرایش واحد';
     document.getElementById('tnm').value=t.n;document.getElementById('tunit').value=t.unit;
+    document.getElementById('tphone').value=t.phone||'';document.getElementById('taddr').value=t.address||'';
     document.getElementById('ttyp').value=t.tp;document.getElementById('trent').value=t.rent;
     document.getElementById('tdep').value=t.dep||'';
     document.getElementById('tval').value=t.val||'';
@@ -2802,7 +3130,7 @@ function openTM(id){
     document.getElementById('dtenb').style.display='block';
   } else {
     document.getElementById('tenmt').textContent='واحد جدید';
-    ['tnm','tunit','trent','tdep','tval','tnote'].forEach(i=>document.getElementById(i).value='');
+    ['tnm','tphone','tunit','taddr','trent','tdep','tval','tnote'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('tstart_d').value=today().d;
     document.getElementById('tstart_y').value=today().y;
     document.getElementById('tdur').value=12;
@@ -2814,7 +3142,7 @@ function openTM(id){
 // ---- Contract renewal: appends a NEW period, preserving old-period rents ----
 function openRenew(){
   if(!eten) return;
-  const t=ST.ten.find(x=>x.id===eten);if(!t)return;
+  const t=tenById(eten);if(!t)return;
   const ps=tenPeriods(t);const lp=ps[ps.length-1];
   const nextIdx=lp.sy*12+lp.sm+(lp.dur||12); // anniversary: old start + duration
   document.getElementById('renew-info').textContent=
@@ -2827,7 +3155,8 @@ function openRenew(){
   cls('tenm');document.getElementById('renewm').classList.add('on');
 }
 async function saveRenew(){
-  const t=ST.ten.find(x=>x.id===eten);if(!t)return;
+  const c=getContract(eten);if(!c)return;
+  const t=cView(c);
   const sd=parseInt(document.getElementById('rn-d').value)||1;
   const sm=parseInt(document.getElementById('rn-m').value)||0;
   const sy=parseInt(document.getElementById('rn-y').value)||today().y;
@@ -2840,20 +3169,21 @@ async function saveRenew(){
   const lastEnd=pLastIdx(ps[ps.length-1]);
   if(sy*12+sm+1<=lastEnd){ntf('⚠️ شروع دوره جدید با دوره قبلی هم‌پوشانی دارد');hiErr('rn-y');return;}
   ps.push({sd,sm,sy,dur,rent});
-  t.periods=ps;
-  t.rent=rent;t.due=sd;                 // mirrors for card display & legacy readers
-  t.start_d=sd;t.start_m=sm;t.start_y=sy; // legacy fields follow current period
+  c.periods=ps;
+  c.status='active';       // a renewal reactivates an expired contract
+  c.terminatedAt=null;
   await sv();cls('renewm');ntf('✅ قرارداد تمدید شد');
-  rTen();rDash();
+  rTen();rDash();rRep();
 }
 async function saveTen(){
   const n=document.getElementById('tnm').value.trim();
+  const phone=document.getElementById('tphone').value.trim();
   const unit=document.getElementById('tunit').value.trim();
+  const addr=document.getElementById('taddr').value.trim();
   const tp=document.getElementById('ttyp').value;
   const rent=toLn(document.getElementById('trent').value);
   const dep=toLn(document.getElementById('tdep').value);
   const val=toLn(document.getElementById('tval').value);
-  const due=parseInt(document.getElementById('tstart_d').value)||1;
   const note=document.getElementById('tnote').value.trim();
   const start_d=parseInt(document.getElementById('tstart_d').value)||1;
   const start_m=parseInt(document.getElementById('tstart_m').value)||0;
@@ -2870,182 +3200,217 @@ async function saveTen(){
   if(!start_y||start_y<1380||start_y>1450){ntf('⚠️ سال شروع معتبر نیست (۱۳۸۰–۱۴۵۰)');hiErr('tstart_y');return;}
   if(dur<1||dur>60){ntf('⚠️ مدت قرارداد باید بین ۱ تا ۶۰ ماه باشد');hiErr('tdur');return;}
   const perEntry={sd:start_d,sm:start_m,sy:start_y,dur,rent};
+  const ptype=(tp==='تجاری')?'commercial':'residential';
+
   if(eten){
-    const idx=ST.ten.findIndex(t=>t.id===eten);
-    const prev=ST.ten[idx];
-    const periods=tenPeriods(prev).slice();
-    periods[periods.length-1]=perEntry; // editing adjusts the CURRENT period
-    ST.ten[idx]={...prev,n,unit,tp,rent,dep,val,due,note,start_d,start_m,start_y,periods};
+    const c=getContract(eten);
+    if(!c){ntf('⚠️ قرارداد یافت نشد');return;}
+    // Changing the deposit after it has been posted would desync cash and liability.
+    if(c.depositTxIds&&c.depositTxIds.received&&dep!==(c.deposit||0)){
+      ntf('⚠️ ودیعه ثبت‌شدهٔ مالی را نمی‌توان اینجا تغییر داد — ابتدا ثبت آن را حذف کنید');
+      hiErr('tdep');return;
+    }
+    const ps=tenPeriods(c).slice();
+    ps[ps.length-1]=perEntry;            // editing adjusts the CURRENT period
+    c.periods=ps; c.deposit=dep; c.note=note;
+    const p=cProp(c);
+    if(p&&p.id){p.name=unit;p.unit=unit;p.address=addr;p.type=ptype;p.value=val;}
+    const tt=cTenant(c);
+    if(tt&&tt.id){tt.name=n;tt.phone=phone;}
   } else {
-    ST.ten.push({id:uid(),n,unit,tp,rent,dep,val,due,note,start_d,start_m,start_y,periods:[perEntry]});
+    const pid='p'+uid(), tid='t'+uid(), cid=uid();
+    ST.properties.push({id:pid,name:unit,address:addr,unit,type:ptype,
+      area:0,value:val,valueDate:todayYMD(),note:'',archived:false});
+    ST.tenants.push({id:tid,name:n,phone,nationalId:'',note:'',archived:false});
+    ST.rentalContracts.push({id:cid,propertyId:pid,tenantId:tid,periods:[perEntry],
+      deposit:dep,depositAccId:'',depositReceivedDate:null,depositReturnedDate:null,
+      depositTxIds:{received:null,returned:null},
+      incomeAccId:'',status:'active',terminatedAt:null,note});
   }
-  await sv();cls('tenm');ntf('✅ ذخیره شد');rTen();
+  await sv();cls('tenm');ntf('✅ ذخیره شد');rTen();rDash();rRep();
 }
 async function delTen(){
   if(!eten)return;
-  const payKeys=Object.keys(ST.pay).filter(k=>k.startsWith(eten+'_'));
-  const linkedTxIds=payKeys.map(k=>ST.pay[k]?.txId).filter(Boolean);
-  ST.ten=ST.ten.filter(t=>t.id!==eten);
-  payKeys.forEach(k=>delete ST.pay[k]);
-  ST.tx=ST.tx.filter(t=>!linkedTxIds.includes(t.id)&&t.tenantId!==eten);
-  await sv();cls('tenm');ntf('🗑️ حذف شد');rTen();rDash();rTx();
+  const c=getContract(eten);if(!c)return;
+  const pays=(ST.rentPayments||[]).filter(p=>p.contractId===eten);
+  const depTx=[c.depositTxIds?.received,c.depositTxIds?.returned].filter(Boolean);
+  const n=pays.length;
+  if(!confirm(`«${cTenant(c).name||''}» به‌همراه ${toFa(n)} پرداخت و تراکنش‌های ودیعهٔ آن حذف شود؟`)) return;
+  const killIds=new Set([...pays.map(p=>p.txId).filter(Boolean),...depTx]);
+  ST.tx=ST.tx.filter(t=>!killIds.has(t.id)&&t.contractId!==eten&&t.tenantId!==eten&&t.tenantId!==c.tenantId);
+  ST.rentPayments=(ST.rentPayments||[]).filter(p=>p.contractId!==eten);
+  pays.forEach(p=>{if(p.legacyKey&&ST.pay) delete ST.pay[p.legacyKey];});
+  ST.rentalContracts=contracts().filter(x=>x.id!==eten);
+  // The property and tenant records go too if nothing else references them.
+  if(!contracts().some(x=>x.propertyId===c.propertyId)) ST.properties=(ST.properties||[]).filter(p=>p.id!==c.propertyId);
+  if(!contracts().some(x=>x.tenantId===c.tenantId))     ST.tenants=(ST.tenants||[]).filter(t=>t.id!==c.tenantId);
+  await sv();cls('tenm');ntf('🗑️ حذف شد');rTen();rDash();rTx();rRep();
 }
-function openPay(tid){
-  const t=ST.ten.find(x=>x.id===tid);if(!t)return;
-  document.getElementById('paymt').textContent='پرداخت‌های '+t.n;
+let payCid=null, payYear=null;
+function openPay(cid,y){
+  const c=getContract(cid);if(!c)return;
+  const v=cView(c);
+  payCid=cid;
+  payYear=(y===undefined||y===null)?today().y:parseInt(y);
+  document.getElementById('paymt').textContent='پرداخت‌های '+v.n;
   const td=today();
+  const curIdx=td.y*12+(td.m-1);
 
-  // Deposit-to account (per-tenant preference). New/edited rent payments will be
-  // posted as income INTO this account so balances & net worth reflect collections.
-  const accs=(ST.accounts||[]).filter(a=>a.id!==SAVINGS_ACC_ID);
-  const accSel=`<div class="fg" style="margin-bottom:12px"><label>واریز اجاره به حساب</label>
-    <select id="pay-acc" onchange="setTenAcc('${tid}',this.value)">
+  // Rent is posted INTO this account, so balances and net worth follow collections.
+  const accs=activeAccounts().filter(a=>a.id!==SAVINGS_ACC_ID);
+  const accSel=`<div class="fg" style="margin-bottom:10px"><label>واریز اجاره به حساب</label>
+    <select id="pay-acc" onchange="setTenAcc('${cid}',this.value)">
       <option value="">— بدون حساب (فقط ثبت درآمد) —</option>
-      ${accs.map(a=>`<option value="${a.id}"${(t.accId===a.id)?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('')}
+      ${accs.map(a=>`<option value="${a.id}"${(c.incomeAccId===a.id)?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('')}
     </select></div>`;
 
-  // First payment = one month after contract start, same day (user-confirmed rule).
-  const firstIdx=pFirstIdx(tenPeriods(t)[0]);
-  const endIdx=contractEnd(t).idx;
+  // Year stepper — arrears often span more than one year.
+  const yearNav=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:12px;padding:8px 10px;margin-bottom:10px">
+    <button onclick="openPay('${cid}',${payYear-1})" style="width:32px;height:32px;border-radius:10px;border:none;background:var(--card);color:var(--pr);font-size:16px;font-weight:800;cursor:pointer">›</button>
+    <span style="font-size:13px;font-weight:800;color:var(--t1)">سال ${toFa(payYear)}</span>
+    <button onclick="openPay('${cid}',${payYear+1})" style="width:32px;height:32px;border-radius:10px;border:none;background:var(--card);color:var(--pr);font-size:16px;font-weight:800;cursor:pointer">‹</button>
+  </div>`;
 
-  // Always show 12 months of current year (0-based: 0=فروردین ... 11=اسفند)
-  const months=Array.from({length:12},(_,i)=>i);
-
+  const firstIdx=pFirstIdx(tenPeriods(c)[0]);
+  const endIdx=contractEnd(c).idx;
+  const y0=payYear;
   let h='';
-  months.forEach(m=>{
-    const y=td.y;
-    const key=`${tid}_${y}_${m}`;
-    const pay=ST.pay[key];
-    const isPaid=pay&&pay.status==='paid';
-    const isPartial=pay&&pay.status==='partial';
-
-    // Outside the contract? (grey, disabled)
-    const idx=y*12+m;
-    const isBeforeContract=idx<firstIdx;
-    const isAfterContract=idx>endIdx;
-    const mRent=rentFor(t,m,y);
-
-    // Is this a future month (no due yet)?
-    const isFuture=y>td.y||(y===td.y&&m>td.m-1);
-
-    if(isBeforeContract||isAfterContract){
+  for(let m=0;m<12;m++){
+    const idx=y0*12+m;
+    const isBefore=idx<firstIdx, isAfter=idx>endIdx;
+    if(isBefore||isAfter){
       h+=`<div class="pr" style="opacity:.38;padding:11px 0">
         <div>
-          <div style="font-size:14px;font-weight:700;color:var(--t3)">${fmtMonthYear(m,y)}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">${isBeforeContract?'قبل از شروع اجاره':'خارج از قرارداد — تمدید نشده'}</div>
+          <div style="font-size:14px;font-weight:700;color:var(--t3)">${fmtMonthYear(m,y0)}</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${isBefore?'قبل از شروع اجاره':'خارج از قرارداد — تمدید نشده'}</div>
         </div>
         <span style="font-size:12px;color:var(--t3)">—</span>
       </div>`;
-      return;
+      continue;
     }
+    const mRent=rentFor(v,m,y0);
+    const st=rentStatus(v,y0,m);
+    const pays=paymentsFor(cid,y0,m).sort((a,b)=>dateToInt(a.payDate.y,a.payDate.m,a.payDate.d)-dateToInt(b.payDate.y,b.payDate.m,b.payDate.d));
+    const isFuture=idx>curIdx;
+    const remaining=Math.max(0,mRent-st.paid);
 
-    // Status badge
     let statusHtml='';
-    if(isPaid){
-      statusHtml=`<span class="bdg bg"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;stroke-width:2.5;fill:none"><path d="M20 6L9 17l-5-5"/></svg>پرداخت کامل</span>`;
-      if(pay.date) statusHtml+=`<div style="font-size:10.5px;color:var(--t3);margin-top:3px">${pay.date} · ${nf(pay.amount||t.rent)} ت</div>`;
-    } else if(isPartial){
-      statusHtml=`<span class="bdg" style="background:#FFF3CD;color:#856404">ناقص</span>`;
-      statusHtml+=`<div style="font-size:10.5px;color:var(--am);margin-top:3px">${nf(pay.amount)} از ${nf(mRent)} ت${pay.date?' · '+pay.date:''}</div>`;
+    if(st.state==='paid'||st.state==='overpaid'){
+      statusHtml=`<span class="bdg bg"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;stroke-width:2.5;fill:none"><path d="M20 6L9 17l-5-5"/></svg>${st.state==='overpaid'?'اضافه‌پرداخت':'پرداخت کامل'}</span>`;
+    } else if(st.state==='partial'){
+      statusHtml=`<span class="bdg" style="background:#FFF3CD;color:#856404">ناقص</span>
+        <div style="font-size:10.5px;color:var(--am);margin-top:3px">${nf(st.paid)} از ${nf(mRent)} ت · مانده ${nf(remaining)}</div>`;
     } else if(isFuture){
       statusHtml=`<span style="font-size:12px;color:var(--t3)">آینده</span>`;
-    } else {
+    } else if(td.d<dueDayFor(v,m,y0)&&idx===curIdx){
       statusHtml=`<span class="bdg br2">در انتظار</span>`;
+    } else {
+      statusHtml=`<span class="bdg" style="background:var(--rdl);color:var(--rd)">معوق</span>`;
     }
+
+    // Every individual payment is listed — a month can hold several.
+    const payLines=pays.length?`<div style="width:100%;background:var(--bg);border-radius:10px;padding:8px 10px">
+      ${pays.map(p=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0">
+        <span style="font-size:11.5px;color:var(--t1);font-weight:600">${nf(p.amount)} ت</span>
+        <span style="font-size:10.5px;color:var(--t3);flex:1;text-align:center">دریافت ${fmtDate(p.payDate.d,p.payDate.m,p.payDate.y)}</span>
+        <button onclick="delPayment('${p.id}','${cid}')" style="background:none;border:none;color:var(--rd);font-size:10.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">حذف</button>
+      </div>`).join('')}
+    </div>`:'';
 
     h+=`<div class="pr" style="flex-direction:column;align-items:flex-start;gap:8px;padding:12px 0">
       <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
         <div>
-          <div style="font-size:14px;font-weight:700">${fmtMonthYear(m,y)}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">سررسید ${toFa(dueDayFor(t,m,y))} ${MFA[m]} · اجاره ${nf(mRent)} تومان</div>
+          <div style="font-size:14px;font-weight:700">${fmtMonthYear(m,y0)}</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">سررسید ${toFa(dueDayFor(v,m,y0))} ${MFA[m]} · اجاره ${nf(mRent)} تومان</div>
         </div>
         <div style="text-align:left">${statusHtml}</div>
       </div>
-      <div style="display:flex;gap:6px;width:100%">
-        <button onclick="showPayForm('${tid}','${y}','${m}')"
-          style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--pr);background:var(--prl);color:var(--pr);font-size:12px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">
-          ${isPaid||isPartial?'ویرایش پرداخت':'ثبت پرداخت'}
-        </button>
-        ${isPaid||isPartial?`<button onclick="clearPay('${tid}','${y}','${m}')"
-          style="padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t3);font-size:12px;cursor:pointer;font-family:'Vazirmatn',sans-serif">حذف</button>`:''}
-      </div>
-      <div id="payform_${tid}_${y}_${m}" style="display:none;background:var(--bg);border-radius:12px;padding:12px;width:100%">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <div><label style="font-size:11.5px;color:var(--t2);font-weight:600;display:block;margin-bottom:4px">مبلغ (تومان)</label>
-            <input type="number" id="pamt_${tid}_${y}_${m}" value="${pay?pay.amount||t.rent:t.rent}" inputmode="numeric"
-              style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Vazirmatn',sans-serif"></div>
-          <div><label style="font-size:11.5px;color:var(--t2);font-weight:600;display:block;margin-bottom:4px">تاریخ واریز</label>
-            <input type="text" id="pdate_${tid}_${y}_${m}" value="${pay?pay.date||'':''}" placeholder="۱۴۰۵/۰۴/۰۱"
-              style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Vazirmatn',sans-serif"></div>
+      ${payLines}
+      <button onclick="showPayForm('${cid}','${y0}','${m}')"
+        style="width:100%;padding:8px;border-radius:10px;border:1.5px solid var(--pr);background:var(--prl);color:var(--pr);font-size:12px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">
+        ${pays.length?'＋ افزودن پرداخت دیگر':'ثبت پرداخت'}
+      </button>
+      <div id="payform_${cid}_${y0}_${m}" style="display:none;background:var(--bg);border-radius:12px;padding:12px;width:100%">
+        <div style="font-size:11px;color:var(--t3);margin-bottom:8px;line-height:1.7">مبلغ دریافتی و <b>تاریخ واقعی واریز</b> را وارد کنید. تراکنش بانکی با تاریخ واریز و گزارش اجاره با دورهٔ ${fmtMonthYear(m,y0)} ثبت می‌شود.</div>
+        <div class="fg" style="margin-bottom:8px"><label style="font-size:11.5px">مبلغ (تومان)</label>
+          <input type="text" inputmode="numeric" id="pamt_${cid}_${y0}_${m}" value="${nf(remaining>0?remaining:mRent)}"
+            oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+        <label style="font-size:11.5px;color:var(--t2);font-weight:600;display:block;margin-bottom:4px">تاریخ واریز</label>
+        <div style="display:grid;grid-template-columns:1fr 1.5fr 1.2fr;gap:8px;margin-bottom:10px">
+          <input type="number" id="pd_${cid}_${y0}_${m}" min="1" max="31" inputmode="numeric" value="${td.d}" style="padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Vazirmatn',sans-serif;background:var(--inp-bg);color:var(--t1)">
+          <select id="pm_${cid}_${y0}_${m}" style="padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Vazirmatn',sans-serif;background:var(--inp-bg);color:var(--t1)">${MFA.map((mm,i)=>`<option value="${i}"${i===td.m-1?' selected':''}>${toFa(pad2(i+1))}</option>`).join('')}</select>
+          <input type="number" id="py_${cid}_${y0}_${m}" inputmode="numeric" value="${td.y}" style="padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Vazirmatn',sans-serif;background:var(--inp-bg);color:var(--t1)">
         </div>
         <div style="display:flex;gap:6px">
-          <button onclick="savePay('${tid}','${y}','${m}','paid')"
-            style="flex:1;padding:8px;border-radius:10px;border:none;background:var(--gr);color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">کامل ✓</button>
-          <button onclick="savePay('${tid}','${y}','${m}','partial')"
-            style="flex:1;padding:8px;border-radius:10px;border:none;background:#F0A500;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ناقص</button>
-          <button onclick="document.getElementById('payform_${tid}_${y}_${m}').style.display='none'"
-            style="padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:12px;cursor:pointer;font-family:'Vazirmatn',sans-serif">لغو</button>
+          <button onclick="savePay('${cid}','${y0}','${m}')"
+            style="flex:1;padding:9px;border-radius:10px;border:none;background:var(--gr);color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ثبت</button>
+          <button onclick="document.getElementById('payform_${cid}_${y0}_${m}').style.display='none'"
+            style="padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--inp-bg);color:var(--t2);font-size:12px;cursor:pointer;font-family:'Vazirmatn',sans-serif">لغو</button>
         </div>
       </div>
     </div>`;
-  });
+  }
 
-  document.getElementById('payc').innerHTML=accSel+h;
+  document.getElementById('payc').innerHTML=accSel+yearNav+h;
   document.getElementById('paym').classList.add('on');
 }
 
-
-function showPayForm(tid,y,m){
-  // Hide all other forms first
+function showPayForm(cid,y,m){
   document.querySelectorAll('[id^="payform_"]').forEach(el=>el.style.display='none');
-  document.getElementById(`payform_${tid}_${y}_${m}`).style.display='block';
+  const el=document.getElementById(`payform_${cid}_${y}_${m}`);
+  if(el){el.style.display='block';el.scrollIntoView({block:'nearest',behavior:'smooth'});}
 }
 
-async function setTenAcc(tid,accId){
-  const t=ST.ten.find(x=>x.id===tid);if(!t)return;
-  t.accId=accId||'';
+async function setTenAcc(cid,accId){
+  const c=getContract(cid);if(!c)return;
+  c.incomeAccId=accId||'';
   await sv();
-}
-async function savePay(tid,y,m,status){
-  const amtEl=document.getElementById(`pamt_${tid}_${y}_${m}`);
-  const dateEl=document.getElementById(`pdate_${tid}_${y}_${m}`);
-  const amount=toLn(amtEl?amtEl.value:0);
-  const date=dateEl?dateEl.value.trim():'';
-  const key=`${tid}_${y}_${m}`;
-  if(!ST.pay) ST.pay={};
-  const prev=ST.pay[key];
-  const ten=ST.ten.find(x=>x.id===tid);
-  const rec={status,amount,date};
-  // Link this payment to an income transaction so it shows up in dashboard/reports/account balances
-  if(amount>0){
-    const txId=(prev&&prev.txId)||uid();
-    let day=1;
-    const dm=date?normDigits(date).match(/(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,2})/):null;
-    if(dm){const dd=parseInt(dm[3]);if(dd>=1&&dd<=31)day=dd;}
-    const cat=ten&&ten.tp==='تجاری'?'s3':'s2';
-    const accSelEl=document.getElementById('pay-acc');
-    const accId=(accSelEl?accSelEl.value:(ten&&ten.accId)||'')||'';
-    if(ten) ten.accId=accId;
-    const txRec={id:txId,tp:'income',cat,a:amount,dsc:`اجاره ${ten?ten.n:''}${status==='partial'?' (ناقص)':''}`.trim(),day,m:parseInt(m),y:parseInt(y),isRent:true,tenantId:tid,payKey:key,accId};
-    const idx=ST.tx.findIndex(t=>t.id===txId);
-    if(idx>=0) ST.tx[idx]=txRec; else ST.tx.push(txRec);
-    rec.txId=txId;
-  } else if(prev&&prev.txId){
-    ST.tx=ST.tx.filter(t=>t.id!==prev.txId);
-  }
-  ST.pay[key]=rec;
-  await sv();
-  ntf(status==='paid'?'✅ پرداخت کامل ثبت شد':'⚠️ پرداخت ناقص ثبت شد');
-  openPay(tid);rTen();rDash();rTx();
 }
 
-async function clearPay(tid,y,m){
-  if(!confirm('این پرداخت حذف شود؟ تراکنش درآمدی مرتبط با آن نیز حذف می‌شود.')) return;
-  const key=`${tid}_${y}_${m}`;
-  const prev=ST.pay[key];
-  if(prev&&prev.txId) ST.tx=ST.tx.filter(t=>t.id!==prev.txId);
-  delete ST.pay[key];
-  await sv();ntf('🗑️ پرداخت حذف شد');openPay(tid);rTen();rDash();rTx();
+// Append a rent payment. Two dates are recorded on purpose:
+//   payDate    → the real cash date, used by the bank account & cash-flow charts
+//   rentPeriod → the month the rent is FOR, used by rent performance reports
+async function savePay(cid,y,m){
+  const c=getContract(cid);if(!c)return;
+  const amount=toLn((document.getElementById(`pamt_${cid}_${y}_${m}`)||{}).value);
+  if(!amount||amount<=0){ntf('⚠️ مبلغ باید بزرگتر از صفر باشد');hiErr(`pamt_${cid}_${y}_${m}`);return;}
+  if(amount>10000000000){ntf('⚠️ مبلغ غیرمنطقی است');hiErr(`pamt_${cid}_${y}_${m}`);return;}
+  const pd=parseInt((document.getElementById(`pd_${cid}_${y}_${m}`)||{}).value)||1;
+  const pm=parseInt((document.getElementById(`pm_${cid}_${y}_${m}`)||{}).value)||0;
+  const py=parseInt((document.getElementById(`py_${cid}_${y}_${m}`)||{}).value)||today().y;
+  if(py<1380||py>1450){ntf('⚠️ سال واریز معتبر نیست');hiErr(`py_${cid}_${y}_${m}`);return;}
+  const maxD=jMaxDay(pm,py);
+  if(pd<1||pd>maxD){ntf(`⚠️ ماه ${toFa(pad2(pm+1))} حداکثر ${toFa(maxD)} روز دارد`);hiErr(`pd_${cid}_${y}_${m}`);return;}
+
+  const accId=((document.getElementById('pay-acc')||{}).value)||c.incomeAccId||'';
+  c.incomeAccId=accId;
+  const prop=cProp(c), ten=cTenant(c);
+  const cat=prop.type==='commercial'?'s3':'s2';
+  const txId=uid();
+  ST.tx.push({id:txId,tp:'income',cat,a:amount,
+    dsc:`اجاره ${ten.name||''} — دورهٔ ${fmtMonthYear(parseInt(m),parseInt(y))}`.trim(),
+    day:pd,m:pm,y:py,                       // CASH date
+    accId,nature:'operating',isRent:true,
+    contractId:cid,tenantId:c.tenantId,propertyId:c.propertyId,
+    rentPeriod:{y:parseInt(y),m:parseInt(m)} // ACCRUAL period
+  });
+  if(!Array.isArray(ST.rentPayments)) ST.rentPayments=[];
+  ST.rentPayments.push({id:uid(),contractId:cid,propertyId:c.propertyId,tenantId:c.tenantId,
+    rentPeriod:{y:parseInt(y),m:parseInt(m)},payDate:{y:py,m:pm,d:pd},
+    amount,accId,txId,note:''});
+  await sv();
+  ntf('✅ پرداخت ثبت شد');
+  openPay(cid,payYear);rTen();rDash();rTx();
+}
+
+async function delPayment(pid,cid){
+  const p=(ST.rentPayments||[]).find(x=>x.id===pid);if(!p)return;
+  if(!confirm('این پرداخت حذف شود؟ تراکنش درآمدی مرتبط نیز حذف می‌شود.')) return;
+  if(p.txId) ST.tx=ST.tx.filter(t=>t.id!==p.txId);
+  if(p.legacyKey&&ST.pay) delete ST.pay[p.legacyKey];
+  ST.rentPayments=ST.rentPayments.filter(x=>x.id!==pid);
+  await sv();ntf('🗑️ پرداخت حذف شد');
+  openPay(cid,payYear);rTen();rDash();rTx();
 }
 
 
@@ -3062,6 +3427,53 @@ async function clearPay(tid,y,m){
 // Renewals append a new period with its own rent, so historical
 // collection %s are computed against the rent OF THAT PERIOD.
 // ============================================================
+// ============================================================
+// RENTAL READ MODEL
+// The store is properties[] + tenants[] + rentalContracts[]. cView() projects
+// a contract into the flat shape the screens already consume, so there is one
+// source of truth and no duplicated tenant records.
+// ============================================================
+function contracts(){return ST.rentalContracts||[];}
+function getContract(id){return contracts().find(c=>c.id===id)||null;}
+function cProp(c){return (ST.properties||[]).find(p=>p.id===c.propertyId)||{};}
+function cTenant(c){return (ST.tenants||[]).find(t=>t.id===c.tenantId)||{};}
+function cView(c){
+  const p=cProp(c),t=cTenant(c),ps=tenPeriods(c),last=ps[ps.length-1]||{};
+  return {id:c.id,n:t.name||'',unit:p.unit||p.name||'',
+    tp:p.type==='commercial'?'تجاری':'مسکونی',
+    rent:last.rent||0,dep:c.deposit||0,val:p.value||0,note:c.note||'',
+    due:last.sd||1,accId:c.incomeAccId||'',phone:t.phone||'',address:p.address||'',
+    start_d:last.sd,start_m:last.sm,start_y:last.sy,dur_m:last.dur,periods:ps,
+    depReceived:!!c.depositReceivedDate,depReturned:!!c.depositReturnedDate,
+    depReceivedDate:c.depositReceivedDate?fmtDate(c.depositReceivedDate.d,c.depositReceivedDate.m,c.depositReceivedDate.y):'',
+    depReturnedDate:c.depositReturnedDate?fmtDate(c.depositReturnedDate.d,c.depositReturnedDate.m,c.depositReturnedDate.y):'',
+    depPosted:!!(c.depositTxIds&&c.depositTxIds.received),
+    propertyId:c.propertyId,tenantId:c.tenantId,status:c.status,contract:c,property:p,tenant:t};
+}
+function tenList(){return contracts().map(cView);}
+function tenById(id){const c=getContract(id);return c?cView(c):null;}
+
+// ============================================================
+// RENT PAYMENT ENGINE
+// Payments live in rentPayments[] — an append-only list, so a month can hold
+// several partial payments. Status is DERIVED, never stored, which makes
+// amount and status impossible to desync.
+//   rentPeriod → accrual (which month the rent is FOR)
+//   payDate    → cash    (when the money actually arrived)
+// ============================================================
+function paymentsFor(cid,y,m){
+  return (ST.rentPayments||[]).filter(p=>p.contractId===cid&&p.rentPeriod&&p.rentPeriod.y===+y&&p.rentPeriod.m===+m);
+}
+function paidFor(cid,y,m){return paymentsFor(cid,y,m).reduce((s,p)=>s+(p.amount||0),0);}
+// 'none' | 'partial' | 'paid' | 'overpaid'; caller decides pending vs overdue.
+function rentStatus(c,y,m){
+  const due=rentFor(c,m,y);
+  const paid=paidFor(c.id,y,m);
+  if(due<=0) return{due:0,paid,state:'none'};
+  if(paid<=0) return{due,paid:0,state:'none'};
+  if(paid<due) return{due,paid,state:'partial'};
+  return{due,paid,state:paid>due?'overpaid':'paid'};
+}
 function tenPeriods(ten){
   if(Array.isArray(ten.periods)&&ten.periods.length) return ten.periods;
   return [{sd:ten.start_d||1,sm:ten.start_m!==undefined?ten.start_m:0,sy:ten.start_y||today().y,dur:ten.dur_m||12,rent:ten.rent||0}];
@@ -3071,6 +3483,9 @@ function pLastIdx(p){return p.sy*12+p.sm+(p.dur||12);}   // absolute index of la
 // Rent amount owed for Jalali month (m 0-based, y), 0 = outside any period
 function rentFor(ten,m,y){
   const idx=y*12+m;
+  // Early termination stops rent accruing from the month AFTER the exit date.
+  const term=ten.terminatedAt||(ten.contract&&ten.contract.terminatedAt);
+  if(term&&idx>term.y*12+term.m) return 0;
   for(const p of tenPeriods(ten)){
     if(idx>=pFirstIdx(p)&&idx<=pLastIdx(p)) return p.rent||0;
   }
@@ -3108,9 +3523,7 @@ function tenArrears(ten){
       if(y*12+m>curIdx) break;
       const r=rentFor(ten,m,y);
       if(r<=0) continue;
-      const pay=ST.pay[`${ten.id}_${y}_${m}`];
-      if(pay&&pay.status==='paid') continue;
-      const paid=pay?(pay.amount||0):0;
+      const paid=paidFor(ten.id,y,m);
       if(paid<r){owed+=r-paid;months++;}
     }
   }
@@ -3119,19 +3532,22 @@ function tenArrears(ten){
 function rPropTable(){
   const card=document.getElementById('propCard');
   const box=document.getElementById('propTbl');
-  if(!ST.ten||!ST.ten.length){card.style.display='none';return;}
+  if(!contracts().length){card.style.display='none';return;}
   card.style.display='block';
   const y=SY;
-  box.innerHTML=ST.ten.map(ten=>{
+  box.innerHTML=tenList().map(ten=>{
     const collected=annualCollected(ten.id,y);
     const{months,amount:expected}=expectedRent(ten,y);
     const started=months>0;
     const growth=expected>0?Math.round((collected/expected)*100):(collected>0?100:0);
-    // Gross annual yield uses the CONTRACT rent (rent×12), not partial collections.
-    const grossYield=ten.val>0?((ten.rent*12/ten.val)*100).toFixed(1):null;
+    // Gross annual yield uses the CONTRACT rent of EACH month of that year —
+    // after a renewal, past years must keep their own period's rent.
+    let contractualYear=0;
+    for(let mm=0;mm<12;mm++) contractualYear+=rentFor(ten,mm,y);
+    const grossYield=ten.val>0?((contractualYear/ten.val)*100).toFixed(1):null;
     // Effective yield adjusts for the deposit (interest-free capital that reduces the
     // owner's own money tied up in the property) — meaningful in Iran's رهن‌واجاره market.
-    const effYield=(ten.val>0&&ten.dep>0&&ten.val>ten.dep)?((ten.rent*12/(ten.val-ten.dep))*100).toFixed(1):null;
+    const effYield=(ten.val>0&&ten.dep>0&&ten.val>ten.dep)?((contractualYear/(ten.val-ten.dep))*100).toFixed(1):null;
     const gColor=growth>=90?'var(--gr)':growth>=50?'var(--am)':'var(--rd)';
     const rightBadge=started?`<span class="rv" style="color:${gColor};font-size:13px">${toFa(growth)}٪ وصولی</span>`
                              :`<span class="rv" style="color:var(--t3);font-size:12px">اجاره شروع نشده</span>`;
@@ -3277,6 +3693,7 @@ function rSett(){
   updateFxCount();
   updateThemeLabel();
   updateLockStatusLabel();
+  refreshV1Row();
   if(fbReady) renderCloudPanel();
 }
 
@@ -3375,7 +3792,7 @@ function chkDue(){
   const pending=[];
   const depPending=[];
   const renewals=[];
-  ST.ten.forEach(ten=>{
+  tenList().forEach(ten=>{
     // Renewal reminder: current month is the LAST rent month of the last period (or later)
     const ce=contractEnd(ten);
     const curIdx=t.y*12+(t.m-1);
@@ -3384,20 +3801,19 @@ function chkDue(){
     if(r<=0) return; // no rent due this month
     const dueDay=(tenPeriods(ten).slice(-1)[0].sd)||ten.start_d||1;
     if(t.d>=dueDay){
-      const key=`${ten.id}_${t.y}_${t.m-1}`;
-      const pay=ST.pay[key];
-      if(!pay||pay.status==='partial'){
+      const st=rentStatus(ten,t.y,t.m-1);
+      if(st.state==='none'||st.state==='partial'){
         pending.push(ten);
         if(Notification.permission==='granted'){
-          const msg=pay&&pay.status==='partial'
-            ?`${ten.n} — اجاره ${fmtMonthYear(t.m-1,t.y)} ناقص است (${nf(pay.amount)} از ${nf(rentFor(ten,t.m-1,t.y))} تومان)`
+          const msg=st.state==='partial'
+            ?`${ten.n} — اجاره ${fmtMonthYear(t.m-1,t.y)} ناقص است (${nf(st.paid)} از ${nf(st.due)} تومان)`
             :`${ten.n} — اجاره ${fmtMonthYear(t.m-1,t.y)} پرداخت نشده`;
           new Notification('سرمایه — یادآور اجاره',{body:msg,icon:'icon-192.png'});
         }
       }
     }
     // Deposit not yet received/returned
-    if(ten.dep>0&&!ten.depReceived&&!ten.depReturned){
+    if(ten.dep>0&&!ten.depReceived&&!ten.depReturned&&ten.status!=='terminated'){
       depPending.push(ten);
       if(Notification.permission==='granted'){
         new Notification('سرمایه — یادآور ودیعه',{
@@ -3485,13 +3901,13 @@ async function gotoTenant(tid,nid){
   await markNotifRead(nid);
   cls('notifpanel');
   nav(2,document.querySelectorAll('.nb')[2]);
-  if(tid&&(ST.ten||[]).some(t=>t.id===tid)) setTimeout(()=>openPay(tid),150);
+  if(tid&&getContract(tid)) setTimeout(()=>openPay(tid),150);
 }
 async function gotoRenew(tid,nid){
   await markNotifRead(nid);
   cls('notifpanel');
   nav(2,document.querySelectorAll('.nb')[2]);
-  if(tid&&(ST.ten||[]).some(t=>t.id===tid)) setTimeout(()=>{openTM(tid);},150);
+  if(tid&&getContract(tid)) setTimeout(()=>{openTM(tid);},150);
 }
 async function gotoLoan(nid){
   await markNotifRead(nid);
@@ -3515,12 +3931,16 @@ async function clearNotifLog(){
   await sv();openNotifPanel();
 }
 function exportCSV(){
-  let csv='\uFEFFنوع,دسته‌بندی,مبلغ,توضیحات,روز,ماه,سال,حساب,نوع رکورد\n';
+  const NAT={operating:'عملیاتی',transfer:'انتقال',opening:'موجودی اولیه',
+    deposit:'ودیعه',loanDisbursement:'دریافت وام',loanPrincipal:'اصل قسط',fx:'حواله ارزی'};
+  let csv='\uFEFFنوع,دسته‌بندی,مبلغ,توضیحات,روز,ماه,سال,حساب,نوع رکورد,ماهیت,در سود و زیان,دوره اجاره\n';
   ST.tx.forEach(t=>{
-    const cat=t.isTransfer?{n:'انتقال'}:getCat(t.tp,t.cat);
+    const cat=getCat(t.tp,t.cat);
     const accName=t.accId?(((ST.accounts||[]).find(x=>x.id===t.accId)||{}).bank||''):'';
-    const kind=t.isOpening?'موجودی اولیه':t.fxId?'حواله ارزی':t.isTransfer?'انتقال':t.isRent?'اجاره':t.loanId?'قسط وام':'عادی';
-    csv+=`"${t.tp==='income'?'درآمد':'هزینه'}","${cat.n}",${t.a},"${(t.dsc||'').replace(/"/g,'""')}",${t.day},${t.m+1},${t.y||1404},"${accName}","${kind}"\n`;
+    const nat=natureOf(t);
+    const kind=t.isOpening?'موجودی اولیه':t.fxId?'حواله ارزی':t.isTransfer?'انتقال':t.isRent?'اجاره':t.loanId?'وام':'عادی';
+    const rp=t.rentPeriod?`${t.rentPeriod.y}/${pad2(t.rentPeriod.m+1)}`:'';
+    csv+=`"${t.tp==='income'?'درآمد':'هزینه'}","${cat.n}",${t.a},"${(t.dsc||'').replace(/"/g,'""')}",${t.day},${t.m+1},${t.y||1404},"${accName}","${kind}","${NAT[nat]||nat}","${isPnL(t)?'بله':'خیر'}","${rp}"\n`;
   });
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download='sarmaye.csv';a.click();URL.revokeObjectURL(a.href);ntf('📥 CSV دانلود شد');
@@ -3567,6 +3987,56 @@ async function shareOrDownload(text,fname){
   document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   ntf('📥 فایل در «دانلودها» ذخیره شد');
+}
+// ============================================================
+// PRE-UPGRADE SNAPSHOT (schema v1)
+// loadState() writes an untouched copy of the old state before migrating.
+// It is never deleted automatically — the rollback stays available until
+// the user removes it.
+// ============================================================
+async function getV1Backup(){ try{ return await dbGet('state_v1_backup'); }catch(e){ return null; } }
+async function refreshV1Row(){
+  const row=document.getElementById('v1-row');
+  if(!row) return;
+  const b=await getV1Backup();
+  if(!b){row.style.display='none';return;}
+  row.style.display='flex';
+  const d=new Date(b.savedAt||Date.now());
+  const j=gToJ(d.getFullYear(),d.getMonth()+1,d.getDate());
+  const lbl=document.getElementById('v1-lbl');
+  if(lbl) lbl.textContent=`نسخهٔ ${fmtDate(j.d,j.m-1,j.y)} — دانلود یا بازگردانی`;
+}
+async function openV1Modal(){
+  const b=await getV1Backup();
+  if(!b){ntf('⚠️ نسخهٔ پیش از ارتقا یافت نشد');return;}
+  const s=b.state||{};
+  const d=new Date(b.savedAt||Date.now());
+  const j=gToJ(d.getFullYear(),d.getMonth()+1,d.getDate());
+  document.getElementById('v1-info').innerHTML=
+    `این یک کپی کامل و دست‌نخورده از داده‌های شما <b>پیش از ارتقا به نسخهٔ ۲</b> است.<br><br>`+
+    `تاریخ تهیه: <b>${fmtDate(j.d,j.m-1,j.y)}</b><br>`+
+    `تراکنش‌ها: <b>${toFa((s.tx||[]).length)}</b> · واحدها: <b>${toFa((s.ten||[]).length)}</b> · حساب‌ها: <b>${toFa((s.accounts||[]).length)}</b><br><br>`+
+    `<span style="color:var(--rd)">بازگردانی، تمام تغییرات پس از ارتقا (پرداخت‌ها، ودیعه‌ها و اقساط ثبت‌شده در نسخهٔ جدید) را حذف می‌کند.</span>`;
+  document.getElementById('v1m').classList.add('on');
+}
+async function downloadV1Backup(){
+  const b=await getV1Backup();
+  if(!b){ntf('⚠️ نسخه‌ای یافت نشد');return;}
+  const t=today();
+  await shareOrDownload(JSON.stringify(b.state,null,1),`sarmaye-backup-v1-${t.y}${pad2(t.m)}${pad2(t.d)}.json`);
+}
+async function rollbackToV1(){
+  const b=await getV1Backup();
+  if(!b){ntf('⚠️ نسخه‌ای یافت نشد');return;}
+  if(!confirm('بازگردانی کامل به نسخهٔ v1؟ تمام تغییرات پس از ارتقا از بین می‌رود.')) return;
+  if(!confirm('این عملیات برگشت‌ناپذیر است. مطمئن هستید؟')) return;
+  try{
+    // Keep the current (v2) state as its own snapshot so the rollback is itself reversible.
+    await dbSet('state_v2_before_rollback',{savedAt:Date.now(),state:ST});
+    await dbSet('state',b.state);
+    ntf('↩️ بازگردانی شد — در حال بارگذاری مجدد');
+    setTimeout(()=>location.reload(),900);
+  }catch(e){ ntf('⚠️ بازگردانی ناموفق بود'); }
 }
 function openBackupModal(){
   document.getElementById('bkpass').value='';
@@ -3896,8 +4366,9 @@ function openLoanList(){
   } else {
     box.innerHTML=loans.map(l=>{
       const done=l.remaining<=0||l.active===false;
-      const paid=(l.total||0)-(l.remaining||0);
-      const pct=l.total>0?Math.min(100,Math.round((paid/l.total)*100)):0;
+      const base=l.principalTotal||l.total||0;
+      const paid=Math.max(0,base-(l.remaining||0));
+      const pct=base>0?Math.max(0,Math.min(100,Math.round((paid/base)*100))):0;
       return `<div style="background:var(--bg);border-radius:14px;border:1px solid var(--border);padding:12px 14px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <span style="font-size:13.5px;font-weight:800;color:var(--t1)">${esc(l.n)}</span>
@@ -3907,7 +4378,7 @@ function openLoanList(){
           <div style="height:100%;width:${pct}%;background:var(--gr);border-radius:4px"></div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:11px;color:var(--t3)">قسط ${nf(l.inst)} ت · سررسید روز ${toFa(l.day)}</span>
+          <span style="font-size:11px;color:var(--t3)">قسط ${nf(l.inst)} ت${l.defaultInterest>0?` (سود ${nf(l.defaultInterest)})`:''} · سررسید روز ${toFa(l.day)}</span>
           <div style="display:flex;gap:6px">
             ${done?'':`<button onclick="payInstallment('${l.id}')" style="padding:6px 12px;border-radius:11px;border:none;background:var(--grl);color:var(--gr);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ثبت قسط</button>`}
             <button onclick="openLoanForm('${l.id}')" style="padding:6px 12px;border-radius:11px;border:none;background:var(--prl);color:var(--pr);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ویرایش</button>
@@ -3926,6 +4397,18 @@ function openLoanForm(id){
   document.getElementById('loan-rem').value=l?nf(l.remaining):'';
   document.getElementById('loan-inst').value=l?nf(l.inst):'';
   document.getElementById('loan-day').value=l?l.day:'';
+  document.getElementById('loan-int').value=l?(l.defaultInterest?nf(l.defaultInterest):''):'';
+  // Disbursement is only offered for a brand-new loan — retro-posting cash into
+  // an old loan would restate months that are already reconciled.
+  const dw=document.getElementById('loan-disb-wrap');
+  const ds=document.getElementById('loan-disb-acc');
+  if(l){ dw.style.display='none'; }
+  else{
+    dw.style.display='block';
+    const accs=activeAccounts().filter(a=>a.id!==SAVINGS_ACC_ID);
+    ds.innerHTML='<option value="">— بدون واریز (وام قبلاً دریافت شده) —</option>'+
+      accs.map(a=>`<option value="${a.id}">${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('');
+  }
   document.getElementById('dloanb').style.display=l?'block':'none';
   cls('loanm');document.getElementById('loanfm').classList.add('on');
 }
@@ -3933,28 +4416,52 @@ async function saveLoan(){
   const n=document.getElementById('loan-n').value.trim();
   const rem=toLn(document.getElementById('loan-rem').value)||0;
   const inst=toLn(document.getElementById('loan-inst').value)||0;
+  const intr=toLn(document.getElementById('loan-int').value)||0;
   const day=parseInt(document.getElementById('loan-day').value);
   if(!n){ntf('⚠️ عنوان وام الزامی است');hiErr('loan-n');return;}
   if(rem<=0){ntf('⚠️ مانده بدهی باید بزرگتر از صفر باشد');hiErr('loan-rem');return;}
   if(inst<=0||inst>rem){ntf('⚠️ مبلغ قسط نامعتبر است');hiErr('loan-inst');return;}
+  if(intr<0||intr>=inst){ntf('⚠️ سهم سود باید کمتر از مبلغ قسط باشد');hiErr('loan-int');return;}
   if(!day||day<1||day>31){ntf('⚠️ روز سررسید باید بین ۱ تا ۳۱ باشد');hiErr('loan-day');return;}
   if(!ST.loans) ST.loans=[];
   if(eLoanId){
     const idx=ST.loans.findIndex(l=>l.id===eLoanId);
-    if(idx>=0) ST.loans[idx]={...ST.loans[idx],n,remaining:rem,inst,day,active:rem>0};
+    if(idx>=0){
+      const prev=ST.loans[idx];
+      // principalTotal must follow an upward correction, otherwise the progress
+      // bar reads >100% (or negative) for the rest of the loan's life.
+      const paidSoFar=Math.max(0,(prev.principalTotal||prev.total||0)-(prev.remaining||0));
+      ST.loans[idx]={...prev,n,remaining:rem,inst,day,defaultInterest:intr,
+        principalTotal:paidSoFar+rem,total:paidSoFar+rem,active:rem>0};
+    }
   } else {
-    ST.loans.push({id:uid(),n,total:rem,remaining:rem,inst,day,active:true});
+    const id=uid();
+    const loan={id,n,principalTotal:rem,total:rem,remaining:rem,inst,day,
+      defaultInterest:intr,active:true,disbursementTxId:null};
+    // Loan proceeds are NOT income: cash up, liability up, net worth unchanged.
+    const disbAcc=(document.getElementById('loan-disb-acc')||{}).value||'';
+    if(disbAcc){
+      const t=today();const txId=uid();
+      ST.tx.push({id:txId,tp:'income',cat:'loan',a:rem,dsc:'دریافت وام '+n,
+        day:t.d,m:t.m-1,y:t.y,accId:disbAcc,nature:'loanDisbursement',loanId:id});
+      loan.disbursementTxId=txId;
+    }
+    ST.loans.push(loan);
   }
   ensureLoanCat();
   await sv();cls('loanfm');ntf('✅ وام ذخیره شد');
-  updateLoanCount();rDash();openLoanList();
+  updateLoanCount();rDash();rTx();openLoanList();
 }
 async function delLoan(){
   if(!eLoanId) return;
+  const l=(ST.loans||[]).find(x=>x.id===eLoanId);
   if(!confirm('این وام حذف شود؟ اقساط پرداخت‌شدهٔ قبلی در تراکنش‌ها باقی می‌مانند.')) return;
-  ST.loans=(ST.loans||[]).filter(l=>l.id!==eLoanId);
+  // The disbursement leg must go with it, otherwise cash stays inflated with no
+  // matching liability and net worth silently rises.
+  if(l&&l.disbursementTxId) ST.tx=ST.tx.filter(t=>t.id!==l.disbursementTxId);
+  ST.loans=(ST.loans||[]).filter(x=>x.id!==eLoanId);
   await sv();cls('loanfm');ntf('🗑️ حذف شد');
-  updateLoanCount();rDash();openLoanList();
+  updateLoanCount();rDash();rTx();openLoanList();
 }
 // Pay one installment: MUST debit a real account, otherwise net worth would
 // wrongly rise (debt falls while cash stays). Opens a small pay sheet.
@@ -3964,28 +4471,60 @@ function payInstallment(id){
   if(!l||l.remaining<=0) return;
   payLoanId=id;
   const sel=document.getElementById('loanpay-acc');
-  const accs=(ST.accounts||[]).filter(a=>a.id!==SAVINGS_ACC_ID);
+  const accs=activeAccounts().filter(a=>a.id!==SAVINGS_ACC_ID);
   if(!accs.length){ntf('⚠️ ابتدا یک حساب بانکی ثبت کنید');return;}
   sel.innerHTML=accs.map(a=>`<option value="${a.id}">${esc(a.bank)}${a.name?' - '+esc(a.name):''} (${nf(calcAccBalance(a.id))} ت)</option>`).join('');
   document.getElementById('loanpay-title').textContent='قسط «'+l.n+'»';
-  document.getElementById('loanpay-amt').value=nf(Math.min(l.inst,l.remaining));
+  const amt=Math.min(l.inst,l.remaining+(l.defaultInterest||0));
+  document.getElementById('loanpay-amt').value=nf(amt);
+  document.getElementById('loanpay-int').value=(l.defaultInterest>0)?nf(l.defaultInterest):'';
+  loanSplitPreview();
   cls('loanm');document.getElementById('loanpaym').classList.add('on');
 }
+// Live breakdown so the split is never a surprise after the fact.
+function loanSplitPreview(){
+  const box=document.getElementById('loanpay-split');
+  if(!box) return;
+  const total=toLn((document.getElementById('loanpay-amt')||{}).value)||0;
+  const intr=toLn((document.getElementById('loanpay-int')||{}).value)||0;
+  const principal=total-intr;
+  if(total<=0){box.innerHTML='<span style="color:var(--t3)">مبلغ قسط را وارد کنید</span>';return;}
+  if(intr<0||intr>total){box.innerHTML='<span style="color:var(--rd)">سهم سود نمی‌تواند بیشتر از کل قسط باشد</span>';return;}
+  box.innerHTML=`<div style="display:flex;justify-content:space-between"><span>بازپرداخت اصل (کاهش بدهی)</span><b style="color:var(--pr)">${nf(principal)} ت</b></div>
+    <div style="display:flex;justify-content:space-between"><span>سود/کارمزد (هزینهٔ مالی)</span><b style="color:var(--rd)">${nf(intr)} ت</b></div>
+    <div style="border-top:1px dashed var(--border);margin-top:5px;padding-top:5px;font-size:11px;color:var(--t3)">فقط ${nf(intr)} تومان در هزینه‌های این ماه ثبت می‌شود؛ ${nf(principal)} تومان کاهش بدهی است.</div>`;
+}
+// One installment → up to TWO legs sharing an installmentId:
+//   principal → nature 'loanPrincipal', outside P&L, reduces the liability
+//   interest  → nature 'operating', category e8, a real financing expense
 async function confirmPayInstallment(){
   const l=(ST.loans||[]).find(x=>x.id===payLoanId);
   if(!l) return;
   const amt=toLn(document.getElementById('loanpay-amt').value)||0;
+  const intr=toLn(document.getElementById('loanpay-int').value)||0;
   const accId=document.getElementById('loanpay-acc').value;
-  if(amt<=0||amt>l.remaining){ntf('⚠️ مبلغ قسط نامعتبر است');hiErr('loanpay-amt');return;}
+  if(amt<=0){ntf('⚠️ مبلغ قسط نامعتبر است');hiErr('loanpay-amt');return;}
+  if(intr<0||intr>=amt&&intr!==0){ntf('⚠️ سهم سود باید کمتر از کل قسط باشد');hiErr('loanpay-int');return;}
+  const principal=amt-intr;
+  if(principal>l.remaining){ntf(`⚠️ اصل قسط (${nf(principal)}) از مانده بدهی (${nf(l.remaining)}) بیشتر است`);hiErr('loanpay-amt');return;}
   if(!accId){ntf('⚠️ حساب پرداخت را انتخاب کنید');return;}
   if(calcAccBalance(accId)<amt&&!confirm('موجودی حساب کمتر از مبلغ قسط است. ادامه می‌دهید؟')) return;
   ensureLoanCat();
   const t=today();
-  ST.tx.push({id:uid(),tp:'expense',cat:'e8',a:amt,dsc:'قسط '+l.n,day:t.d,m:t.m-1,y:t.y,accId,loanId:l.id});
-  l.remaining=Math.max(0,l.remaining-amt);
+  const insId=uid();
+  if(principal>0){
+    ST.tx.push({id:uid(),tp:'expense',cat:'loan',a:principal,dsc:'اصل قسط '+l.n,
+      day:t.d,m:t.m-1,y:t.y,accId,nature:'loanPrincipal',loanId:l.id,installmentId:insId});
+  }
+  if(intr>0){
+    ST.tx.push({id:uid(),tp:'expense',cat:'e8',a:intr,dsc:'سود قسط '+l.n,
+      day:t.d,m:t.m-1,y:t.y,accId,nature:'operating',loanId:l.id,installmentId:insId});
+  }
+  l.remaining=Math.max(0,l.remaining-principal);
   if(l.remaining<=0){l.active=false;setTimeout(()=>ntf(`🎉 وام «${l.n}» تسویه شد!`),900);}
-  budgetWarn('e8',t.m-1,t.y);
-  await sv();cls('loanpaym');ntf('✅ قسط ثبت شد');
+  if(intr>0) budgetWarn('e8',t.m-1,t.y);
+  await sv();cls('loanpaym');
+  ntf(intr>0?`✅ قسط ثبت شد — اصل ${nf(principal)} · سود ${nf(intr)}`:'✅ قسط ثبت شد');
   updateLoanCount();rDash();rTx();
 }
 function updateLoanCount(){
@@ -4014,7 +4553,7 @@ function chkLoansDue(){
   const due=loans.filter(l=>{
     if(t.d<l.day) return false;
     // already paid this month?
-    return !ST.tx.some(tx=>tx.loanId===l.id&&tx.m===t.m-1&&tx.y===t.y);
+    return !ST.tx.some(tx=>tx.loanId===l.id&&tx.installmentId&&tx.m===t.m-1&&tx.y===t.y);
   });
   if(due.length){
     if(!ST.notifLog) ST.notifLog=[];
@@ -4170,7 +4709,7 @@ function fxOpenPay(id){
   const d=(ST.fx||[]).find(x=>x.id===id);
   if(!d||d.status!=='eur') return;
   payFxId=id;
-  const accs=(ST.accounts||[]).filter(a=>a.id!==SAVINGS_ACC_ID);
+  const accs=activeAccounts().filter(a=>a.id!==SAVINGS_ACC_ID);
   if(!accs.length){ntf('⚠️ ابتدا یک حساب بانکی ثبت کنید');return;}
   document.getElementById('fxpay-acc').innerHTML=accs.map(a=>`<option value="${a.id}">${esc(a.bank)}${a.name?' - '+esc(a.name):''} (${nf(calcAccBalance(a.id))} ت)</option>`).join('');
   document.getElementById('fxpay-title').textContent='پرداخت '+nf(d.toman)+' تومان به '+(d.receiver||'گیرنده');
@@ -4208,8 +4747,12 @@ function openAccList(){
     </div>${debt>0?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--rdl);border-radius:14px;padding:10px 14px;margin-bottom:10px">
       <span style="font-size:12px;font-weight:700;color:var(--rd)">بدهی وام‌ها</span>
       <span style="font-size:13.5px;font-weight:800;color:var(--rd)">−${nf(debt)} ت</span>
+    </div>`:''}${depositLiability()>0?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--ppl);border-radius:14px;padding:10px 14px;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:700;color:var(--pp)">ودیعهٔ مستأجران (بدهی)</span>
+      <span style="font-size:13.5px;font-weight:800;color:var(--pp)">−${nf(depositLiability())} ت</span>
     </div>`:''}`;
-    content.innerHTML=sumRow+acc.map(a=>{
+    const ordered=[...acc].sort((a,b)=>(a.archived?1:0)-(b.archived?1:0));
+    content.innerHTML=sumRow+ordered.map(a=>{
       const bal=calcAccBalance(a.id);
       const cardDisp=a.cardno?a.cardno:(a.last4?'****-****-****-'+a.last4:'');
       const details=[
@@ -4227,13 +4770,13 @@ function openAccList(){
         :(bs.t?`<span style="color:#fff;font-size:11.5px;font-weight:800;line-height:1;text-align:center">${bs.t}</span>`:`<svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:#fff;stroke-width:1.8;fill:none"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>`);
       const badgeBg=logoFile?'#fff':badgeColor;
       const badgeShadow=logoFile?'0 2px 8px rgba(20,30,60,.15)':`0 3px 10px ${badgeColor}55`;
-      return `<div style="background:var(--bg);border-radius:14px;margin-bottom:8px;border:1px solid var(--border);overflow:hidden">
+      return `<div style="background:var(--bg);border-radius:14px;margin-bottom:8px;border:1px solid var(--border);overflow:hidden;${a.archived?'opacity:.62':''}">
         <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
           <div style="width:46px;height:46px;border-radius:14px;background:${badgeBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:${badgeShadow};${logoFile?'border:1px solid var(--border)':''}">
             ${badgeInner}
           </div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:800;color:var(--t1)">${esc(a.bank)}${a.name?' · '+esc(a.name):''}</div>
+            <div style="font-size:14px;font-weight:800;color:var(--t1)">${esc(a.bank)}${a.name?' · '+esc(a.name):''}${a.archived?' <span style="font-size:10px;font-weight:700;color:var(--t3);background:var(--card);padding:2px 7px;border-radius:7px">آرشیو</span>':''}</div>
             <div style="font-size:11.5px;color:var(--t3);margin-top:2px">${cardDisp||'بدون شماره کارت'}</div>
           </div>
           <div style="text-align:left;flex-shrink:0">
@@ -4242,7 +4785,10 @@ function openAccList(){
           </div>
         </div>
         ${details?`<div style="border-top:0.5px solid var(--border);padding:10px 14px;display:flex;flex-direction:column;gap:6px">${details}</div>`:''}
-        <div style="border-top:0.5px solid var(--border);padding:8px 14px;display:flex;justify-content:flex-end">
+        <div style="border-top:0.5px solid var(--border);padding:8px 14px;display:flex;justify-content:flex-end;gap:7px">
+          ${a.id===SAVINGS_ACC_ID?'':(a.archived
+            ?`<button onclick="unarchiveAcc('${a.id}')" style="background:var(--grl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--gr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">فعال‌سازی</button>`
+            :`<button onclick="archiveAcc('${a.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font-size:12px;color:var(--t2);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">آرشیو</button>`)}
           <button onclick="openAccForm('${a.id}')" style="background:var(--prl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">ویرایش</button>
         </div>
       </div>`;
@@ -4399,21 +4945,49 @@ async function saveAcc(){
   fillAccSelects();
 }
 
+// Accounts that may be chosen for NEW records. Archived accounts stay in every
+// calculation (they still hold money) but disappear from the pickers.
+function activeAccounts(){return (ST.accounts||[]).filter(a=>!a.archived);}
+function accTxCount(id){return (ST.tx||[]).filter(t=>t.accId===id).length;}
+// Deleting an account that has transactions would orphan them: the balance
+// vanishes from net worth while the same transactions keep driving the P&L.
+// So deletion is only allowed while the account is still empty.
 async function delAcc(){
   if(!eAccId) return;
-  if(!confirm('این حساب حذف شود؟ تراکنش‌های مرتبط همچنان باقی می‌مانند.')) return;
+  const n=accTxCount(eAccId);
+  if(n>0){
+    ntf(`⚠️ این حساب ${toFa(n)} تراکنش دارد — به‌جای حذف، آرشیو کنید`);
+    return;
+  }
+  if(!confirm('این حساب حذف شود؟')) return;
   ST.accounts=(ST.accounts||[]).filter(a=>a.id!==eAccId);
   await sv();cls('accm');ntf('🗑️ حذف شد');
-  updateAccCountDisplay();fillAccSelects();
+  updateAccCountDisplay();fillAccSelects();openAccList();
+}
+async function archiveAcc(id){
+  const a=(ST.accounts||[]).find(x=>x.id===id);if(!a)return;
+  if(!confirm('این حساب آرشیو شود؟ موجودی و تراکنش‌های آن در تمام محاسبات باقی می‌ماند و فقط از فهرست انتخاب حذف می‌شود.')) return;
+  a.archived=true;a.archivedDate=todayYMD();
+  await sv();ntf('📦 حساب آرشیو شد');
+  cls('accm');updateAccCountDisplay();fillAccSelects();openAccList();rDash();
+}
+async function unarchiveAcc(id){
+  const a=(ST.accounts||[]).find(x=>x.id===id);if(!a)return;
+  a.archived=false;a.archivedDate=null;
+  await sv();ntf('↩️ حساب فعال شد');
+  updateAccCountDisplay();fillAccSelects();openAccList();rDash();
 }
 
 function updateAccCountDisplay(){
   const el=document.getElementById('acc-count-display');
-  if(el) el.textContent=`${(ST.accounts||[]).length} حساب ثبت شده`;
+  if(el){
+    const tot=(ST.accounts||[]).length, arc=tot-activeAccounts().length;
+    el.textContent=`${tot} حساب ثبت شده${arc?` (${toFa(arc)} آرشیو)`:''}`;
+  }
 }
 
 function fillAccSelects(){
-  const accs=ST.accounts||[];
+  const accs=activeAccounts();
   const opts='<option value="">انتخاب نشده</option>'+accs.map(a=>`<option value="${a.id}">${esc(a.bank)}${a.name?' - '+esc(a.name):''}${a.last4?' ('+a.last4+')':''}</option>`).join('');
   ['tacc','sacc','balupdate-acc'].forEach(id=>{
     const el=document.getElementById(id);
@@ -4431,7 +5005,7 @@ let etrans=null; // id of the tx leg being edited, or null when creating a new t
 // Quick savings: one-tap transfer with destination preset to the savings account
 async function openSavingsQuick(){
   ensureSavingsAccount();
-  const others=(ST.accounts||[]).filter(a=>a.id!==SAVINGS_ACC_ID);
+  const others=activeAccounts().filter(a=>a.id!==SAVINGS_ACC_ID);
   if(!others.length){ntf('⚠️ ابتدا یک حساب بانکی ثبت کنید');await sv();return;}
   await sv(); // persist auto-created savings account
   openTransfer();
@@ -4870,6 +5444,13 @@ async function init(){
   // already have automatic cloud backup running, to avoid two competing prompts
   setTimeout(()=>{ if(!(fbReady&&fbAuth&&fbAuth.currentUser)) chkAutoBackup(); }, 1500);
   applyTheme();
+  // First launch after the v2 upgrade: offer the untouched v1 file immediately.
+  if(pendingV1BackupOffer){
+    setTimeout(()=>{
+      if(confirm('داده‌های شما به ساختار جدید (نسخهٔ ۲) ارتقا یافت.\n\nیک نسخهٔ کامل از داده‌های قبلی ذخیره شده است. همین حالا فایل آن را دانلود می‌کنید؟\n\n(هر زمان از تنظیمات ← «نسخهٔ پیش از ارتقا» هم در دسترس است)'))
+        downloadV1Backup();
+    },1200);
+  }
   setTimeout(chkDue, 2000);
   setTimeout(chkRecurring, 3000);
   setTimeout(chkLoansDue, 3500);
