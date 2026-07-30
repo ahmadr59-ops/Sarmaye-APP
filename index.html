@@ -1392,7 +1392,7 @@ function def(){
     sm:today().m-1,
     appName:'سرمایه',
     tx:[],ten:[],pay:{},
-    schemaVersion:SCHEMA_VERSION,
+    schemaVersion:1, // migrateV2() is the ONLY place allowed to stamp 2
     properties:[],tenants:[],rentalContracts:[],rentPayments:[],
     budgets:{},loans:[],theme:'auto',fx:[],dismissed:{},
     notifLog:[],smsLog:[],
@@ -1430,10 +1430,12 @@ async function loadState(){
           pendingV1BackupOffer=true;
         }catch(e){}
       }
-      const merged={...def(),...saved,cats:{
-        income:saved.cats?.income||def().cats.income,
-        expense:saved.cats?.expense||def().cats.expense
-      }};
+      const merged={...def(),...saved,
+        schemaVersion:saved.schemaVersion||1,
+        cats:{
+          income:saved.cats?.income||def().cats.income,
+          expense:saved.cats?.expense||def().cats.expense
+        }};
       ST=migrateState(merged);
     } else {
       ST=def();
@@ -1699,6 +1701,12 @@ function parseFaDate(str){
 }
 function migrateV2(s){
   ensureV2Shape(s);
+  // A v23.0 build stamped schemaVersion:2 from the defaults BEFORE the structural
+  // migration had run, which left the rental stores empty while the rest of the
+  // state looked fine. Detect that and re-run.
+  if(s.schemaVersion>=2 && (s.ten||[]).length && !(s.properties||[]).length){
+    s.schemaVersion=1;
+  }
   if(s.schemaVersion>=2) return s;
 
   // ---------- 0. Keep the originals verbatim ----------
@@ -1826,7 +1834,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v23';
+const APP_VERSION='v23.1';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -4073,10 +4081,12 @@ async function restore(inp){
         }
       }
       if(p.tx&&p.cats){
-        ST=migrateState({...def(),...p,cats:{
-          income:p.cats?.income||def().cats.income,
-          expense:p.cats?.expense||def().cats.expense
-        }});
+        ST=migrateState({...def(),...p,
+          schemaVersion:p.schemaVersion||1,
+          cats:{
+            income:p.cats?.income||def().cats.income,
+            expense:p.cats?.expense||def().cats.expense
+          }});
         await sv();
         rDash();rTx();rSett();
         ntf('✅ بازیابی و به‌روزرسانی فرمت انجام شد');

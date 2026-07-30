@@ -251,6 +251,45 @@ eq('assets unchanged after archiving',G.assetsTotal(),totalBefore);
 eq('archived hidden from pickers',G.activeAccounts().length,1);
 eq('tx count guard works',G.accTxCount('a1'),S.tx.filter(t=>t.accId==='a1').length);
 
+sec('19. REGRESSION: the real loadState merge path must migrate');
+// v23.0 bug — def() carried schemaVersion:2, so {...def(),...saved} on a state
+// with no schemaVersion key looked already-migrated and the rental stores
+// stayed empty while net worth still looked correct.
+sandbox.__raw=v1State();
+S=ctx(`(function(){
+  const saved=__raw;
+  const merged={...def(),...saved,
+    schemaVersion:saved.schemaVersion||1,
+    cats:{income:saved.cats?.income||def().cats.income,
+          expense:saved.cats?.expense||def().cats.expense}};
+  ST=migrateState(merged);SM=3;SY=1405;return ST;})()`);
+eq('contracts built through loadState path',S.rentalContracts.length,1);
+eq('properties built',S.properties.length,1);
+eq('rentPayments built',S.rentPayments.length,1);
+eq('schemaVersion stamped',S.schemaVersion,2);
+ok('net worth still correct',G.netWorth()===G.assetsTotal()-G.loansDebt()-G.depositLiability());
+
+sec('20. Self-heal repairs an install already stamped v2 by mistake');
+const broken=v1State();
+broken.schemaVersion=2;              // wrongly stamped, rental stores empty
+broken.properties=[];broken.tenants=[];broken.rentalContracts=[];broken.rentPayments=[];
+sandbox.__in=broken;
+S=ctx('ST=migrateV2(__in);SM=3;SY=1405;ST;');
+eq('rent data recovered',S.rentalContracts.length,1);
+eq('tenant name recovered',S.tenants[0].name,'علی رضایی');
+eq('payments recovered',S.rentPayments.length,1);
+ok('every tx tagged after repair',S.tx.every(t=>!!t.nature));
+
+sec('21. Self-heal does NOT touch a correctly migrated state');
+sandbox.__in=v1State();
+const good=ctx('migrateState(__in)');
+const propIds=good.properties.map(p=>p.id).join(',');
+sandbox.__in=good;
+const again=ctx('migrateV2(__in)');
+eq('property ids unchanged',again.properties.map(p=>p.id).join(','),propIds);
+eq('no duplicate contracts',again.rentalContracts.length,1);
+eq('no duplicate payments',again.rentPayments.length,1);
+
 // ------------------------------------------------------------
 console.log('\n'+'='.repeat(46));
 console.log(`  PASS ${pass}   FAIL ${fail}`);
