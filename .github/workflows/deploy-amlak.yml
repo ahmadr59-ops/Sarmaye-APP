@@ -1,0 +1,56 @@
+# Deploys the Amlak-APP repo to its OWN Firebase Hosting site (amlak-ahmadr59.web.app).
+# Lives in Sarmaye-APP because this repo holds the Firebase service-account secret.
+# Runs hourly (skips if Amlak's commit was already deployed) + manual "Run workflow".
+name: Deploy Amlak to Firebase Hosting
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: deploy-amlak
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Amlak
+        uses: actions/checkout@v4
+        with:
+          repository: ahmadr59-ops/Amlak-APP
+          ref: main
+          path: amlak
+      - name: Current Amlak commit
+        id: sha
+        run: echo "sha=$(git -C amlak rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Already deployed?
+        id: seen
+        uses: actions/cache/restore@v4
+        with:
+          path: .amlak-deployed
+          key: amlak-deployed-${{ steps.sha.outputs.sha }}
+          lookup-only: true
+      - name: Guard - never deploy onto Sarmaye's site
+        if: steps.seen.outputs.cache-hit != 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          grep -Eq '"site"[[:space:]]*:[[:space:]]*"amlak-ahmadr59"' amlak/firebase.json \
+            || { echo "::error::amlak/firebase.json must target site amlak-ahmadr59 - refusing to deploy"; exit 1; }
+      - name: Deploy to Firebase Hosting (live)
+        if: steps.seen.outputs.cache-hit != 'true' || github.event_name == 'workflow_dispatch'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINATIONAL_MANAGMENT }}
+          channelId: live
+          projectId: finational-managment
+          entryPoint: ./amlak
+      - name: Remember deployed commit
+        if: steps.seen.outputs.cache-hit != 'true'
+        run: mkdir -p .amlak-deployed && echo "${{ steps.sha.outputs.sha }}" > .amlak-deployed/sha
+      - name: Save marker
+        if: steps.seen.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .amlak-deployed
+          key: amlak-deployed-${{ steps.sha.outputs.sha }}
