@@ -655,6 +655,11 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
         <div class="stt-info"><strong>نسخهٔ پیش از ارتقا (v1)</strong><span id="v1-lbl">دانلود یا بازگردانی داده‌های قبل از ارتقا</span></div>
         <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
       </div>
+      <div class="stt-row" onclick="exportRentForAmlak()">
+        <div class="stt-ic" style="background:linear-gradient(145deg,#22395F,#15243F)"><svg viewBox="0 0 24 24" style="stroke:#F0C75E"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M12 12v5M9.5 14.5 12 17l2.5-2.5"/></svg></div>
+        <div class="stt-info"><strong>خروجی اجاره برای «املاک»</strong><span>انتقال املاک، قراردادها و پرداخت‌ها به اپ جدید</span></div>
+        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+      </div>
       <div class="stt-row" onclick="exportCSV()">
         <div class="stt-ic" style="background:linear-gradient(145deg,#FFD54F,#FF8F00)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
         <div class="stt-info"><strong>خروجی CSV</strong><span>صدور تراکنش‌ها برای Excel</span></div>
@@ -1834,7 +1839,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v23.1';
+const APP_VERSION='v23.2';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -3938,6 +3943,23 @@ async function clearNotifLog(){
   ST.notifLog=[];
   await sv();openNotifPanel();
 }
+// Export rental data for the standalone «املاک» app. Read-only: nothing in
+// this app changes. The receiving app shows a reconciliation report.
+function buildRentExport(){
+  return{type:'sarmaye-rent-export',version:1,exportedAt:Date.now(),appVersion:APP_VERSION,
+    properties:JSON.parse(JSON.stringify(ST.properties||[])),
+    tenants:JSON.parse(JSON.stringify(ST.tenants||[])),
+    rentalContracts:JSON.parse(JSON.stringify(ST.rentalContracts||[])),
+    rentPayments:JSON.parse(JSON.stringify(ST.rentPayments||[]))};
+}
+async function exportRentForAmlak(){
+  const d=buildRentExport();
+  if(!d.rentalContracts.length){ntf('⚠️ قرارداد اجاره‌ای برای خروجی وجود ندارد');return;}
+  const file=new File([JSON.stringify(d)],'sarmaye-rent-export.json',{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'خروجی اجاره'});ntf('✅ فایل خروجی آماده شد');return;}catch(e){if(e.name==='AbortError')return;}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  ntf(`✅ خروجی: ${toFa(d.rentalContracts.length)} قرارداد، ${toFa(d.rentPayments.length)} پرداخت`);
+}
 function exportCSV(){
   const NAT={operating:'عملیاتی',transfer:'انتقال',opening:'موجودی اولیه',
     deposit:'ودیعه',loanDisbursement:'دریافت وام',loanPrincipal:'اصل قسط',fx:'حواله ارزی'};
@@ -5304,10 +5326,12 @@ async function cloudRestore(){
 async function cloudAutoBackupIfSignedIn(){
   if(!fbReady||!fbAuth||!fbAuth.currentUser) return;
   try{
+    // merge:true — the same doc may also hold the «املاک» app's backup (field `amlak`);
+    // a plain set() would silently erase it.
     await fbDb.collection('backups').doc(fbAuth.currentUser.uid).set({
       srmEnc:0, data:JSON.stringify(ST),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    },{merge:true});
   }catch(e){ console.error('Cloud auto-backup failed:',e); }
 }
 
