@@ -453,6 +453,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <div id="dashLoans"></div>
 
   <!-- FX remittance summary (hidden when no deals) -->
+  <div id="dashSmsQ"></div>
   <div id="dashFx"></div>
 
 <!-- Last 5 transactions -->
@@ -758,6 +759,14 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 </div>
 
 <!-- MODAL: SMS -->
+<div class="ov" id="smsqm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2>صندوق پیامک بانکی</h2>
+  <div id="smsq-body"></div>
+  <button class="btn btns" style="margin-top:6px" onclick="cls('smsqm')">بستن</button>
+</div>
+</div>
 <div class="ov" id="smsm">
 <div class="mdl">
   <div class="mh"></div>
@@ -767,6 +776,16 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     <textarea id="smst" placeholder="متن پیامک بانک را اینجا paste کنید..." rows="6"></textarea>
   </div>
   <button class="btn btnp" onclick="parseSms()"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>تشخیص خودکار</button>
+  <button class="btn btns" onclick="smsQueuePaste()">📩 افزودن به صندوق پیامک</button>
+  <label class="btn btns" style="position:relative;display:flex;align-items:center;justify-content:center">📥 دریافت پیامک‌ها از فایل Shortcut<input type="file" accept=".txt,text/plain" onchange="smsImportFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
+  <details style="margin:8px 0 4px"><summary style="font-size:12px;color:var(--pr);font-weight:700;cursor:pointer">راهنمای ساخت Shortcut دریافت خودکار پیامک</summary>
+    <ol style="font-size:12px;color:var(--t2);line-height:2;padding-right:18px;margin-top:6px">
+      <li>Shortcuts ← Automation ← + ← <b>Message</b> ← Message Contains: <b>مانده</b> ← Run Immediately.</li>
+      <li>اکشن <b>Text</b> با چهار سطر: <code>###SMS</code> / Current Date / Shortcut Input ← Sender / Shortcut Input ← Content.</li>
+      <li>اکشن <b>Append to Text File</b>: فایل <code>sarmaye-sms.txt</code> در iCloud Drive ← Make New Line روشن.</li>
+      <li>همین Automation را یک بار دیگر برای پیامک بانک شهر بسازید؛ کلمهٔ <b>موجودي</b> را از خود پیامک کپی کنید (با «ي» عربی نوشته شده و تطبیق iOS دقیق است).</li>
+      <li>هر وقت خواستید: همین‌جا «دریافت پیامک‌ها از فایل» ← انتخاب <code>sarmaye-sms.txt</code>. پیامک‌های تکراری خودکار کنار گذاشته می‌شوند.</li>
+    </ol></details>
   <div id="smsr" style="display:none;margin-top:12px"></div>
   <div id="smsf" style="display:none;margin-top:8px">
     <div class="ttog">
@@ -1399,7 +1418,7 @@ function def(){
     tx:[],ten:[],pay:{},
     schemaVersion:1, // migrateV2() is the ONLY place allowed to stamp 2
     properties:[],tenants:[],rentalContracts:[],rentPayments:[],
-    budgets:{},loans:[],theme:'auto',fx:[],dismissed:{},
+    budgets:{},loans:[],theme:'auto',fx:[],dismissed:{},smsQueue:[],smsSeen:{},smsKeys:{},smsCatHint:{},amlakOutbox:[],
     notifLog:[],smsLog:[],
     cats:{
       income:[
@@ -1662,6 +1681,12 @@ function migrateState(s){
   if(!Array.isArray(s.loans)) s.loans=[];
   if(!s.theme) s.theme='auto';
   if(!Array.isArray(s.fx)) s.fx=[];
+  // v23.3 bank-SMS inbox state
+  if(!Array.isArray(s.smsQueue)) s.smsQueue=[];
+  if(!s.smsSeen||typeof s.smsSeen!=='object') s.smsSeen={};
+  if(!s.smsKeys||typeof s.smsKeys!=='object') s.smsKeys={};
+  if(!s.smsCatHint||typeof s.smsCatHint!=='object') s.smsCatHint={};
+  if(!Array.isArray(s.amlakOutbox)) s.amlakOutbox=[];
   if(!s.dismissed||typeof s.dismissed!=='object') s.dismissed={};
 
   // ---- Tenant contract periods (one-time) ----
@@ -1839,7 +1864,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v23.2';
+const APP_VERSION='v23.3';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2101,6 +2126,8 @@ function rDash(){
   document.getElementById('td').textContent=`${t.wd} ${fmtDate(t.d,t.m-1,t.y)}`;
   updateMonthLabel();
   // FX remittance mini-card on the dashboard
+  const dsq=document.getElementById('dashSmsQ');
+  if(dsq){const n=(ST.smsQueue||[]).length;dsq.innerHTML=n?`<div style="padding:12px 14px 0"><div onclick="smsqIdx=0;openSmsQueue()" style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;border-right:3px solid var(--pr)"><span style="font-size:22px">📩</span><div style="flex:1"><div style="font-size:13px;font-weight:800;color:var(--t1)">${toFa(n)} پیامک بانکی منتظر بررسی</div><div style="font-size:11.5px;color:var(--t2)">برای ثبت به‌عنوان هزینه، درآمد یا انتقال لمس کنید</div></div></div></div>`:'';}
   const dfx=document.getElementById('dashFx');
   if(dfx){
     const deals=ST.fx||[];
@@ -2718,11 +2745,13 @@ function parseSms(){
   // Normalize digits
   const txt=normDigits(raw);
 
-  const bankName  = detectBankName(raw);
-  const txType    = detectTxType(txt);
-  const amount    = extractAmount(txt);
-  const balance   = extractBalance(txt);
-  const date      = extractDate(txt);
+  // v23.3: sender-profile engine (signed amounts, MM/DD dates, Persian/Arabic ی)
+  const _p        = parseBankSms('',raw);
+  const bankName  = _p.bank||detectBankName(raw);
+  const txType    = _p.tp;
+  const amount    = _p.a;
+  const balance   = _p.balKnown?_p.bal:0;
+  const date      = _p.d;
 
   // Build result panel
   const res=document.getElementById('smsr');
@@ -2774,6 +2803,7 @@ function parseSms(){
   // Account: populate selector and auto-select the account matching the detected bank
   fillAccSelects();
   autoSelectSmsAccount(bankName);
+  {const _acc=smsAccFor(_p);if(_acc.id)document.getElementById('sacc').value=_acc.id;}
 
   // Auto-set type
   if(txType) sst(txType); else sst('expense');
@@ -3943,6 +3973,251 @@ async function clearNotifLog(){
   ST.notifLog=[];
   await sv();openNotifPanel();
 }
+// ============================================================
+// BANK SMS ENGINE (v23.3)
+// Sender profiles → parse → inbox queue → one-by-one review
+// (expense / income / transfer / ignore) → learned account keys,
+// balance reconciliation, optional hand-off of rent deposits to «املاک».
+// Conventions: amounts in bank SMS are RIAL unless «تومان» is written;
+// short dates are MM/DD (never in the future → previous year).
+// ============================================================
+const SMS_NUM='(\\d{1,3}(?:[,،٬]\\d{3})+|\\d{4,})';
+const SMS_PROFILES=[
+  {id:'shahr',  bank:'بانک شهر',  sender:/shahr/i,    text:/بانک\s*شهر/},
+  {id:'resalat',bank:'بانک رسالت',sender:/resalat/i,  text:/رسالت/},
+  {id:'refah',  bank:'بانک رفاه', sender:/refah/i,    text:/بانک\s*رفاه/},
+  {id:'tejarat',bank:'بانک تجارت',sender:/tejarat/i,  text:/بانک\s*تجارت/},
+  {id:'mellat', bank:'بانک ملت',  sender:/mellat/i,   text:/بانک\s*ملت/},
+  {id:'melli',  bank:'بانک ملی',  sender:/melli|bmi/i,text:/بانک\s*ملی/}
+];
+function smsNorm(s){return normDigits(String(s||'')).replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\u200c/g,' ').replace(/\r/g,'');}
+function smsNum(s){return +String(s).replace(/[,،٬\s]/g,'')||0;}
+function smsHash(s){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return h.toString(16);}
+// ref = {y,m(1-based),d} used to resolve short dates; defaults to today
+function parseBankSms(sender,raw,ref){
+  const t=smsNorm(raw);const snd=String(sender||'');
+  ref=ref||today();
+  const P=SMS_PROFILES.find(p=>snd&&p.sender.test(snd))||SMS_PROFILES.find(p=>p.text.test(t))||null;
+  const bank=P?P.bank:(typeof detectBankName==='function'?detectBankName(raw):'');
+  let a=0,tp='',m;
+  // 1) explicit sign beside the number is the strongest signal
+  if((m=new RegExp('(?:^|\\n|کارت|حساب|:)\\s*([+-])\\s*'+SMS_NUM+'|'+SMS_NUM+'\\s*([+-])(?=\\s|$)','m').exec(t))){
+    a=smsNum(m[2]||m[3]);tp=(m[1]||m[4])==='+'?'income':'expense';
+  }
+  // 2) labeled amount
+  if(!a&&(m=new RegExp('(?:مبلغ(?:\\s*تراکنش)?|برداشت|واریز|خرید|انتقال)\\s*:\\s*'+SMS_NUM).exec(t))) a=smsNum(m[1]);
+  // 3) keywords (first occurrence wins when both kinds appear)
+  if(!tp){
+    const inc=t.search(/واریز|بستانکار|دریافت/),exp=t.search(/خرید|برداشت|کسر|پرداخت|بدهکار/);
+    if(inc>=0&&(exp<0||inc<exp)) tp='income'; else if(exp>=0) tp='expense';
+  }
+  // balance — an empty field («مانده: ریال») must not grab a later number
+  let bal=0,balKnown=false;
+  if((m=new RegExp('(?:مانده|موجودی)(?:\\s*حساب)?\\s*:?\\s*(-)?\\s*'+SMS_NUM).exec(t))){bal=smsNum(m[2])*(m[1]?-1:1);balKnown=true;}
+  const toman=/تومان/.test(t);
+  if(!toman){a=Math.round(a/10);bal=Math.round(bal/10);}
+  // date
+  let d=null,guessed=false,time='';
+  if((m=/(1[34]\d{2})[\/\-](\d{1,2})[\/\-](\d{1,2})/.exec(t))) d={y:+m[1],m:+m[2],d:+m[3]};
+  else if((m=/(?:^|[^\d\/])(\d{2})\/(\d{2})\/(\d{2})(?![\d\/])/.exec(t))) d={y:1400+(+m[1]),m:+m[2],d:+m[3]};
+  else if((m=/(?:^|[\s:])(\d{2})\/(\d{2})(?=[\s_\-]|$)/m.exec(t))){
+    const mm=+m[1],dd=+m[2];d={y:(mm>ref.m||(mm===ref.m&&dd>ref.d))?ref.y-1:ref.y,m:mm,d:dd};
+  }
+  if(!d||d.m<1||d.m>12||d.d<1||d.d>31){d={y:ref.y,m:ref.m,d:ref.d};guessed=true;}
+  if((m=/(\d{1,2}):(\d{2})(?::\d{2})?/.exec(t))) time=pad2(m[1])+':'+m[2];
+  // account identity keys
+  const keys=[];
+  const cr=/(\d{4})\s*\*{2,}\s*(\d{4})/g;let cm;
+  while((cm=cr.exec(t))) keys.push('c:'+[cm[1],cm[2]].sort().join('-')); // RTL SMS may print last4***first4
+  const ar=/(?:حساب|از|به)\s*:?\s*([\d][\d.\-]{7,})/g;let am;
+  while((am=ar.exec(t))) keys.push('a:'+am[1].replace(/\D/g,''));
+  const bare=/^\s*(\d{1,3}\.\d{4,}\.\d{1,3})\s*$/m.exec(t);if(bare) keys.push('a:'+bare[1].replace(/\D/g,''));
+  const ignore=!a&&/رمز|پویا|کد\s*(?:تایید|تأیید|فعال)|OTP/i.test(t);
+  return{profile:P?P.id:'',bank,tp,a,bal,balKnown,d:{y:d.y,m:d.m-1,d:d.d},time,dateGuessed:guessed,keys:[...new Set(keys)],ignore,hash:smsHash(snd.trim().toLowerCase()+'|'+t.trim())};
+}
+// Shortcut file: records start with a line «###SMS», then ISO date, sender, body
+function splitSmsFile(text){
+  const s=String(text||'').replace(/\r/g,'');
+  if(!/^###SMS\s*$/m.test(s)) return s.trim()?[{sender:'',recv:null,raw:s.trim()}]:[];
+  return s.split(/^###SMS\s*$/m).map(c=>c.replace(/^\n+/,'')).filter(c=>c.trim()).map(c=>{
+    const L=c.split('\n');let recv=null;
+    const dt=Date.parse((L[0]||'').trim());
+    if(!isNaN(dt)){recv=dt;L.shift();}
+    const sender=(L.shift()||'').trim();
+    return{sender,recv,raw:L.join('\n').trim()};
+  }).filter(r=>r.raw);
+}
+function jRefFromMs(ms){const g=new Date(ms);const j=gToJ(g.getFullYear(),g.getMonth()+1,g.getDate());return{y:j.y,m:j.m,d:j.d};}
+function smsImport(text){
+  if(!ST.smsQueue)ST.smsQueue=[];if(!ST.smsSeen)ST.smsSeen={};
+  let added=0,dup=0;const hashes=[];
+  splitSmsFile(text).forEach(r=>{
+    const p=parseBankSms(r.sender,r.raw,r.recv?jRefFromMs(r.recv):null);
+    if(ST.smsSeen[p.hash]||ST.smsQueue.some(q=>q.hash===p.hash)){dup++;return;}
+    ST.smsQueue.push({id:uid(),hash:p.hash,sender:r.sender,raw:r.raw,recv:r.recv,p});added++;hashes.push(p.hash);
+  });
+  ST.smsQueue.sort((x,y)=>(x.p.d.y-y.p.d.y)||(x.p.d.m-y.p.d.m)||(x.p.d.d-y.p.d.d));
+  return{added,dup,hashes};
+}
+function smsAccFor(p){
+  const accs=activeAccounts();
+  for(const k of p.keys){const id=(ST.smsKeys||{})[k];if(id&&accs.some(a=>a.id===id))return{id,learned:true};}
+  if(p.bank){const short=p.bank.replace('بانک','').trim();const m=accs.filter(a=>a.bank&&(a.bank===p.bank||a.bank.includes(short)));if(m.length===1)return{id:m[0].id,learned:false};}
+  return{id:'',learned:false};
+}
+// A deposit/withdrawal SMS that is the other side of an already-recorded transfer
+function smsTransferTwin(q,accId){
+  if(!accId)return null;
+  const dn=x=>x.y*400+x.m*32+x.d;
+  return ST.tx.find(t=>t.isTransfer&&!t.smsHash&&t.accId===accId&&t.a===q.p.a&&t.tp===q.p.tp&&Math.abs(dn(t)-dn(q.p.d))<=1)||null;
+}
+// ---------- review UI ----------
+let smsqIdx=0,smsqTp='expense';
+function openSmsQueue(){
+  if(!(ST.smsQueue||[]).length){ntf('صندوق پیامک خالی است');return;}
+  smsqIdx=Math.min(smsqIdx,ST.smsQueue.length-1);renderSmsQueue();
+  document.getElementById('smsqm').classList.add('on');
+}
+function renderSmsQueue(){
+  const Q=ST.smsQueue||[];const box=document.getElementById('smsq-body');
+  if(!Q.length){box.innerHTML='<p style="padding:20px 0;text-align:center;color:var(--t2)">✅ همهٔ پیامک‌ها بررسی شد.</p>';rDash();return;}
+  const q=Q[smsqIdx];const p=q.p;const acc=smsAccFor(p);const twin=smsTransferTwin(q,acc.id);
+  smsqTp=p.ignore||twin?'ignore':(p.tp||'expense');
+  const accs=activeAccounts();
+  const opt=sel=>'<option value="">انتخاب کنید…</option>'+accs.map(a=>`<option value="${a.id}"${a.id===sel?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('');
+  box.innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--t2);margin-bottom:8px">
+    <span>${toFa(smsqIdx+1)} از ${toFa(Q.length)}</span><span>${esc(p.bank||q.sender||'بانک نامشخص')}</span></div>
+  <div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px">
+    <div style="font-size:24px;font-weight:800;color:${p.tp==='income'?'var(--gr)':'var(--rd)'}">${p.tp==='income'?'+':'−'}${nf(p.a)} <span style="font-size:12px;color:var(--t3)">تومان</span></div>
+    <div style="font-size:12px;color:var(--t2);margin-top:2px">${fmtDate(p.d.d,p.d.m,p.d.y)}${p.time?' ساعت '+toFa(p.time):''}${p.dateGuessed?' <b style="color:var(--am)">(تاریخ در پیامک نبود)</b>':''}</div>
+    <details style="margin-top:6px"><summary style="font-size:11.5px;color:var(--t3);cursor:pointer">متن پیامک</summary><pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--t2);margin-top:6px">${esc(q.raw)}</pre></details>
+  </div>
+  ${twin?`<div style="background:var(--aml);color:var(--am);border-radius:10px;padding:9px 11px;font-size:12px;font-weight:600;margin-bottom:10px">این پیامک احتمالاً طرف دیگر انتقالِ ثبت‌شده «${esc(twin.dsc||'')}» است؛ پیشنهاد: نادیده.</div>`:''}
+  <div class="ttog" id="smsq-tp" style="grid-template-columns:repeat(4,1fr)">
+    ${[['expense','هزینه'],['income','درآمد'],['transfer','انتقال'],['ignore','نادیده']].map(([k,l])=>`<button class="tb" data-k="${k}" onclick="smsqSetTp('${k}')">${l}</button>`).join('')}
+  </div>
+  <div class="fg"><label>حساب${p.keys.length&&!acc.learned?' <span style="color:var(--am);font-size:11px">(شناسهٔ جدید — یک بار انتخاب کنید)</span>':''}</label><select id="smsq-acc" onchange="smsqBalCheck()">${opt(acc.id)}</select></div>
+  <div id="smsq-other" class="fg" style="display:none"><label>حساب طرف دیگر انتقال</label><select id="smsq-acc2">${opt('')}</select></div>
+  <div id="smsq-catw" class="fg"><label>دسته‌بندی</label><select id="smsq-cat"></select></div>
+  <div class="fg"><label>مبلغ (تومان)</label><input id="smsq-amt" inputmode="numeric" value="${p.a||''}" oninput="smsqBalCheck()"></div>
+  <div class="dategrid">
+    <div class="fg"><label>روز</label><input type="number" id="smsq-day" value="${p.d.d}" inputmode="numeric"></div>
+    <div class="fg"><label>ماه</label><select id="smsq-mon"></select></div>
+    <div class="fg"><label>سال</label><input type="number" id="smsq-yr" value="${p.d.y}" inputmode="numeric"></div>
+  </div>
+  <div class="fg"><label>توضیحات (اختیاری)</label><input id="smsq-dsc" type="text"></div>
+  <label id="smsq-amlakw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" id="smsq-amlak" style="width:18px;height:18px"> این واریز، اجارهٔ یک ملک است (ارسال به «املاک»)</label>
+  <div id="smsq-bal" style="font-size:12px;margin:2px 0 10px"></div>
+  <button class="btn btnp" onclick="smsqSave()">ثبت و بعدی</button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <button class="btn btns" onclick="smsqMove(-1)">قبلی</button><button class="btn btns" onclick="smsqMove(1)">بعدی (بعداً)</button>
+  </div>`;
+  fillMon('smsq-mon',p.d.m);smsqSetTp(smsqTp);
+}
+function smsqSetTp(k){
+  smsqTp=k;
+  document.querySelectorAll('#smsq-tp .tb').forEach(b=>{const on=b.dataset.k===k;b.className='tb'+(on&&k==='income'?' ti':on&&k==='expense'?' te':'');b.style.background=on&&(k==='transfer'||k==='ignore')?'var(--prl)':'';b.style.color=on&&(k==='transfer'||k==='ignore')?'var(--pr)':'';});
+  const isPL=k==='income'||k==='expense';
+  document.getElementById('smsq-catw').style.display=isPL?'':'none';
+  document.getElementById('smsq-other').style.display=k==='transfer'?'':'none';
+  document.getElementById('smsq-amlakw').style.display=k==='income'?'flex':'none';
+  if(isPL){
+    fillCat('smsq-cat',k);
+    const q=ST.smsQueue[smsqIdx];const acc=document.getElementById('smsq-acc').value;
+    const hint=(ST.smsCatHint||{})[acc+'|'+k];const sel=document.getElementById('smsq-cat');
+    if(hint&&[...sel.options].some(o=>o.value===hint)) sel.value=hint;
+  }
+  smsqBalCheck();
+}
+// Show bank balance vs app balance after this entry (±1 toman rounding tolerance)
+function smsqBalCheck(){
+  const el=document.getElementById('smsq-bal');if(!el)return;
+  const q=ST.smsQueue[smsqIdx];const acc=document.getElementById('smsq-acc').value;
+  if(!q||!q.p.balKnown||!acc){el.innerHTML='';return;}
+  const a=toLn(document.getElementById('smsq-amt').value);
+  const dir=smsqTp==='ignore'?0:(q.p.tp==='income'?1:-1);
+  const after=calcAccBalance(acc)+dir*a;const diff=q.p.bal-after;
+  el.innerHTML=Math.abs(diff)<=1
+    ?`<span style="color:var(--gr);font-weight:700">✓ ماندهٔ بانک (${nf(q.p.bal)}) با ماندهٔ اپ پس از ثبت برابر است</span>`
+    :`<span style="color:var(--am);font-weight:700">⚠️ ماندهٔ بانک ${nf(q.p.bal)} ولی ماندهٔ اپ پس از ثبت ${nf(after)} — اختلاف ${nf(diff)} تومان (احتمالاً تراکنشی جا افتاده)</span>`;
+}
+function smsqMove(step){const n=(ST.smsQueue||[]).length;if(!n)return;smsqIdx=(smsqIdx+step+n)%n;renderSmsQueue();}
+async function smsqSave(){
+  const q=ST.smsQueue[smsqIdx];if(!q)return;
+  if(!ST.smsSeen)ST.smsSeen={};if(!ST.smsKeys)ST.smsKeys={};if(!ST.smsCatHint)ST.smsCatHint={};
+  const acc=document.getElementById('smsq-acc').value;
+  const done=async(meta)=>{
+    ST.smsSeen[q.hash]={at:Date.now(),...meta};
+    ST.smsQueue=ST.smsQueue.filter(x=>x.id!==q.id);
+    if(smsqIdx>=ST.smsQueue.length)smsqIdx=Math.max(0,ST.smsQueue.length-1);
+    await sv();renderSmsQueue();rDash();if(typeof rTx==='function')rTx();
+  };
+  if(smsqTp==='ignore'){
+    const twin=smsTransferTwin(q,acc);if(twin)twin.smsHash=q.hash;
+    if(acc)q.p.keys.forEach(k=>{ST.smsKeys[k]=acc;});
+    return done({act:'ignore',txId:twin?twin.id:null});
+  }
+  const a=toLn(document.getElementById('smsq-amt').value);
+  const day=parseInt(document.getElementById('smsq-day').value);
+  const m=parseInt(document.getElementById('smsq-mon').value);
+  const y=parseInt(document.getElementById('smsq-yr').value);
+  if(!acc){ntf('⚠️ حساب را انتخاب کنید');hiErr('smsq-acc');return;}
+  if(!(a>0)){ntf('⚠️ مبلغ نامعتبر است');hiErr('smsq-amt');return;}
+  if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){ntf('⚠️ تاریخ نامعتبر است');hiErr('smsq-day');return;}
+  q.p.keys.forEach(k=>{ST.smsKeys[k]=acc;});
+  const dsc=document.getElementById('smsq-dsc').value.trim();
+  if(smsqTp==='transfer'){
+    const other=document.getElementById('smsq-acc2').value;
+    if(!other||other===acc){ntf('⚠️ حساب طرف دیگر را انتخاب کنید');hiErr('smsq-acc2');return;}
+    const out=q.p.tp!=='income';const from=out?acc:other,to=out?other:acc;const tid=uid();
+    const l1={id:uid(),tp:'expense',cat:'transfer',a,dsc:'انتقال به '+getAccName(to)+(dsc?' · '+dsc:''),day,m,y,accId:from,isTransfer:true,transferId:tid};
+    const l2={id:uid(),tp:'income',cat:'transfer',a,dsc:'دریافت از '+getAccName(from)+(dsc?' · '+dsc:''),day,m,y,accId:to,isTransfer:true,transferId:tid};
+    (out?l1:l2).smsHash=q.hash;ST.tx.push(l1,l2);
+    ntf('✅ انتقال ثبت شد');return done({act:'transfer',txId:(out?l1:l2).id});
+  }
+  const cat=document.getElementById('smsq-cat').value;
+  if(!cat){ntf('⚠️ دسته‌بندی را انتخاب کنید');hiErr('smsq-cat');return;}
+  const dup=ST.tx.find(t=>!t.isTransfer&&!t.isOpening&&t.tp===smsqTp&&t.a===a&&t.day===day&&t.m===m&&t.y===y&&(t.accId||'')===acc);
+  if(dup&&!confirm('تراکنشی با همین مبلغ، تاریخ و حساب قبلاً ثبت شده است. باز هم ثبت شود؟'))return;
+  const rec={id:uid(),tp:smsqTp,cat,a,dsc:dsc||((q.p.bank||'پیامک')+' (پیامک)'),day,m,y,accId:acc,nature:'operating',smsHash:q.hash};
+  ST.tx.push(rec);ST.smsCatHint[acc+'|'+smsqTp]=cat;
+  if(smsqTp==='income'&&document.getElementById('smsq-amlak').checked){
+    if(!ST.amlakOutbox)ST.amlakOutbox=[];
+    ST.amlakOutbox.push({id:uid(),a,date:{y,m,d:day},bank:q.p.bank||'',acc:getAccName(acc),txt:q.raw.slice(0,300),createdAt:Date.now()});
+  }
+  ntf('✅ ثبت شد');await done({act:smsqTp,txId:rec.id});
+  flushAmlakOutbox();
+}
+// ---------- bridge to «املاک» (same Firebase account) ----------
+async function flushAmlakOutbox(){
+  const box=ST.amlakOutbox||[];
+  if(!box.length||typeof fbAuth==='undefined'||!fbAuth||!fbAuth.currentUser)return 0;
+  let sent=0;
+  for(const it of box.slice()){
+    try{await fbDb.collection('backups').doc(fbAuth.currentUser.uid).set({amlakInbox:{[it.id]:it}},{merge:true});
+      ST.amlakOutbox=ST.amlakOutbox.filter(x=>x.id!==it.id);sent++;}
+    catch(e){break;}
+  }
+  if(sent){await sv();ntf(`🏠 ${toFa(sent)} واریز به «املاک» ارسال شد`);}
+  return sent;
+}
+function smsImportFile(input){
+  const f=input.files&&input.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=async()=>{const res=smsImport(r.result);await sv();input.value='';rDash();
+    ntf(res.added?`📩 ${toFa(res.added)} پیامک جدید به صندوق اضافه شد${res.dup?`، ${toFa(res.dup)} تکراری کنار گذاشته شد`:''}`:'پیامک جدیدی در فایل نبود');
+    if(res.added){cls('smsm');smsqIdx=0;openSmsQueue();}};
+  r.readAsText(f);
+}
+async function smsQueuePaste(){
+  const raw=document.getElementById('smst').value;
+  if(!raw.trim()){ntf('⚠️ متن پیامک را وارد کنید');return;}
+  const res=smsImport(raw);await sv();rDash();
+  if(!res.added){ntf('این پیامک قبلاً بررسی شده است');return;}
+  cls('smsm');smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash===res.hashes[0]));openSmsQueue();
+}
+
 // Export rental data for the standalone «املاک» app. Read-only: nothing in
 // this app changes. The receiving app shows a reconciliation report.
 function buildRentExport(){
@@ -5254,6 +5529,7 @@ if(fbReady){
   fbAuth.onAuthStateChanged(user=>{
     if(document.getElementById('cloud-status-lbl')) renderCloudPanel();
     if(user && !openBackupFired){ openBackupFired=true; cloudAutoBackupIfSignedIn(); }
+    if(user) setTimeout(()=>flushAmlakOutbox(),1500);
   });
 }
 async function cloudSignUp(){
