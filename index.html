@@ -274,6 +274,13 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 
 /* Settings screen */
 .stt-sec{padding:14px 14px 0}
+.nb-plus .nb-ic{width:46px!important;height:46px!important;border-radius:16px!important;background:var(--grad)!important;margin-top:-18px;box-shadow:0 6px 16px rgba(20,86,168,.35)}
+.nb-plus .nb-ic svg{stroke:#fff!important;width:24px!important;height:24px!important;stroke-width:2.4!important}
+.nb-plus{color:var(--pr)!important;font-weight:700}
+#v1-row{display:none!important}
+.qchip{padding:8px 12px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;font-family:'Vazirmatn',sans-serif}
+.qchip.on{border-color:transparent;background:var(--grad);color:#fff;font-weight:800}
+.dayhdr{display:flex;justify-content:space-between;align-items:center;padding:12px 4px 4px;font-size:11.5px;font-weight:800;color:var(--t3);border-bottom:1px solid var(--border)}
 .stt-sec-lbl{font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-right:4px}
 .stt-list{background:var(--card);border:0.5px solid var(--border);border-radius:var(--rad);box-shadow:var(--sh);overflow:hidden;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
 .stt-row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-bottom:0.5px solid var(--border);cursor:pointer}
@@ -400,60 +407,14 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     </div>
   </div>
 
-  <!-- Outstanding rent summary -->
-  <div id="dash-rent-alrt"></div>
+  <!-- v24: weekly review hub -->
+  <div id="dashSmsQ"></div>
+  <div id="dashWeek"></div>
 
-  <!-- Action buttons: 6 icons in a 3x2 grid -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:12px 14px 0">
-    <button onclick="openTx()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11.5px;font-weight:700;transition:opacity .15s"
-      onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:44px;height:44px;border-radius:14px;background:var(--prl);display:flex;align-items:center;justify-content:center">
-        <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:var(--pr);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 5v14M5 12h14"/></svg>
-      </span>
-      تراکنش
-    </button>
-    <button onclick="openSms()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pp);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11.5px;font-weight:700;transition:opacity .15s"
-      onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:44px;height:44px;border-radius:14px;background:var(--ppl);display:flex;align-items:center;justify-content:center">
-        <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:var(--pp);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      </span>
-      پیامک
-    </button>
-    <button onclick="openTransfer()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--am);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11.5px;font-weight:700;transition:opacity .15s"
-      onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:44px;height:44px;border-radius:14px;background:var(--aml);display:flex;align-items:center;justify-content:center">
-        <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:var(--am);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg>
-      </span>
-      انتقال
-    </button>
-    <button onclick="openFxList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11.5px;font-weight:700;transition:opacity .15s"
-      onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:44px;height:44px;border-radius:14px;background:var(--pkl);display:flex;align-items:center;justify-content:center">
-        <span style="font-size:21px;font-weight:800;color:var(--pk)">€</span>
-      </span>
-      حواله ارزی
-    </button>
-    <button onclick="openAccList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--gr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11.5px;font-weight:700;transition:opacity .15s"
-      onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:44px;height:44px;border-radius:14px;background:var(--grl);display:flex;align-items:center;justify-content:center">
-        <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:var(--gr);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>
-      </span>
-      حساب‌ها
-    </button>
-    <button onclick="openLoanList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--rd);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11.5px;font-weight:700;transition:opacity .15s"
-      onpointerdown="this.style.opacity='.75'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="width:44px;height:44px;border-radius:14px;background:var(--rdl);display:flex;align-items:center;justify-content:center">
-        <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:var(--rd);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/></svg>
-      </span>
-      وام و اقساط
-    </button>
-  </div>
-
-  <!-- Active loans summary (fills the previously-empty space; hidden when no loans) -->
+  <!-- Needs-action card (loans due) -->
   <div id="dashLoans"></div>
 
-  <!-- FX remittance summary (hidden when no deals) -->
-  <div id="dashSmsQ"></div>
+  <!-- FX remittance (only while a deal is in progress) -->
   <div id="dashFx"></div>
 
 <!-- Last 5 transactions -->
@@ -559,47 +520,19 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 
 <!-- SCREEN 4: Settings -->
 <div class="scr" id="s4">
-  <div class="hdr"><div class="hdr-top"><div style="width:36px;flex-shrink:0"></div><h1>تنظیمات</h1><div style="width:36px;flex-shrink:0"></div></div></div>
+  <div class="hdr"><div class="hdr-top"><div style="width:36px;flex-shrink:0"></div><h1>بیشتر</h1><div style="width:36px;flex-shrink:0"></div></div></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:14px 14px 0">
+    <button onclick="openAccList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--gr);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--grl);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--gr);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg></span>حساب‌ها</button><button onclick="openTransfer()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--am);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--aml);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--am);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg></span>انتقال</button><button onclick="openSavingsQuick()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pk);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--pkl);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--pk);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M19 9V6a2 2 0 00-2-2h-1.5L14 2h-4l-1.5 2H7a2 2 0 00-2 2v3M3 11h2M2 9h3v6.5A1.5 1.5 0 006.5 17H7v3h3v-3h4v3h3v-3h.5a1.5 1.5 0 001.5-1.5V9"/></svg></span>پس‌انداز</button><button onclick="openBudgetMgr()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pr);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--prl);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--pr);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>بودجه</button><button onclick="openLoanList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--rd);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--rdl);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--rd);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/></svg></span>وام و اقساط</button><button onclick="openFxList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pp);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--ppl);display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:800;color:var(--pp)">€</span></span>حواله ارزی</button>
+  </div>
 
   <div class="stt-sec">
-    <div class="stt-sec-lbl">اطلاعات برنامه</div>
+    <div class="stt-sec-lbl">ظاهر</div>
     <div class="stt-list">
 
 
-      <div class="stt-row" onclick="openNotifSettings()">
-        <div class="stt-ic" style="background:linear-gradient(145deg,#FFD54F,#FF8F00)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
-        <div class="stt-info"><strong>اعلان‌ها و یادآور</strong><span>تنظیم یادآور اجاره</span></div>
-        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
-      </div>
       <div class="stt-row" onclick="document.getElementById('thememdl').classList.add('on')">
         <div class="stt-ic" style="background:linear-gradient(145deg,#4A5568,#1A202C)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></div>
         <div class="stt-info"><strong>حالت نمایش</strong><span id="theme-lbl">خودکار (هماهنگ با سیستم)</span></div>
-        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="stt-sec" style="margin-top:14px">
-    <div class="stt-sec-lbl">مالی</div>
-    <div class="stt-list">
-      <div class="stt-row" onclick="openSavingsQuick()">
-        <div class="stt-ic" style="background:linear-gradient(145deg,#E58BB4,#B04A7A)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M19 9V6a2 2 0 00-2-2h-1.5L14 2h-4l-1.5 2H7a2 2 0 00-2 2v3M3 11h2M2 9h3v6.5A1.5 1.5 0 006.5 17H7v3h3v-3h4v3h3v-3h.5a1.5 1.5 0 001.5-1.5V9M16 13h.01"/></svg></div>
-        <div class="stt-info"><strong>پس‌انداز سریع</strong><span>انتقال به حساب پس‌انداز</span></div>
-        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
-      </div>
-      <div class="stt-row" onclick="openBudgetMgr()">
-        <div class="stt-ic" style="background:linear-gradient(145deg,#2ECC71,#0E7A3C)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-        <div class="stt-info"><strong>بودجه ماهانه</strong><span id="budget-count">بدون سقف تعریف‌شده</span></div>
-        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
-      </div>
-      <div class="stt-row" onclick="openLoanList()">
-        <div class="stt-ic" style="background:linear-gradient(145deg,#B0693C,#7A3E1D)"><svg viewBox="0 0 24 24" style="stroke:#fff"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/></svg></div>
-        <div class="stt-info"><strong>وام و اقساط</strong><span id="loan-count">بدون وام فعال</span></div>
-        <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
-      </div>
-      <div class="stt-row" onclick="openFxList()">
-        <div class="stt-ic" style="background:linear-gradient(145deg,#7B68EE,#3B2E9E)"><svg viewBox="0 0 24 24" style="stroke:#fff"><circle cx="12" cy="12" r="9"/><path d="M14.5 8.5A4 4 0 0010 8c-2 .8-2.6 3-2.6 4s.6 3.2 2.6 4a4 4 0 004.5-.5M6 10.5h6M6 13.5h6"/></svg></div>
-        <div class="stt-info"><strong>حواله ارزی</strong><span id="fx-count">بدون حواله</span></div>
         <div class="stt-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
       </div>
     </div>
@@ -633,7 +566,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   </div>
 
   <div class="stt-sec" style="margin-top:14px">
-    <div class="stt-sec-lbl">داده‌ها</div>
+    <div class="stt-sec-lbl">پشتیبان و داده</div>
     <div class="stt-list">
       <div class="stt-row" onclick="openCloudModal()">
         <div class="stt-ic" style="background:linear-gradient(145deg,#FFA000,#EF6C00)"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div>
@@ -694,19 +627,19 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 <!-- Bottom Nav -->
 <nav class="bnav">
   <button class="nb on" onclick="nav(0,this)">
-    <span class="nb-ic"><svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1z"/></svg></span>داشبورد
+    <span class="nb-ic"><svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1z"/></svg></span>خانه
   </button>
   <button class="nb" onclick="nav(1,this)">
     <span class="nb-ic"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg></span>تراکنش‌ها
   </button>
-  <button class="nb" onclick="nav(2,this)">
-    <span class="nb-ic"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg></span>اجاره
+  <button class="nb nb-plus" onclick="openQuick()" aria-label="ثبت سریع">
+    <span class="nb-ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>ثبت
   </button>
   <button class="nb" onclick="nav(3,this)">
     <span class="nb-ic"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>گزارش
   </button>
   <button class="nb" onclick="nav(4,this)">
-    <span class="nb-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>تنظیمات
+    <span class="nb-ic"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg></span>بیشتر
   </button>
 </nav>
 
@@ -759,6 +692,37 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 </div>
 
 <!-- MODAL: SMS -->
+<!-- v24: quick add -->
+<div class="ov" id="qam">
+<div class="mdl">
+  <div class="mh"></div>
+  <div class="ttog" id="qa-tp"><button class="tb te" data-k="expense" onclick="qaTp('expense')">هزینه</button><button class="tb" data-k="income" onclick="qaTp('income')">درآمد</button></div>
+  <input id="qa-amt" inputmode="numeric" autocomplete="off" placeholder="۰" oninput="qaFmt(this)" style="width:100%;font-size:32px;font-weight:800;text-align:center;border:none;background:transparent;color:var(--t1);outline:none;font-family:'Vazirmatn',sans-serif;margin:10px 0 0">
+  <div style="text-align:center;font-size:12px;color:var(--t3);margin-bottom:10px">تومان</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+    <button class="qchip" onclick="qaMul(1000)">× هزار</button><button class="qchip" onclick="qaMul(1000000)">× میلیون</button><button class="qchip" onclick="document.getElementById('qa-amt').value=''">پاک</button>
+  </div>
+  <div id="qa-cats" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px"></div>
+  <div class="fg" id="qa-catsel-w" style="display:none"><select id="qa-cat"></select></div>
+  <div class="fg"><label>حساب</label><select id="qa-acc"></select></div>
+  <div class="fg"><label>توضیح (اختیاری)</label><input id="qa-dsc" type="text"></div>
+  <details style="margin:0 0 10px"><summary style="font-size:12.5px;color:var(--pr);font-weight:700;cursor:pointer">تاریخ: <span id="qa-datelbl">امروز</span></summary>
+    <div class="dategrid" style="margin-top:8px">
+      <div class="fg"><label>روز</label><input type="number" id="qa-day" inputmode="numeric" onchange="qaDate()"></div>
+      <div class="fg"><label>ماه</label><select id="qa-mon" onchange="qaDate()"></select></div>
+      <div class="fg"><label>سال</label><input type="number" id="qa-yr" inputmode="numeric" onchange="qaDate()"></div>
+    </div></details>
+  <button class="btn btnp" onclick="qaSave()">ثبت</button>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px">
+    <button class="btn btns" style="font-size:12px" onclick="cls('qam');openTransfer()">انتقال</button>
+    <button class="btn btns" style="font-size:12px" onclick="cls('qam');openSms()">پیامک بانکی</button>
+    <button class="btn btns" style="font-size:12px" onclick="cls('qam');openTx()">فرم کامل</button>
+  </div>
+</div>
+</div>
+<div id="undobar" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:9000;align-items:center;gap:14px;background:#1C2B45;color:#fff;padding:11px 16px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:13px;font-weight:600;white-space:nowrap">
+  <span id="undolbl"></span><button onclick="doUndo()" style="background:none;border:none;color:#7FB3FF;font-weight:800;font-size:13px;cursor:pointer;font-family:'Vazirmatn',sans-serif">↶ بازگردانی</button>
+</div>
 <div class="ov" id="smsqm">
 <div class="mdl">
   <div class="mh"></div>
@@ -1864,7 +1828,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v23.3';
+const APP_VERSION='v24.0';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2126,12 +2090,11 @@ function rDash(){
   document.getElementById('td').textContent=`${t.wd} ${fmtDate(t.d,t.m-1,t.y)}`;
   updateMonthLabel();
   // FX remittance mini-card on the dashboard
-  const dsq=document.getElementById('dashSmsQ');
-  if(dsq){const n=(ST.smsQueue||[]).length;dsq.innerHTML=n?`<div style="padding:12px 14px 0"><div onclick="smsqIdx=0;openSmsQueue()" style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;border-right:3px solid var(--pr)"><span style="font-size:22px">📩</span><div style="flex:1"><div style="font-size:13px;font-weight:800;color:var(--t1)">${toFa(n)} پیامک بانکی منتظر بررسی</div><div style="font-size:11.5px;color:var(--t2)">برای ثبت به‌عنوان هزینه، درآمد یا انتقال لمس کنید</div></div></div></div>`:'';}
+  rSmsCard();rWeek();
   const dfx=document.getElementById('dashFx');
   if(dfx){
     const deals=ST.fx||[];
-    if(!deals.length){dfx.innerHTML='';}
+    if(!deals.some(d=>d.status!=='done')){dfx.innerHTML='';}
     else{
       const pool=fxPoolEur();
       const pend=deals.filter(d=>d.status!=='done').length;
@@ -2186,30 +2149,6 @@ function rDash(){
         sub:`سررسید ${toFa(l.day)}ام این ماه`,
         act:`payInstallment('${l.id}')`,actL:'ثبت قسط'});
     });
-    tenList().forEach(ten=>{
-      const r=rentFor(ten,t.m-1,t.y);
-      if(r<=0) return;
-      if(paidFor(ten.id,t.y,t.m-1)>0) return;
-      const dd=dueDayFor(ten,t.m-1,t.y);
-      if(t.d<dd) return;
-      const key=`rent_${ten.id}${mk}`;
-      if(ST.dismissed[key]) return;
-      items.push({key,icon:'home',c:'var(--am)',bg:'var(--aml)',
-        t:`اجاره «${esc(ten.n)}» — ${nf(r)} ت`,
-        sub:`سررسید ${toFa(dd)}ام این ماه`,
-        act:`openPay('${ten.id}')`,actL:'ثبت پرداخت'});
-    });
-    tenList().forEach(ten=>{
-      const curIdx=t.y*12+(t.m-1);
-      if(ten.status==='terminated') return;
-      if(curIdx<contractEnd(ten).idx) return;
-      const key=`renew_${ten.id}${mk}`;
-      if(ST.dismissed[key]) return;
-      items.push({key,icon:'renew',c:'var(--gr)',bg:'var(--grl)',
-        t:`تمدید قرارداد «${esc(ten.n)}»`,
-        sub:'دوره قرارداد به پایان رسیده',
-        act:`openTM('${ten.id}')`,actL:'تمدید'});
-    });
     if(!items.length){dl.innerHTML='';}
     else{
       const IC={
@@ -2219,7 +2158,7 @@ function rDash(){
       };
       dl.innerHTML=`<div style="padding:12px 14px 0">
         <div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;border-right:3px solid var(--am)">
-          <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:8px">⏰ سررسیدهای در انتظار</div>
+          <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:8px">⏰ نیاز به اقدام</div>
           ${items.map(it=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
             <span style="width:34px;height:34px;border-radius:11px;background:${it.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
               <svg viewBox="0 0 24 24" style="width:17px;height:17px;stroke:${it.c};stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round">${IC[it.icon]}</svg>
@@ -2463,7 +2402,13 @@ function rTx(){
     });
   }
   const c=document.getElementById('txl');
-  c.innerHTML=txs.length?txs.map(txHtml).join(''):emptyHtml('bag','تراکنشی یافت نشد');
+  if(!txs.length){c.innerHTML=emptyHtml('bag','تراکنشی یافت نشد');return;}
+  // v24: group by day with the day's P&L net
+  let html='',key='',grp=[];
+  const flush=()=>{if(!grp.length)return;const f=grp[0];let net=0;grp.forEach(x=>{if(isPnL(x))net+=x.tp==='income'?x.a:-x.a;});
+    html+=`<div class="dayhdr"><span>${fmtDate(f.day||1,f.m||0,f.y||1404)}</span><span style="color:${net>0?'var(--gr)':net<0?'var(--rd)':'var(--t3)'}">${net?(net>0?'+':'−')+nf(Math.abs(net)):''}</span></div>`+grp.map(txHtml).join('');grp=[];};
+  txs.forEach(x=>{const k=(x.y||1404)+'-'+(x.m||0)+'-'+(x.day||1);if(k!==key){flush();key=k;}grp.push(x);});flush();
+  c.innerHTML=html;
 }
 function fillMon(id,sel){document.getElementById(id).innerHTML=MFA.map((m,i)=>`<option value="${i}"${i===sel?' selected':''}>${toFa(pad2(i+1))}</option>`).join('');}
 function fillCat(id,tp){
@@ -3620,7 +3565,6 @@ function rRep(){
   rDonut(curTxs,curExp);
   rBudgets();
   rSavingsAndTrend();
-  rPropTable();
   const t=today();
   const last6=[];
   for(let k=5;k>=0;k--){
@@ -4148,7 +4092,8 @@ async function smsqSave(){
   if(!ST.smsSeen)ST.smsSeen={};if(!ST.smsKeys)ST.smsKeys={};if(!ST.smsCatHint)ST.smsCatHint={};
   const acc=document.getElementById('smsq-acc').value;
   const done=async(meta)=>{
-    ST.smsSeen[q.hash]={at:Date.now(),...meta};
+    const _mm=(q.p.balKnown&&acc)?(q.p.bal-calcAccBalance(acc)):0;
+    ST.smsSeen[q.hash]={at:Date.now(),mm:Math.abs(_mm)>1?_mm:0,dOrd:jalOrdinal(q.p.d.y,q.p.d.m,q.p.d.d),...meta};
     ST.smsQueue=ST.smsQueue.filter(x=>x.id!==q.id);
     if(smsqIdx>=ST.smsQueue.length)smsqIdx=Math.max(0,ST.smsQueue.length-1);
     await sv();renderSmsQueue();rDash();if(typeof rTx==='function')rTx();
@@ -4205,7 +4150,7 @@ async function flushAmlakOutbox(){
 function smsImportFile(input){
   const f=input.files&&input.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=async()=>{const res=smsImport(r.result);await sv();input.value='';rDash();
+  r.onload=async()=>{const res=smsImport(r.result);ST.smsLastImport=Date.now();await sv();input.value='';rDash();
     ntf(res.added?`📩 ${toFa(res.added)} پیامک جدید به صندوق اضافه شد${res.dup?`، ${toFa(res.dup)} تکراری کنار گذاشته شد`:''}`:'پیامک جدیدی در فایل نبود');
     if(res.added){cls('smsm');smsqIdx=0;openSmsQueue();}};
   r.readAsText(f);
@@ -4217,6 +4162,112 @@ async function smsQueuePaste(){
   if(!res.added){ntf('این پیامک قبلاً بررسی شده است');return;}
   cls('smsm');smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash===res.hashes[0]));openSmsQueue();
 }
+
+
+// ============================================================
+// v24.0 — WEEKLY-REVIEW HOME, QUICK ADD, UNDO
+// ============================================================
+function rSmsCard(){
+  const el=document.getElementById('dashSmsQ');if(!el)return;
+  const n=(ST.smsQueue||[]).length;const li=ST.smsLastImport;
+  const sub=n?'برای ثبت به‌عنوان هزینه، درآمد یا انتقال بررسی کنید'
+    :(li?'آخرین دریافت: '+new Date(li).toLocaleDateString('fa-IR',{weekday:'long',month:'long',day:'numeric'}):'پیامک‌های بانکی را از فایل Shortcut دریافت کنید');
+  el.innerHTML=`<div style="padding:12px 14px 0"><div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:14px 16px;${n?'border-right:3px solid var(--pr)':''}">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:11px"><span style="font-size:22px">📩</span>
+      <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:800;color:var(--t1)">${n?toFa(n)+' پیامک بانکی منتظر بررسی':'صندوق پیامک بانکی'}</div>
+      <div style="font-size:11.5px;color:var(--t2);margin-top:2px">${sub}</div></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <label class="btn btns" style="margin:0;position:relative;display:flex;align-items:center;justify-content:center;font-size:12.5px">📥 دریافت از فایل<input type="file" accept=".txt,text/plain" onchange="smsImportFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
+      ${n?`<button class="btn btnp" style="margin:0;font-size:12.5px" onclick="smsqIdx=0;openSmsQueue()">بررسی (${toFa(n)})</button>`
+         :`<button class="btn btns" style="margin:0;font-size:12.5px" onclick="openSms()">افزودن دستی</button>`}
+    </div></div></div>`;
+}
+function rWeek(){
+  const el=document.getElementById('dashWeek');if(!el)return;
+  const t=today();const to=jalOrdinal(t.y,t.m-1,t.d);
+  let inc=0,exp=0;const byCat={};
+  ST.tx.forEach(x=>{
+    if(!isPnL(x))return;const o=jalOrdinal(x.y||t.y,x.m||0,x.day||1);if(to-o<0||to-o>6)return;
+    if(x.tp==='income')inc+=x.a;else{exp+=x.a;byCat[x.cat]=(byCat[x.cat]||0)+x.a;}
+  });
+  const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const mm=Object.values(ST.smsSeen||{}).filter(v=>v&&v.mm&&v.dOrd!=null&&to-v.dOrd>=0&&to-v.dOrd<=6).length;
+  const bar=v=>exp?Math.max(4,Math.round(v/exp*100)):0;
+  el.innerHTML=`<div style="padding:12px 14px 0"><div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:14px 16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:13.5px;font-weight:800;color:var(--t1)">📅 ۷ روز گذشته</span>
+      <button onclick="nav(3,document.querySelectorAll('.nb')[3])" style="background:none;border:none;font-size:12px;font-weight:700;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif">گزارش کامل ←</button></div>
+    ${inc||exp?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:${top.length?'12px':'0'}">
+      <div style="background:var(--inc-bg);border-radius:12px;padding:9px 11px"><div style="font-size:11px;color:var(--inc-t);font-weight:700">درآمد</div><div style="font-size:16px;font-weight:800;color:var(--inc-t)">${nf(inc)}</div></div>
+      <div style="background:var(--exp-bg);border-radius:12px;padding:9px 11px"><div style="font-size:11px;color:var(--exp-t);font-weight:700">هزینه</div><div style="font-size:16px;font-weight:800;color:var(--exp-t)">${nf(exp)}</div></div></div>
+    ${top.map(([id,v])=>`<div style="margin-top:7px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:3px"><span>${esc(getCat('expense',id).n)}</span><b style="color:var(--t1)">${nf(v)}</b></div>
+      <div style="height:6px;border-radius:4px;background:var(--prl);overflow:hidden"><div style="height:100%;width:${bar(v)}%;background:var(--pr);border-radius:4px"></div></div></div>`).join('')}`
+    :`<div style="font-size:12.5px;color:var(--t3)">در ۷ روز گذشته تراکنشی ثبت نشده است.</div>`}
+    ${mm?`<div style="margin-top:11px;background:var(--aml);color:var(--am);border-radius:10px;padding:8px 11px;font-size:12px;font-weight:700">⚠️ ${toFa(mm)} پیامک این هفته با ماندهٔ اپ مغایرت داشت؛ احتمالاً تراکنشی جا افتاده است.</div>`:''}
+  </div></div>`;
+}
+// ---------- Quick add ----------
+let qaType='expense',qaCat='';
+function openQuick(){
+  qaType='expense';qaCat='';
+  document.getElementById('qa-amt').value='';document.getElementById('qa-dsc').value='';
+  const t=today();document.getElementById('qa-day').value=t.d;document.getElementById('qa-yr').value=t.y;fillMon('qa-mon',t.m-1);
+  document.getElementById('qa-datelbl').textContent='امروز';
+  const accs=activeAccounts();const last=accs.some(a=>a.id===ST.lastAccId)?ST.lastAccId:'';
+  document.getElementById('qa-acc').innerHTML='<option value="">— بدون حساب —</option>'+accs.map(a=>`<option value="${a.id}"${a.id===last?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('');
+  qaTp('expense');document.getElementById('qam').classList.add('on');
+  setTimeout(()=>document.getElementById('qa-amt').focus(),250);
+}
+function qaTp(k){
+  qaType=k;qaCat='';
+  document.querySelectorAll('#qa-tp .tb').forEach(b=>{b.className='tb'+(b.dataset.k===k?(k==='income'?' ti':' te'):'');});
+  // 6 most-used categories of this type in the last 120 days, then the rest in list order
+  const t=today();const to=jalOrdinal(t.y,t.m-1,t.d);const cnt={};
+  ST.tx.forEach(x=>{if(x.tp!==k||!isPnL(x))return;const o=jalOrdinal(x.y||t.y,x.m||0,x.day||1);if(to-o>=0&&to-o<=120)cnt[x.cat]=(cnt[x.cat]||0)+1;});
+  const cats=(ST.cats[k]||[]).slice().sort((a,b)=>(cnt[b.id]||0)-(cnt[a.id]||0)).slice(0,6);
+  document.getElementById('qa-cats').innerHTML=cats.map(c=>`<button class="qchip" data-c="${c.id}" onclick="qaPick('${c.id}')">${esc(c.n)}</button>`).join('')+`<button class="qchip" onclick="qaMore()">سایر…</button>`;
+  fillCat('qa-cat',k);document.getElementById('qa-catsel-w').style.display='none';
+}
+function qaPick(id){qaCat=id;document.querySelectorAll('#qa-cats .qchip').forEach(b=>b.classList.toggle('on',b.dataset.c===id));document.getElementById('qa-catsel-w').style.display='none';}
+function qaMore(){const w=document.getElementById('qa-catsel-w');w.style.display='';const sel=document.getElementById('qa-cat');sel.onchange=function(){if(this.value==='__new__'){openCat(qaType);this.value='';return;}qaCat=this.value;document.querySelectorAll('#qa-cats .qchip').forEach(b=>b.classList.remove('on'));};}
+function qaFmt(el){const v=toLn(el.value);el.value=v?nf(v):'';}
+function qaMul(k){const el=document.getElementById('qa-amt');const v=toLn(el.value)||1;el.value=nf(v*k);}
+function qaDate(){const d=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);const t=today();
+  document.getElementById('qa-datelbl').textContent=(d===t.d&&m===t.m-1&&y===t.y)?'امروز':fmtDate(d,m,y);}
+async function qaSave(){
+  const a=toLn(document.getElementById('qa-amt').value);
+  if(!(a>0)){ntf('⚠️ مبلغ را وارد کنید');hiErr('qa-amt');return;}
+  if(!qaCat){ntf('⚠️ یک دسته انتخاب کنید');return;}
+  const day=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);
+  if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){ntf('⚠️ تاریخ نامعتبر است');hiErr('qa-day');return;}
+  const acc=document.getElementById('qa-acc').value;
+  ST.tx.push({id:uid(),tp:qaType,cat:qaCat,a,dsc:document.getElementById('qa-dsc').value.trim(),day,m,y,accId:acc,nature:'operating'});
+  if(acc)ST.lastAccId=acc;
+  if(qaType==='expense')budgetWarn(qaCat,m,y);
+  cls('qam');rDash();rTx();await sv();
+}
+// ---------- Undo (single-level, whole-state snapshot) ----------
+let __undoSnap=null,__undoTimer=null;
+function showUndo(label){
+  const b=document.getElementById('undobar');if(!b)return;
+  document.getElementById('undolbl').textContent=label;b.style.display='flex';
+  clearTimeout(__undoTimer);__undoTimer=setTimeout(()=>{b.style.display='none';__undoSnap=null;},6000);
+}
+async function doUndo(){
+  if(!__undoSnap)return;ST=JSON.parse(__undoSnap);__undoSnap=null;
+  clearTimeout(__undoTimer);document.getElementById('undobar').style.display='none';
+  document.querySelectorAll('.ov.on').forEach(o=>o.classList.remove('on'));
+  await sv();rDash();rTx();if(curScreen===3)rRep();if(curScreen===4)rSett();ntf('↶ بازگردانده شد');
+}
+function undoable(name,label){
+  const f=window[name];if(typeof f!=='function')return;
+  window[name]=async function(...args){
+    const before=JSON.stringify(ST);const r=await f.apply(this,args);
+    if(JSON.stringify(ST)!==before){__undoSnap=before;showUndo(label);}
+    return r;
+  };
+}
+[['saveTx','✅ تراکنش ذخیره شد'],['delTx','🗑️ تراکنش حذف شد'],['qaSave','✅ ثبت شد'],['smsqSave','✅ پیامک ثبت شد'],['doTransfer','✅ انتقال ثبت شد']].forEach(([n,l])=>undoable(n,l));
 
 // Export rental data for the standalone «املاک» app. Read-only: nothing in
 // this app changes. The receiving app shows a reconciliation report.
@@ -5761,10 +5812,8 @@ async function init(){
         downloadV1Backup();
     },1200);
   }
-  setTimeout(chkDue, 2000);
   setTimeout(chkRecurring, 3000);
   setTimeout(chkLoansDue, 3500);
-  setInterval(chkDue, 3600000);
   // Auto-request notification permission on first launch
   if('Notification' in window && Notification.permission==='default'){
     setTimeout(()=>Notification.requestPermission(), 1500);
