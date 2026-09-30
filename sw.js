@@ -1,4 +1,4 @@
-const CACHE = 'sarmaye-v24-1';
+const CACHE = 'sarmaye-v24-2';
 const FILES = [
   './',
   './index.html',
@@ -16,7 +16,9 @@ const FILES = [
   './bank-refah.png',
   './bank-shahr.png',
   './bank-tejarat.png',
-  './bank-resalat.png'
+  './bank-resalat.png',
+  './Vazirmatn.woff2',
+  './Lalezar.ttf'
 ];
 
 self.addEventListener('install', e => {
@@ -45,13 +47,14 @@ self.addEventListener('fetch', e => {
     // not just the service worker cache. Without this, a GitHub Pages / Firebase Hosting
     // Cache-Control header could make "network-first" silently return a stale cached
     // response, which was the actual cause of needing a manual cache clear on updates.
+    // v24.2: never hang on a filtered/slow network — after 3 s fall back to the cached app.
+    const net = fetch(req, {cache:'no-store'}).then(res => {
+      const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return res;
+    });
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000));
     e.respondWith(
-      fetch(req, {cache:'no-store'})
-        .then(res => {
-          caches.open(CACHE).then(c => c.put(req, res.clone()));
-          return res;
-        })
-        .catch(() => caches.match(req).then(cached => cached || caches.match('./')))
+      Promise.race([net, timeout]).catch(async () =>
+        (await caches.match(req)) || (await caches.match('./')) || net)
     );
     return;
   }

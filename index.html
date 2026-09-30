@@ -14,10 +14,8 @@
 <link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
 <link rel="icon" href="icon-32.png" sizes="32x32">
 <title>سرمایه</title>
-<!-- Firebase (cloud backup) -->
-<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
+<!-- Firebase (cloud backup) — v24.2: loaded LAZILY after first paint, never blocks startup.
+     Without VPN the Google domains are unreachable; the app must still open instantly. -->
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyA-pHzeZ1SKLRADAkB5_QHtQ_UMfGNFxN8",
@@ -27,20 +25,29 @@
     messagingSenderId: "921977466990",
     appId: "1:921977466990:web:935b97252ea6ef4c06b67f"
   };
-  let fbApp=null, fbAuth=null, fbDb=null, fbReady=false;
-  try{
-    fbApp=firebase.initializeApp(firebaseConfig);
-    fbAuth=firebase.auth();
-    fbDb=firebase.firestore();
-    fbReady=true;
-    console.log('[Firebase] SDK loaded and initialized OK. Project:', firebaseConfig.projectId);
-  }catch(e){ console.error('[Firebase] init failed:',e); }
-  window.addEventListener('load',()=>{
-    console.log('[Firebase] typeof firebase =', typeof firebase, '| fbReady =', fbReady);
-  });
+  let fbApp=null, fbAuth=null, fbDb=null, fbReady=false, fbTried=false;
+  function loadFirebaseSDK(){
+    return new Promise(res=>{
+      if(typeof firebase!=='undefined') return res(true);
+      const base='https://www.gstatic.com/firebasejs/12.15.0/';
+      const load=src=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);});
+      const timer=setTimeout(()=>res(false),9000);
+      load(base+'firebase-app-compat.js').then(()=>Promise.all([load(base+'firebase-auth-compat.js'),load(base+'firebase-firestore-compat.js')]))
+        .then(()=>{clearTimeout(timer);res(true);}).catch(()=>{clearTimeout(timer);res(false);});
+    });
+  }
+  async function initFirebaseLazy(){
+    if(fbReady) return true;
+    fbTried=true;
+    if(!(await loadFirebaseSDK())) return false;
+    try{ fbApp=firebase.apps.length?firebase.app():firebase.initializeApp(firebaseConfig); fbAuth=firebase.auth(); fbDb=firebase.firestore(); fbReady=true; }
+    catch(e){ console.error('[Firebase] init failed:',e); return false; }
+    return true;
+  }
 </script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=Lalezar&display=swap');
+@font-face{font-family:'Vazirmatn';src:url('Vazirmatn.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Lalezar';src:url('Lalezar.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 html{width:100%;overflow-x:hidden}
 :root{
@@ -413,6 +420,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <!-- v24: weekly review hub -->
   <div id="dashSmsQ"></div>
   <div id="dashWeek"></div>
+  <div id="dashBk"></div>
 
   <!-- Needs-action card (loans due) -->
   <div id="dashLoans"></div>
@@ -574,7 +582,11 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     <button class="tb" data-k="auto" onclick="setTheme('auto').then(markTheme)">خودکار</button><button class="tb" data-k="light" onclick="setTheme('light').then(markTheme)">روشن</button><button class="tb" data-k="dark" onclick="setTheme('dark').then(markTheme)">تیره</button>
   </div><span id="theme-lbl" style="display:none"></span>
   <div class="sg-div"></div>
-  <div class="sg-lbl">پشتیبان ابری</div>
+  <div class="sg-lbl">پشتیبان GitHub (بدون VPN)</div>
+  <div class="sg-txt" id="gh-status"></div>
+  <button class="btn btns" onclick="openGhModal()">تنظیم پشتیبان GitHub</button>
+  <div class="sg-div"></div>
+  <div class="sg-lbl">پشتیبان ابری Firebase (نیاز به VPN)</div>
   <div class="sg-txt" id="cloud-status-lbl"></div>
   <button class="btn btns" onclick="openCloudModal()">مدیریت پشتیبان ابری</button>
   <div class="sg-div"></div>
@@ -599,6 +611,34 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <div id="v1-row" style="display:none" onclick="openV1Modal()"><span id="v1-lbl"></span></div>
   <button class="btn" style="margin-top:16px;background:transparent;color:var(--rd);border:1px solid var(--rdl)" onclick="confirmClearData()">پاک کردن همهٔ داده‌ها</button>
   <button class="btn btns" onclick="cls('setm')">بستن</button>
+</div>
+</div>
+<!-- v24.2: GitHub backup -->
+<div class="ov" id="ghm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2>پشتیبان GitHub</h2>
+  <details style="margin-bottom:12px"><summary style="font-size:12.5px;color:var(--pr);font-weight:700;cursor:pointer">راهنمای یک‌باره (حدود ۳ دقیقه)</summary>
+    <ol style="font-size:12px;color:var(--t2);line-height:2;padding-right:18px;margin-top:6px">
+      <li>در github.com یک ریپوی <b>Private</b> با نام <code>sarmaye-backup</code> بسازید.</li>
+      <li>Settings ← Developer settings ← <b>Fine-grained tokens</b> ← Generate new token.</li>
+      <li>Repository access: <b>Only select repositories</b> ← <code>sarmaye-backup</code>.</li>
+      <li>Permissions ← Repository ← <b>Contents: Read and write</b>. سپس Generate و توکن را کپی کنید.</li>
+      <li>توکن را این‌جا وارد کنید. فقط روی همین گوشی ذخیره می‌شود.</li>
+    </ol></details>
+  <div class="fg"><label>نام کاربری GitHub</label><input id="gh-owner" dir="ltr" autocomplete="off"></div>
+  <div class="fg"><label>نام ریپو</label><input id="gh-repo" dir="ltr" autocomplete="off"></div>
+  <div class="fg"><label>توکن دسترسی</label><input id="gh-token" type="password" dir="ltr" autocomplete="off"></div>
+  <div class="fg"><label>رمز رمزنگاری (اختیاری)</label><input id="gh-pass" type="password" dir="ltr" autocomplete="off" placeholder="خالی = بدون رمزنگاری"></div>
+  <div style="font-size:11.5px;color:var(--t3);margin:-4px 2px 12px;line-height:1.7">اگر رمز بگذارید و فراموشش کنید، پشتیبان‌ها قابل بازیابی نیستند.</div>
+  <button class="btn btnp" onclick="saveGhCfg()">ذخیره و آزمایش اتصال</button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <button class="btn btns" style="margin:0" onclick="ghBackup(false)">پشتیبان الان</button>
+    <button class="btn btns" style="margin:0" onclick="ghShowHistory()">نسخه‌ها و بازیابی</button>
+  </div>
+  <div id="gh-hist" style="max-height:34vh;overflow-y:auto;margin-top:8px"></div>
+  <button class="btn" id="gh-off" style="margin-top:12px;background:transparent;color:var(--rd);border:1px solid var(--rdl)" onclick="ghDisable()">غیرفعال کردن روی این دستگاه</button>
+  <button class="btn btns" onclick="cls('ghm')">بستن</button>
 </div>
 </div>
 <div class="ov" id="txm">
@@ -1141,6 +1181,11 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <div class="fg"><label>مبلغ کل قسط (تومان)</label><input type="text" inputmode="numeric" id="loanpay-amt" oninput="this.value=this.value?nf(toLn(this.value)):'';loanSplitPreview()"></div>
   <div class="fg"><label>از این مبلغ، سود/کارمزد (تومان)</label><input type="text" inputmode="numeric" id="loanpay-int" oninput="this.value=this.value?nf(toLn(this.value)):'';loanSplitPreview()"></div>
   <div id="loanpay-split" style="font-size:11.5px;line-height:1.9;background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:12px;color:var(--t2)"></div>
+  <div class="dategrid">
+    <div class="fg"><label>روز</label><input type="number" id="loanpay-day" inputmode="numeric"></div>
+    <div class="fg"><label>ماه</label><select id="loanpay-mon"></select></div>
+    <div class="fg"><label>سال</label><input type="number" id="loanpay-yr" inputmode="numeric"></div>
+  </div>
   <div class="fg"><label>پرداخت از حساب</label><select id="loanpay-acc"></select></div>
   <button class="btn btnp" onclick="confirmPayInstallment()">ثبت پرداخت</button>
   <button class="btn btns" onclick="cls('loanpaym')">انصراف</button>
@@ -1399,6 +1444,7 @@ async function sv(){
     // Fallback
     try{localStorage.setItem('srmy1',JSON.stringify(ST));}catch{}
   }
+  if(typeof ghSchedule==='function') ghSchedule();
 }
 
 // ============================================================
@@ -1780,7 +1826,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.1';
+const APP_VERSION='v24.2';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2042,7 +2088,7 @@ function rDash(){
   document.getElementById('td').textContent=`${t.wd} ${fmtDate(t.d,t.m-1,t.y)}`;
   updateMonthLabel();
   // FX remittance mini-card on the dashboard
-  rSmsCard();rWeek();
+  rSmsCard();rWeek();rBackupCard();
   const dfx=document.getElementById('dashFx');
   if(dfx){
     const deals=ST.fx||[];
@@ -3990,11 +4036,16 @@ function renderSmsQueue(){
     <details style="margin-top:6px"><summary style="font-size:11.5px;color:var(--t3);cursor:pointer">متن پیامک</summary><pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--t2);margin-top:6px">${esc(q.raw)}</pre></details>
   </div>
   ${twin?`<div style="background:var(--aml);color:var(--am);border-radius:10px;padding:9px 11px;font-size:12px;font-weight:600;margin-bottom:10px">این پیامک احتمالاً طرف دیگر انتقالِ ثبت‌شده «${esc(twin.dsc||'')}» است؛ پیشنهاد: نادیده.</div>`:''}
-  <div class="ttog" id="smsq-tp" style="grid-template-columns:repeat(4,1fr)">
-    ${[['expense','هزینه'],['income','درآمد'],['transfer','انتقال'],['ignore','نادیده']].map(([k,l])=>`<button class="tb" data-k="${k}" onclick="smsqSetTp('${k}')">${l}</button>`).join('')}
+  <div class="ttog" id="smsq-tp" style="grid-template-columns:repeat(${activeLoans().length?5:4},1fr)">
+    ${[['expense','هزینه'],['income','درآمد'],['transfer','انتقال']].concat(activeLoans().length?[['loan','قسط']]:[]).concat([['ignore','نادیده']]).map(([k,l])=>`<button class="tb" data-k="${k}" onclick="smsqSetTp('${k}')">${l}</button>`).join('')}
   </div>
   <div class="fg"><label>حساب${p.keys.length&&!acc.learned?' <span style="color:var(--am);font-size:11px">(شناسهٔ جدید — یک بار انتخاب کنید)</span>':''}</label><select id="smsq-acc" onchange="smsqBalCheck()">${opt(acc.id)}</select></div>
   <div id="smsq-other" class="fg" style="display:none"><label>حساب طرف دیگر انتقال</label><select id="smsq-acc2">${opt('')}</select></div>
+  <div id="smsq-loanw" style="display:none">
+    <div class="fg"><label>وام</label><select id="smsq-loan">${activeLoans().map(l=>`<option value="${l.id}"${l.inst===p.a?' selected':''}>${esc(l.n)} — قسط ${nf(l.inst)}، مانده ${nf(l.remaining)}</option>`).join('')}</select></div>
+    <div class="fg"><label>سود/کارمزدِ این قسط (تومان)</label><input id="smsq-int" inputmode="numeric" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+    <div style="font-size:11.5px;color:var(--t3);margin:-4px 2px 10px;line-height:1.7">اصل قسط از بدهی کم می‌شود؛ فقط سود به‌عنوان هزینه ثبت می‌شود.</div>
+  </div>
   <div id="smsq-catw" class="fg"><label>دسته‌بندی</label><select id="smsq-cat"></select></div>
   <div class="fg"><label>مبلغ (تومان)</label><input id="smsq-amt" inputmode="numeric" value="${p.a||''}" oninput="smsqBalCheck()"></div>
   <div class="dategrid">
@@ -4017,6 +4068,7 @@ function smsqSetTp(k){
   const isPL=k==='income'||k==='expense';
   document.getElementById('smsq-catw').style.display=isPL?'':'none';
   document.getElementById('smsq-other').style.display=k==='transfer'?'':'none';
+  {const lw=document.getElementById('smsq-loanw');if(lw)lw.style.display=k==='loan'?'':'none';}
   document.getElementById('smsq-amlakw').style.display=k==='income'?'flex':'none';
   if(isPL){
     fillCat('smsq-cat',k);
@@ -4072,6 +4124,19 @@ async function smsqSave(){
     const l2={id:uid(),tp:'income',cat:'transfer',a,dsc:'دریافت از '+getAccName(from)+(dsc?' · '+dsc:''),day,m,y,accId:to,isTransfer:true,transferId:tid};
     (out?l1:l2).smsHash=q.hash;ST.tx.push(l1,l2);
     ntf('✅ انتقال ثبت شد');return done({act:'transfer',txId:(out?l1:l2).id});
+  }
+  if(smsqTp==='loan'){
+    const l=(ST.loans||[]).find(x=>x.id===document.getElementById('smsq-loan').value);
+    if(!l){ntf('⚠️ وام را انتخاب کنید');return;}
+    const intr=toLn(document.getElementById('smsq-int').value)||0;
+    if(intr<0||(intr>=a&&intr!==0)){ntf('⚠️ سهم سود باید کمتر از کل قسط باشد');hiErr('smsq-int');return;}
+    const principal=a-intr;
+    if(principal>l.remaining){ntf(`⚠️ اصل قسط (${nf(principal)}) از مانده بدهی (${nf(l.remaining)}) بیشتر است`);return;}
+    ensureLoanCat();const insId=uid();let first=null;
+    if(principal>0){first={id:uid(),tp:'expense',cat:'loan',a:principal,dsc:'اصل قسط '+l.n,day,m,y,accId:acc,nature:'loanPrincipal',loanId:l.id,installmentId:insId,smsHash:q.hash};ST.tx.push(first);}
+    if(intr>0){const r={id:uid(),tp:'expense',cat:'e8',a:intr,dsc:'سود قسط '+l.n,day,m,y,accId:acc,nature:'operating',loanId:l.id,installmentId:insId};if(!first){r.smsHash=q.hash;first=r;}ST.tx.push(r);budgetWarn('e8',m,y);}
+    l.remaining=Math.max(0,l.remaining-principal);if(l.remaining<=0){l.active=false;setTimeout(()=>ntf(`🎉 وام «${l.n}» تسویه شد!`),900);}
+    ntf('✅ قسط ثبت شد');return done({act:'loan',txId:first.id});
   }
   const cat=document.getElementById('smsq-cat').value;
   if(!cat){ntf('⚠️ دسته‌بندی را انتخاب کنید');hiErr('smsq-cat');return;}
@@ -4221,8 +4286,108 @@ function undoable(name,label){
 }
 [['saveTx','✅ تراکنش ذخیره شد'],['delTx','🗑️ تراکنش حذف شد'],['qaSave','✅ ثبت شد'],['smsqSave','✅ پیامک ثبت شد'],['doTransfer','✅ انتقال ثبت شد']].forEach(([n,l])=>undoable(n,l));
 
+
+// ============================================================
+// v24.2 — GITHUB PRIVATE-REPO BACKUP (reachable in Iran without VPN)
+// Config lives ONLY in this device's localStorage: never in ST, never in any backup.
+// Every backup is a commit → full version history on GitHub.
+// ============================================================
+const GH_KEY='srm_gh_cfg',GH_LAST='srm_gh_last',GH_FILE='sarmaye-backup.json';
+let ghTimer=null,ghBusy=false;
+function activeLoans(){return (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0);}
+function ghCfg(){try{return JSON.parse(localStorage.getItem(GH_KEY)||'{}')||{};}catch(e){return{};}}
+function ghOn(){const c=ghCfg();return !!(c.owner&&c.repo&&c.token);}
+function ghB64(str){const b=new TextEncoder().encode(str);let s='';for(let i=0;i<b.length;i+=32768)s+=String.fromCharCode.apply(null,b.subarray(i,i+32768));return btoa(s);}
+function ghFetch(path,opt){
+  const c=ghCfg();opt=opt||{};
+  const h={'Authorization':'Bearer '+c.token,'Accept':opt.accept||'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+  if(opt.body)h['Content-Type']='application/json';
+  return fetch('https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+path,{method:opt.method||'GET',cache:'no-store',headers:h,body:opt.body});
+}
+function ghErr(r){return r.status===401?'توکن نامعتبر یا منقضی است':r.status===403?'توکن اجازهٔ نوشتن در این ریپو را ندارد':r.status===404?'ریپو پیدا نشد یا توکن به آن دسترسی ندارد':r.status===409?'تداخل همزمانی؛ دوباره تلاش کنید':'خطای GitHub ('+r.status+')';}
+async function ghBackup(silent){
+  if(!ghOn()||ghBusy)return false;
+  ghBusy=true;const c=ghCfg();
+  try{
+    const payload=c.pass?JSON.stringify(await encryptJSON(ST,c.pass)):JSON.stringify(ST);
+    let sha;const g=await ghFetch('/contents/'+GH_FILE);
+    if(g.ok)sha=(await g.json()).sha;else if(g.status!==404)throw new Error(ghErr(g));
+    const t=today();const hm=new Date().toTimeString().slice(0,5);
+    const p=await ghFetch('/contents/'+GH_FILE,{method:'PUT',body:JSON.stringify({message:`پشتیبان ${t.y}/${t.m}/${t.d} ${hm} — ${APP_VERSION}`,content:ghB64(payload),sha})});
+    if(!p.ok)throw new Error(ghErr(p));
+    localStorage.setItem(GH_LAST,String(Date.now()));ghStatus();rBackupCard();
+    if(!silent)ntf('✅ پشتیبان در GitHub ذخیره شد');return true;
+  }catch(e){if(!silent)ntf('⚠️ پشتیبان GitHub: '+(e.message||'اتصال برقرار نشد'));return false;}
+  finally{ghBusy=false;}
+}
+function ghSchedule(){if(!ghOn())return;clearTimeout(ghTimer);ghTimer=setTimeout(()=>ghBackup(true),15000);}
+async function ghHistory(){
+  const r=await ghFetch('/commits?path='+encodeURIComponent(GH_FILE)+'&per_page=15');
+  if(!r.ok)throw new Error(ghErr(r));
+  return (await r.json()).map(c=>({sha:c.sha,date:c.commit.committer.date,msg:c.commit.message}));
+}
+async function ghRestore(sha){
+  try{
+    const r=await ghFetch('/contents/'+encodeURIComponent(GH_FILE)+'?ref='+sha,{accept:'application/vnd.github.raw+json'});
+    if(!r.ok)throw new Error(ghErr(r));
+    let p=JSON.parse(await r.text());
+    if(p.srmEnc===1){const pass=ghCfg().pass||prompt('رمز رمزنگاری پشتیبان را وارد کنید:');if(!pass)return;
+      try{p=await decryptJSON(p,pass);}catch(e){ntf('⚠️ رمز اشتباه است');return;}}
+    if(!(p.tx&&p.cats)){ntf('⚠️ این نسخه فایل معتبر سرمایه نیست');return;}
+    if(!confirm('داده‌های فعلی این دستگاه با این نسخهٔ پشتیبان جایگزین شود؟'))return;
+    try{localStorage.setItem('srm_before_gh_restore',JSON.stringify(ST));}catch(e){}
+    await applyBackupObject(p);cls('ghm');cls('setm');
+  }catch(e){ntf('⚠️ بازیابی GitHub: '+(e.message||'اتصال برقرار نشد'));}
+}
+function ghStatus(){
+  const el=document.getElementById('gh-status');if(!el)return;
+  if(!ghOn()){el.textContent='غیرفعال — بدون VPN کار می‌کند؛ برای فعال‌سازی «تنظیم» را بزنید';return;}
+  const c=ghCfg();const last=+localStorage.getItem(GH_LAST)||0;
+  el.textContent=`فعال — ${c.owner}/${c.repo}${c.pass?' (رمزنگاری‌شده)':''}؛ `+(last?'آخرین پشتیبان: '+new Date(last).toLocaleString('fa-IR'):'هنوز پشتیبانی ثبت نشده');
+}
+function openGhModal(){
+  const c=ghCfg();
+  document.getElementById('gh-owner').value=c.owner||'ahmadr59-ops';
+  document.getElementById('gh-repo').value=c.repo||'sarmaye-backup';
+  document.getElementById('gh-token').value=c.token||'';
+  document.getElementById('gh-pass').value=c.pass||'';
+  document.getElementById('gh-hist').innerHTML='';
+  document.getElementById('gh-off').style.display=ghOn()?'':'none';
+  document.getElementById('ghm').classList.add('on');
+}
+async function saveGhCfg(){
+  const c={owner:document.getElementById('gh-owner').value.trim(),repo:document.getElementById('gh-repo').value.trim(),
+    token:document.getElementById('gh-token').value.trim(),pass:document.getElementById('gh-pass').value};
+  if(!c.owner||!c.repo||!c.token){ntf('⚠️ نام کاربری، ریپو و توکن را وارد کنید');return;}
+  localStorage.setItem(GH_KEY,JSON.stringify(c));ghStatus();
+  ntf('⏳ آزمایش اتصال و اولین پشتیبان…');
+  if(await ghBackup(false)){document.getElementById('gh-off').style.display='';}
+}
+function ghDisable(){if(!confirm('پشتیبان GitHub روی این دستگاه غیرفعال شود؟ (نسخه‌های روی GitHub پاک نمی‌شوند)'))return;
+  localStorage.removeItem(GH_KEY);localStorage.removeItem(GH_LAST);ghStatus();cls('ghm');ntf('پشتیبان GitHub غیرفعال شد');}
+async function ghShowHistory(){
+  const box=document.getElementById('gh-hist');box.innerHTML='<div style="font-size:12px;color:var(--t3)">در حال دریافت…</div>';
+  try{const H=await ghHistory();
+    box.innerHTML=H.length?H.map(h=>`<button class="btn btns" style="text-align:right;font-size:12px" onclick="ghRestore('${h.sha}')">${esc(new Date(h.date).toLocaleString('fa-IR'))}<br><span style="font-size:11px;opacity:.7">${esc(h.msg)}</span></button>`).join(''):'<div style="font-size:12px;color:var(--t3)">هنوز نسخه‌ای وجود ندارد</div>';
+  }catch(e){box.innerHTML=`<div style="font-size:12px;color:var(--rd)">${esc(e.message||'اتصال برقرار نشد')}</div>`;}
+}
+// Home: backup reminder (shown only when protection is stale)
+function rBackupCard(){
+  const el=document.getElementById('dashBk');if(!el)return;
+  const now=Date.now();const gh=ghOn()?(+localStorage.getItem(GH_LAST)||0):0;
+  const last=Math.max(gh,getLastBackupTs());const days=last?Math.floor((now-last)/864e5):null;
+  if(ghOn()&&gh&&now-gh<3*864e5){el.innerHTML='';return;}
+  if(!ghOn()&&last&&now-last<7*864e5){el.innerHTML='';return;}
+  el.innerHTML=`<div style="padding:12px 14px 0"><div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;border-right:3px solid var(--am)">
+    <div style="font-size:13px;font-weight:800;color:var(--t1)">🛡️ ${days===null?'هنوز پشتیبانی گرفته نشده':'آخرین پشتیبان '+toFa(days)+' روز پیش'}</div>
+    <div style="font-size:11.5px;color:var(--t2);margin:3px 0 10px">${ghOn()?'پشتیبان خودکار GitHub چند روز است موفق نشده؛ اتصال را بررسی کنید.':'پشتیبان خودکار GitHub را فعال کنید، یا یک پشتیبان فایل بگیرید.'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn btns" style="margin:0;font-size:12.5px" onclick="openBackupModal()">پشتیبان فایل</button>
+      <button class="btn btnp" style="margin:0;font-size:12.5px" onclick="${ghOn()?'ghBackup(false)':'openGhModal()'}">${ghOn()?'پشتیبان GitHub الان':'فعال‌سازی GitHub'}</button>
+    </div></div></div>`;
+}
 function markTheme(){const k=ST.theme||'auto';document.querySelectorAll('#set-theme .tb').forEach(b=>{const on=b.dataset.k===k;b.style.background=on?'var(--grad)':'';b.style.color=on?'#fff':'';});}
-function openSetSheet(){rSett();markTheme();document.getElementById('setm').classList.add('on');}
+function openSetSheet(){rSett();markTheme();ghStatus();document.getElementById('setm').classList.add('on');}
 // Export rental data for the standalone «املاک» app. Read-only: nothing in
 // this app changes. The receiving app shows a reconciliation report.
 function buildRentExport(){
@@ -4383,15 +4548,7 @@ async function restore(inp){
         }
       }
       if(p.tx&&p.cats){
-        ST=migrateState({...def(),...p,
-          schemaVersion:p.schemaVersion||1,
-          cats:{
-            income:p.cats?.income||def().cats.income,
-            expense:p.cats?.expense||def().cats.expense
-          }});
-        await sv();
-        rDash();rTx();rSett();
-        ntf('✅ بازیابی و به‌روزرسانی فرمت انجام شد');
+        await applyBackupObject(p);
       } else {
         ntf('⚠️ فایل نامعتبر — tx یا cats یافت نشد');
       }
@@ -4402,6 +4559,17 @@ async function restore(inp){
     inp.value='';
   };
   r.readAsText(f);
+}
+async function applyBackupObject(p){
+        ST=migrateState({...def(),...p,
+          schemaVersion:p.schemaVersion||1,
+          cats:{
+            income:p.cats?.income||def().cats.income,
+            expense:p.cats?.expense||def().cats.expense
+          }});
+        await sv();
+        rDash();rTx();rSett();
+        ntf('✅ بازیابی و به‌روزرسانی فرمت انجام شد');
 }
 
 // ============================================================
@@ -4791,6 +4959,7 @@ function payInstallment(id){
   document.getElementById('loanpay-amt').value=nf(amt);
   document.getElementById('loanpay-int').value=(l.defaultInterest>0)?nf(l.defaultInterest):'';
   loanSplitPreview();
+  {const t=today();document.getElementById('loanpay-day').value=t.d;fillMon('loanpay-mon',t.m-1);document.getElementById('loanpay-yr').value=t.y;}
   cls('loanm');document.getElementById('loanpaym').classList.add('on');
 }
 // Live breakdown so the split is never a surprise after the fact.
@@ -4821,20 +4990,21 @@ async function confirmPayInstallment(){
   if(principal>l.remaining){ntf(`⚠️ اصل قسط (${nf(principal)}) از مانده بدهی (${nf(l.remaining)}) بیشتر است`);hiErr('loanpay-amt');return;}
   if(!accId){ntf('⚠️ حساب پرداخت را انتخاب کنید');return;}
   if(calcAccBalance(accId)<amt&&!confirm('موجودی حساب کمتر از مبلغ قسط است. ادامه می‌دهید؟')) return;
+  const pd=parseInt(document.getElementById('loanpay-day').value),pm=parseInt(document.getElementById('loanpay-mon').value),py=parseInt(document.getElementById('loanpay-yr').value);
+  if(!(py>1380&&py<1500)||!(pd>=1&&pd<=jMaxDay(pm,py))){ntf('⚠️ تاریخ پرداخت نامعتبر است');hiErr('loanpay-day');return;}
   ensureLoanCat();
-  const t=today();
   const insId=uid();
   if(principal>0){
     ST.tx.push({id:uid(),tp:'expense',cat:'loan',a:principal,dsc:'اصل قسط '+l.n,
-      day:t.d,m:t.m-1,y:t.y,accId,nature:'loanPrincipal',loanId:l.id,installmentId:insId});
+      day:pd,m:pm,y:py,accId,nature:'loanPrincipal',loanId:l.id,installmentId:insId});
   }
   if(intr>0){
     ST.tx.push({id:uid(),tp:'expense',cat:'e8',a:intr,dsc:'سود قسط '+l.n,
-      day:t.d,m:t.m-1,y:t.y,accId,nature:'operating',loanId:l.id,installmentId:insId});
+      day:pd,m:pm,y:py,accId,nature:'operating',loanId:l.id,installmentId:insId});
   }
   l.remaining=Math.max(0,l.remaining-principal);
   if(l.remaining<=0){l.active=false;setTimeout(()=>ntf(`🎉 وام «${l.n}» تسویه شد!`),900);}
-  if(intr>0) budgetWarn('e8',t.m-1,t.y);
+  if(intr>0) budgetWarn('e8',pm,py);
   await sv();cls('loanpaym');
   ntf(intr>0?`✅ قسط ثبت شد — اصل ${nf(principal)} · سود ${nf(intr)}`:'✅ قسط ثبت شد');
   updateLoanCount();rDash();rTx();
@@ -5499,7 +5669,7 @@ function fbErrMsg(e){
   return map[e.code]||e.message||'خطای ناشناخته';
 }
 function openCloudModal(){
-  if(!fbReady){ntf('⚠️ سرویس ابری در دسترس نیست');return;}
+  if(!fbReady){ntf('⏳ اتصال به Firebase…');initFirebaseLazy().then(ok=>{if(ok){attachCloudListener();openCloudModal();}else ntf('⚠️ Firebase بدون VPN در دسترس نیست؛ از «پشتیبان GitHub» استفاده کنید');});return;}
   document.getElementById('cloud-email').value='';
   document.getElementById('cloud-pass').value='';
   renderCloudPanel();
@@ -5529,8 +5699,9 @@ function renderCloudPanel(){
     if(lbl) lbl.textContent='غیرفعال — وارد شوید تا خودکار فعال شود';
   }
 }
-let openBackupFired=false;
-if(fbReady){
+let openBackupFired=false,cloudListenerOn=false;
+function attachCloudListener(){
+  if(cloudListenerOn||!fbReady)return;cloudListenerOn=true;
   fbAuth.onAuthStateChanged(user=>{
     if(document.getElementById('cloud-status-lbl')) renderCloudPanel();
     if(user && !openBackupFired){ openBackupFired=true; cloudAutoBackupIfSignedIn(); }
@@ -5767,6 +5938,9 @@ async function init(){
     },1200);
   }
   setTimeout(chkRecurring, 3000);
+  // v24.2: Firebase is optional and loaded in the background; the app never waits for Google.
+  setTimeout(()=>{initFirebaseLazy().then(ok=>{if(ok)attachCloudListener();});},1500);
+  setTimeout(()=>{if(ghOn()&&(Date.now()-(+localStorage.getItem(GH_LAST)||0))>6*3600e3)ghBackup(true);},6000);
   setTimeout(chkLoansDue, 3500);
   // Auto-request notification permission on first launch
   if('Notification' in window && Notification.permission==='default'){
