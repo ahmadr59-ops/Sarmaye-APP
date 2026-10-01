@@ -620,6 +620,10 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <button class="btn btns" onclick="cls('setm')">بستن</button>
 </div>
 </div>
+<!-- v24.8: balance check -->
+<div class="ov" id="balm"><div class="mdl"><div class="mh"></div><h2>مقایسهٔ موجودی با بانک</h2>
+  <p style="font-size:13px;color:var(--t2);line-height:1.9;margin-bottom:10px">برای هر حساب، موجودیِ اعلام‌شده در <b>آخرین پیامک بانک</b> با موجودی اپ <b>تا همان روز</b> مقایسه شده است. اگر تراکنشی را ثبت نکرده‌اید، آن را ثبت کنید. اگر اختلاف از موجودی شروع حساب است، «اصلاح موجودی اولیه» را بزنید.</p>
+  <div id="balm-body"></div><button class="btn btns" onclick="cls('balm')">بستن</button></div></div>
 <!-- v24.6: help -->
 <div class="ov" id="hlpm"><div class="mdl"><div class="mh"></div><h2 id="hlp-t"></h2><p id="hlp-b" style="font-size:14px;line-height:2;color:var(--t2)"></p><button class="btn btns" onclick="cls('hlpm')">متوجه شدم</button></div></div>
 <!-- v24.4: SMS account audit -->
@@ -1673,6 +1677,8 @@ function migrateState(s){
   if(!Array.isArray(s.fx)) s.fx=[];
   // v24.4: repair duplicate transaction ids created by the old generator (keeps every record)
   {const seen=new Set();(s.tx||[]).forEach(t=>{if(!t.id||seen.has(t.id))t.id=uid();seen.add(t.id);});}
+  // v24.8: old per-SMS mismatch flags were computed against TODAY's balance (false alarms); clear once
+  if(!s.smsMmV2){Object.values(s.smsSeen||{}).forEach(v=>{if(v&&v.mm)v.mm=0;});s.smsMmV2=1;}
   // v23.3 bank-SMS inbox state
   if(!Array.isArray(s.smsQueue)) s.smsQueue=[];
   if(!s.smsSeen||typeof s.smsSeen!=='object') s.smsSeen={};
@@ -1865,7 +1871,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.7';
+const APP_VERSION='v24.8';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -4195,7 +4201,7 @@ function smsqBalCheck(){
    if(newer||jalOrdinal(t0.y,t0.m-1,t0.d)-jalOrdinal(q.p.d.y,q.p.d.m,q.p.d.d)>3){el.innerHTML='';return;}}
   const a=toLn(document.getElementById('smsq-amt').value);
   const dir=smsqTp==='ignore'?0:(q.p.tp==='income'?1:-1);
-  const after=calcAccBalance(acc)+dir*a;const diff=q.p.bal-after;
+  const after=accBalAsOf(acc,q.p.d,true)+dir*a;const alt=accBalAsOf(acc,q.p.d,false)+dir*a;const diff=Math.abs(q.p.bal-alt)<=1?0:q.p.bal-after;
   el.innerHTML=Math.abs(diff)<=1
     ?`<span style="color:var(--gr);font-weight:700">✓ موجودی طبق بانک (${nf(q.p.bal)}) با موجودی اپ پس از ثبت برابر است</span>`
     :`<span style="color:var(--am);font-weight:700">⚠️ موجودی طبق بانک ${nf(q.p.bal)}، در اپ پس از ثبت ${nf(after)} — اختلاف ${nf(diff)} تومان (احتمالاً تراکنشی ثبت نشده)</span>`;
@@ -4214,8 +4220,10 @@ async function smsqSave(){
   if(!ST.smsSeen)ST.smsSeen={};if(!ST.smsKeys)ST.smsKeys={};if(!ST.smsCatHint)ST.smsCatHint={};
   const acc=document.getElementById('smsq-acc').value;
   const done=async(meta)=>{
-    const _mm=(q.p.balKnown&&acc)?(q.p.bal-calcAccBalance(acc)):0;
-    ST.smsSeen[q.hash]={at:Date.now(),mm:Math.abs(_mm)>1?_mm:0,dOrd:jalOrdinal(q.p.d.y,q.p.d.m,q.p.d.d),...meta};
+    ST.smsSeen[q.hash]={at:Date.now(),dOrd:jalOrdinal(q.p.d.y,q.p.d.m,q.p.d.d),...meta};
+    if(q.p.balKnown&&acc){if(!ST.bankBal)ST.bankBal={};const cur=ST.bankBal[acc];const key=x=>jalOrdinal(x.d.y,x.d.m,x.d.d)*1440+(x.time?parseInt(x.time)*60+parseInt(x.time.slice(3)):0);
+      const nb={bal:q.p.bal,d:q.p.d,time:q.p.time||'',delta:(q.p.tp==='income'?1:-1)*(q.p.a||0)};
+      if(!cur||key(nb)>=key(cur))ST.bankBal[acc]=nb;}
     ST.smsQueue=ST.smsQueue.filter(x=>x.id!==q.id);
     if(smsqIdx>=ST.smsQueue.length)smsqIdx=Math.max(0,ST.smsQueue.length-1);
     await sv();renderSmsQueue();rDash();if(typeof rTx==='function')rTx();
@@ -4350,7 +4358,7 @@ function rWeek(){
     if(x.tp==='income')inc+=x.a;else{exp+=x.a;byCat[x.cat]=(byCat[x.cat]||0)+x.a;}
   });
   const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  const mm=Object.values(ST.smsSeen||{}).filter(v=>v&&v.mm&&v.dOrd!=null&&to-v.dOrd>=0&&to-v.dOrd<=6).length;
+  const mm=0; // v24.8: replaced by the per-account check in «کارهای من»
   const bar=v=>exp?Math.max(4,Math.round(v/exp*100)):0;
   el.innerHTML=`<div style="padding:12px 14px 0"><div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:14px 16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -4711,6 +4719,7 @@ function rTodo(){
     <button class="btn btns" style="margin:0;width:auto;padding:7px 12px;font-size:12.5px" onclick="${act}">${btn}</button></div>`);
   const aud=ST.smsAuditDone?0:smsAuditList().length;
   if(aud)R('⚠️',`${toFa(aud)} پیامک ثبت‌شده احتمالاً در حساب اشتباه است`,'openSmsAudit()','بررسی','var(--rd)');
+  const bi=balIssues().length;if(bi)R('⚖️',`موجودی ${toFa(bi)} حساب با آخرین پیامک بانک یکی نیست`,'openBalIssues()','بررسی','var(--am)');
   const n=(ST.smsQueue||[]).length;if(n)R('📩',`${toFa(n)} پیامک بانکی منتظر بررسی`,'smsqIdx=0;openSmsQueue()','بررسی');
   const mk=`_${t.y}_${t.m-1}`;
   (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0).forEach(l=>{
@@ -4735,6 +4744,39 @@ const HELP=[
 function showHelp(i){const h=HELP[i];if(!h)return;document.getElementById('hlp-t').textContent=h[0];document.getElementById('hlp-b').textContent=h[1];document.getElementById('hlpm').classList.add('on');}
 document.addEventListener('DOMContentLoaded',()=>{[1,3,4].forEach(i=>{const hd=document.querySelector('#s'+i+' .hdr');if(!hd||hd.querySelector('.hlp'))return;hd.style.position='relative';
   const b=document.createElement('button');b.className='hlp';b.textContent='؟';b.setAttribute('aria-label','راهنما');b.onclick=()=>showHelp(i);hd.appendChild(b);});});
+// ============================================================
+// v24.8 — BANK-BALANCE CHECK, done right: compare the bank's balance with the app's
+// balance AS OF THAT SMS's DATE (not today's), once per account (newest SMS only).
+// Same-day order is unknown, so either "end of that day" or "previous day + this SMS" may match.
+// ============================================================
+function accBalAsOf(accId,d,inclDay){const lim=jalOrdinal(d.y,d.m,d.d)-(inclDay?0:1);
+  return ST.tx.reduce((s,t)=>(t.accId===accId&&jalOrdinal(t.y,t.m,t.day)<=lim)?s+(t.tp==='income'?t.a:-t.a):s,0);}
+function balMatches(accId,d,bal,delta){return Math.abs(bal-accBalAsOf(accId,d,true))<=1||Math.abs(bal-(accBalAsOf(accId,d,false)+(delta||0)))<=1;}
+function balIssues(){
+  const accs=activeAccounts();
+  return Object.entries(ST.bankBal||{}).filter(([id,b])=>b&&!b.ok&&accs.some(a=>a.id===id)&&!balMatches(id,b.d,b.bal,b.delta))
+    .map(([id,b])=>({id,b,app:accBalAsOf(id,b.d,true),diff:Math.round((b.bal-accBalAsOf(id,b.d,true))*10)/10}));
+}
+function openBalIssues(){
+  const L=balIssues();const box=document.getElementById('balm-body');
+  box.innerHTML=L.length?L.map(x=>`<div style="background:var(--bg);border-radius:12px;padding:11px 12px;margin-bottom:9px">
+      <div style="font-size:14px;font-weight:800;color:var(--t1)">${esc(getAccName(x.id))}</div>
+      <div style="font-size:13px;color:var(--t2);line-height:1.9;margin-top:4px">موجودی طبق بانک (${fmtDate(x.b.d.d,x.b.d.m,x.b.d.y)}${x.b.time?' '+toFa(x.b.time):''}): <b>${nf(x.b.bal)}</b><br>موجودی در اپ تا همان روز: <b>${nf(x.app)}</b><br>اختلاف: <b style="color:var(--rd)">${x.diff>0?'+':'−'}${nf(Math.abs(x.diff))}</b> تومان</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px">
+        <button class="btn btnp" style="margin:0;font-size:12.5px" onclick="balFixOpening('${x.id}')">اصلاح موجودی اولیه</button>
+        <button class="btn btns" style="margin:0;font-size:12.5px" onclick="balOk('${x.id}')">درست است، نادیده</button></div></div>`).join('')
+    :'<p style="text-align:center;color:var(--t2);padding:16px 0">✅ موجودی همهٔ حساب‌ها با آخرین پیامک بانک یکی است.</p>';
+  document.getElementById('balm').classList.add('on');
+}
+async function balFixOpening(id){
+  const x=balIssues().find(i=>i.id===id);if(!x)return;const a=ST.accounts.find(z=>z.id===id);
+  let o=ST.tx.find(t=>t.id===a.openTxId);
+  if(!o){const first=ST.tx.filter(t=>t.accId===id).sort((p,q)=>jalOrdinal(p.y,p.m,p.day)-jalOrdinal(q.y,q.m,q.day))[0]||{y:x.b.d.y,m:x.b.d.m,day:x.b.d.d};
+    o={id:uid(),tp:'income',cat:'opening',a:0,dsc:'موجودی اولیه',day:first.day,m:first.m,y:first.y,accId:id,isOpening:true};ST.tx.push(o);a.openTxId=o.id;}
+  const signed=(o.tp==='income'?o.a:-o.a)+x.diff;o.tp=signed>=0?'income':'expense';o.a=Math.abs(signed);
+  await sv();openBalIssues();rDash();ntf('✅ موجودی اولیه اصلاح شد');
+}
+async function balOk(id){if(ST.bankBal&&ST.bankBal[id])ST.bankBal[id].ok=true;await sv();openBalIssues();rDash();}
 function markTheme(){const k=ST.theme||'auto';document.querySelectorAll('#set-theme .tb').forEach(b=>{const on=b.dataset.k===k;b.style.background=on?'var(--grad)':'';b.style.color=on?'#fff':'';});}
 function openSetSheet(){rSett();markTheme();ghStatus();{const b=document.getElementById('set-fx');if(b)b.style.display=(ST.fx||[]).length?'':'none';}document.getElementById('setm').classList.add('on');}
 // Export rental data for the standalone «املاک» app. Read-only: nothing in
