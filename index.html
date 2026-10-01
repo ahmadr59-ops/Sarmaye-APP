@@ -607,10 +607,19 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     <button class="btn btns" style="margin:0" onclick="exportCSV()">خروجی Excel (CSV)</button>
     <button class="btn btns" style="margin:0" onclick="exportRentForAmlak()">خروجی برای «املاک»</button>
   </div>
+  <label class="btn btns" style="position:relative;display:flex;align-items:center;justify-content:center;margin-top:8px">📄 ورود صورتحساب بانکی<input type="file" accept=".json,application/json" onchange="stmtOpen(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
   <input type="file" id="imp2" accept=".json" style="display:none" onchange="restore(this)">
   <div id="v1-row" style="display:none" onclick="openV1Modal()"><span id="v1-lbl"></span></div>
   <button class="btn" style="margin-top:16px;background:transparent;color:var(--rd);border:1px solid var(--rdl)" onclick="confirmClearData()">پاک کردن همهٔ داده‌ها</button>
   <button class="btn btns" onclick="cls('setm')">بستن</button>
+</div>
+</div>
+<!-- v24.3: statement import -->
+<div class="ov" id="stmtm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2>ورود صورتحساب بانکی</h2>
+  <div id="stmt-body"></div>
 </div>
 </div>
 <!-- v24.2: GitHub backup -->
@@ -1826,7 +1835,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.2';
+const APP_VERSION='v24.3';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -4284,7 +4293,7 @@ function undoable(name,label){
     return r;
   };
 }
-[['saveTx','✅ تراکنش ذخیره شد'],['delTx','🗑️ تراکنش حذف شد'],['qaSave','✅ ثبت شد'],['smsqSave','✅ پیامک ثبت شد'],['doTransfer','✅ انتقال ثبت شد']].forEach(([n,l])=>undoable(n,l));
+[['stmtCommit','✅ صورتحساب وارد شد'],['saveTx','✅ تراکنش ذخیره شد'],['delTx','🗑️ تراکنش حذف شد'],['qaSave','✅ ثبت شد'],['smsqSave','✅ پیامک ثبت شد'],['doTransfer','✅ انتقال ثبت شد']].forEach(([n,l])=>undoable(n,l));
 
 
 // ============================================================
@@ -4386,6 +4395,153 @@ function rBackupCard(){
       <button class="btn btnp" style="margin:0;font-size:12.5px" onclick="${ghOn()?'ghBackup(false)':'openGhModal()'}">${ghOn()?'پشتیبان GitHub الان':'فعال‌سازی GitHub'}</button>
     </div></div></div>`;
 }
+// ============================================================
+// v24.3 — BANK STATEMENT IMPORT (pre-classified package)
+// The whole import is computed on a COPY of the state; the preview shows the
+// result; «ورود» commits it atomically (undoable). Existing records are matched,
+// not duplicated; the main account must reconcile to the statement's closing.
+// ============================================================
+let STI=null;
+const stmtOrd=d=>jalOrdinal(d.y,d.m,d.d);
+function stmtOpen(input){
+  const f=input.files&&input.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{input.value='';
+    let p;try{p=JSON.parse(r.result);}catch(e){ntf('⚠️ فایل نامعتبر است');return;}
+    if(p.type!=='sarmaye-statement-import'||!Array.isArray(p.rows)){ntf('⚠️ این فایل، بستهٔ ورود صورتحساب نیست');return;}
+    STI={pkg:p,choice:{},keepOrphan:{},fix:true};
+    const main=stmtFindMain(p);STI.mainId=main?main.id:'';
+    stmtRender();cls('setm');document.getElementById('stmtm').classList.add('on');};
+  r.readAsText(f);
+}
+function stmtFindMain(p){
+  const accs=activeAccounts();const id=(ST.smsKeys||{})[p.acctKey];
+  if(id&&accs.some(a=>a.id===id))return accs.find(a=>a.id===id);
+  const byNo=accs.find(a=>a.accno&&p.acctNo&&a.accno.replace(/\D/g,'').endsWith(p.acctNo.replace(/^0+/,'')));if(byNo)return byNo;
+  const byBank=accs.filter(a=>a.bank===p.bank);return byBank.length===1?byBank[0]:null;
+}
+function stmtResolveAcc(S,key,spec){
+  const accs=(S.accounts||[]).filter(a=>!a.archived);
+  if(spec.match){const id=(S.smsKeys||{})[spec.match];if(id&&accs.some(a=>a.id===id))return accs.find(a=>a.id===id);}
+  if(spec.name){const m=accs.find(a=>a.bank===spec.bank&&a.name===spec.name);if(m)return m;}
+  const m=accs.filter(a=>a.bank===spec.bank&&!a.name);if(m.length===1&&!spec.name)return m[0];
+  const m2=accs.filter(a=>a.bank===spec.bank);if(m2.length===1&&!spec.name)return m2[0];
+  return null;
+}
+function stmtCat(S,tp,name){
+  const L=S.cats[tp]||(S.cats[tp]=[]);let c=L.find(x=>x.n===name);
+  if(!c){c={id:(tp==='income'?'si':'ei')+uid(),n:name,i:'more',c:tp==='income'?'#1A8A4A':'#65728C'};L.push(c);}
+  return c.id;
+}
+// Build the full result on a deep copy. Returns {S, stats} without touching ST.
+function stmtBuild(){
+  const p=STI.pkg;const S=JSON.parse(JSON.stringify(ST));const st={matched:0,fixed:0,created:0,linked:0,deleted:0,ignored:0,newAccs:[],orphans:[]};
+  const main=(S.accounts||[]).find(a=>a.id===STI.mainId);if(!main)return{S:null,st,err:'حساب اصلی صورتحساب را انتخاب کنید'};
+  const from=stmtOrd(p.period.from),to=stmtOrd(p.period.to),tag='stmt:'+p.acctNo+':'+p.period.from.y;
+  // 1) accounts
+  const accId={};
+  for(const [k,spec] of Object.entries(p.accounts||{})){
+    const used=p.rows.some(r=>{const e=stmtEff(r);return e.nature==='transfer'&&e.other===k;});if(!used)continue;
+    let a=stmtResolveAcc(S,k,spec);
+    if(!a){a={id:uid(),bank:spec.bank,name:spec.name||'',accno:'',cardno:'',last4:'',exp:'',iban:'',color:'#5B6B8C',initDate:spec.open?{y:spec.open.y,m:spec.open.m,d:spec.open.d}:{...p.opening},initBalance:0,openTxId:null};
+      S.accounts.push(a);st.newAccs.push(spec.bank+(spec.name?' — '+spec.name:''));
+      if(spec.open&&spec.open.a){const oid=uid();S.tx.push({id:oid,tp:'income',cat:'opening',a:spec.open.a,dsc:'موجودی اولیه',day:spec.open.d,m:spec.open.m,y:spec.open.y,accId:a.id,isOpening:true});a.openTxId=oid;}}
+    accId[k]=a.id;
+  }
+  // 2) main account opening = statement opening
+  let ot=S.tx.find(t=>t.id===main.openTxId);
+  if(!ot){ot={id:uid(),tp:'income',cat:'opening',dsc:'موجودی اولیه',accId:main.id,isOpening:true};S.tx.push(ot);main.openTxId=ot.id;}
+  Object.assign(ot,{a:p.opening.a,day:p.opening.d,m:p.opening.m,y:p.opening.y,tp:'income'});main.initDate={y:p.opening.y,m:p.opening.m,d:p.opening.d};
+  // 3) existing records of the main account inside the period
+  const inPer=t=>t.accId===main.id&&!t.isOpening&&(()=>{const o=jalOrdinal(t.y,t.m,t.day);return o>=from&&o<=to;})();
+  const pool=S.tx.filter(inPer);const used=new Set();
+  const twinFree=(accIdX,amount,tpX,ord)=>S.tx.find(t=>t.accId===accIdX&&!t.isOpening&&!t.transferId&&t.tp===tpX&&Math.abs(t.a-amount)<=1&&Math.abs(jalOrdinal(t.y,t.m,t.day)-ord)<=3&&!t.stmtN);
+  const mk=(r,e,ex)=>{ // write row r with effect e into tx `ex` (existing) or a new tx
+    const tp=r.dir==='in'?'income':'expense';const base={a:r.a,day:r.date.d,m:r.date.m,y:r.date.y,accId:main.id,stmt:tag,stmtN:r.n};
+    let t=ex||{id:uid()};
+    if(e.nature==='operating'){for(const k of ['isTransfer','transferId','depositRole'])delete t[k];Object.assign(t,base,{tp,cat:stmtCat(S,e.tp,e.cat),nature:'operating',dsc:t.dsc&&ex?t.dsc:(e.dsc||e.cat)});}
+    else if(e.nature==='deposit'){Object.assign(t,base,{tp:'income',cat:'deposit',nature:'deposit',depositRole:'received',dsc:e.dsc||'دریافت ودیعه'});}
+    else if(e.nature==='transfer'){
+      const oth=accId[e.other];const tid=uid();const otp=tp==='income'?'expense':'income';
+      Object.assign(t,base,{tp,cat:'transfer',isTransfer:true,transferId:tid,nature:'transfer',dsc:(tp==='expense'?'انتقال به ':'دریافت از ')+getAccNameIn(S,oth)+(e.dsc?' · '+e.dsc:'')});
+      const tw=twinFree(oth,r.a,otp,stmtOrd(r.date));
+      if(tw){Object.assign(tw,{a:r.a,cat:'transfer',isTransfer:true,transferId:tid,nature:'transfer'});st.linked++;}
+      else S.tx.push({id:uid(),tp:otp,cat:'transfer',a:r.a,dsc:(otp==='income'?'دریافت از ':'انتقال به ')+getAccNameIn(S,main.id)+(e.dsc?' · '+e.dsc:''),day:r.date.d,m:r.date.m,y:r.date.y,accId:oth,isTransfer:true,transferId:tid,nature:'transfer',stmt:tag});
+    }
+    if(!ex)S.tx.push(t);return t;
+  };
+  for(const r of p.rows){
+    const e=stmtEff(r);const tp=r.dir==='in'?'income':'expense';const ord=stmtOrd(r.date);
+    let best=null,bd=99;
+    for(const t of pool){if(used.has(t.id)||t.tp!==tp||Math.abs(t.a-r.a)>1)continue;const dd=Math.abs(jalOrdinal(t.y,t.m,t.day)-ord);if(dd<=3&&dd<bd){best=t;bd=dd;}}
+    if(e.nature==='ignore'){if(best){used.add(best.id);S.tx=S.tx.filter(t=>t.id!==best.id);st.deleted++;}st.ignored++;continue;}
+    if(best){used.add(best.id);st.matched++;
+      const same=(e.nature==='operating'&&natureOf(best)==='operating')||(e.nature==='transfer'&&best.isTransfer)||(e.nature==='deposit'&&best.nature==='deposit');
+      if(!same&&STI.fix){
+        if(best.isTransfer&&best.transferId){S.tx=S.tx.filter(t=>!(t.transferId===best.transferId&&t.id!==best.id));}
+        mk(r,e,best);st.fixed++;
+      }else{best.a=r.a;best.stmt=tag;best.stmtN=r.n;}
+    }else{mk(r,e,null);st.created++;}
+  }
+  // 4) existing records the bank never saw
+  for(const t of pool){if(used.has(t.id))continue;
+    st.orphans.push({id:t.id,a:t.a,tp:t.tp,day:t.day,m:t.m,y:t.y,dsc:t.dsc||''});
+    if(!STI.keepOrphan[t.id]){if(t.transferId)S.tx=S.tx.filter(x=>x.transferId!==t.transferId);else S.tx=S.tx.filter(x=>x.id!==t.id);st.deleted++;}}
+  // 5) revaluations (e.g. portfolio at today's value) — outside P&L
+  const td=today();
+  for(const [k,spec] of Object.entries(p.accounts||{})){
+    if(!spec.reval||!accId[k])continue;const id=accId[k];
+    S.tx=S.tx.filter(t=>!(t.accId===id&&t.nature==='revaluation'&&t.stmt===tag));
+    const bal=S.tx.reduce((s,t)=>t.accId===id?s+(t.tp==='income'?t.a:-t.a):s,0);const diff=Math.round((spec.reval.a-bal)*10)/10;
+    if(Math.abs(diff)>=1)S.tx.push({id:uid(),tp:diff>0?'income':'expense',cat:'revaluation',a:Math.abs(diff),dsc:spec.reval.dsc,day:td.d,m:td.m-1,y:td.y,accId:id,nature:'revaluation',stmt:tag});
+  }
+  // 6) reconciliation: main balance as of the statement's last day
+  const bal=S.tx.reduce((s,t)=>(t.accId===main.id&&jalOrdinal(t.y,t.m,t.day)<=to)?s+(t.tp==='income'?t.a:-t.a):s,0);
+  st.balance=Math.round(bal*10)/10;st.closing=p.closing;st.diff=Math.round((st.balance-p.closing)*10)/10;
+  S.stmtImports=Object.assign({},S.stmtImports,{[tag]:{at:Date.now(),rows:p.rows.length}});
+  return{S,st};
+}
+function stmtEff(r){const c=STI.choice[r.n];return(r.choice&&c!=null)?r.choice.opts[c]:r;}
+function getAccNameIn(S,id){const a=(S.accounts||[]).find(x=>x.id===id);return a?(a.bank+(a.name?' - '+a.name:'')):'نامشخص';}
+function stmtRender(){
+  const p=STI.pkg;const box=document.getElementById('stmt-body');const R=stmtBuild();const st=R.st;
+  const accs=activeAccounts();
+  const sum=(nat,tp)=>p.rows.reduce((s,r)=>{const e=stmtEff(r);return s+((e.nature===nat&&(!tp||(r.dir==='in'?'income':'expense')===tp))?r.a:0);},0);
+  const ch=p.rows.filter(r=>r.choice);
+  const prior=(ST.stmtImports||{})['stmt:'+p.acctNo+':'+p.period.from.y];
+  box.innerHTML=`
+  <div class="sg-txt" style="margin-bottom:8px">${esc(p.bank)} — ${toFa(p.rows.length)} ردیف، ${fmtDate(p.period.from.d,p.period.from.m,p.period.from.y)} تا ${fmtDate(p.period.to.d,p.period.to.m,p.period.to.y)}${prior?'<br><b style="color:var(--am)">این صورتحساب قبلاً یک بار وارد شده؛ ورود مجدد چیزی را تکرار نمی‌کند.</b>':''}</div>
+  <div class="fg"><label>حساب این صورتحساب در سرمایه</label><select onchange="STI.mainId=this.value;stmtRender()"><option value="">انتخاب کنید…</option>${accs.map(a=>`<option value="${a.id}"${a.id===STI.mainId?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('')}</select></div>
+  ${R.err?`<div style="color:var(--rd);font-size:12.5px;font-weight:700">${R.err}</div>`:`
+  ${ch.length?`<div class="sg-lbl">موارد نیازمند تأیید شما</div>${ch.map(r=>`<div style="background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:8px">
+    <div style="font-size:12.5px;font-weight:800;color:var(--t1)">${fmtDate(r.date.d,r.date.m,r.date.y)} — ${nf(r.a)} تومان ${r.dir==='in'?'(ورودی)':'(خروجی)'}</div>
+    <div style="font-size:11.5px;color:var(--am);margin:3px 0 7px">${esc(r.choice.q)} ${esc(r.choice.hint||'')}</div>
+    <div class="ttog" style="grid-template-columns:1fr 1fr">${r.choice.labels.map((l,i)=>`<button class="tb${(STI.choice[r.n]??-1)===i||(STI.choice[r.n]==null&&i===0)?' ti':''}" onclick="STI.choice[${r.n}]=${i};stmtRender()">${esc(l)}</button>`).join('')}</div></div>`).join('')}`:''}
+  <div class="sg-lbl">نتیجهٔ ورود</div>
+  <div style="font-size:12.5px;color:var(--t2);line-height:2">
+    ✅ ${toFa(st.matched)} ردیف با ثبت‌های فعلی شما تطبیق خورد${st.fixed?` (${toFa(st.fixed)} مورد طبق قواعد اصلاح می‌شود)`:''}<br>
+    ➕ ${toFa(st.created)} ردیف جدید اضافه می‌شود${st.linked?`، ${toFa(st.linked)} انتقال به ثبت موجود در حساب مقصد وصل می‌شود`:''}<br>
+    ${st.newAccs.length?`🏦 حساب‌های جدید: ${st.newAccs.map(esc).join('، ')}<br>`:''}
+    درآمد ${nf(sum('operating','income'))} · هزینه ${nf(sum('operating','expense'))} · انتقال ${nf(sum('transfer'))} · ودیعه ${nf(sum('deposit'))}
+  </div>
+  ${st.orphans.length?`<div class="sg-lbl">ثبت‌هایی که در صورتحساب نیستند (${toFa(st.orphans.length)})</div>
+    <div class="sg-txt">احتمالاً تکراری یا اشتباه‌اند و حذف می‌شوند؛ برای نگه‌داشتن تیک بزنید.</div>
+    <div style="max-height:26vh;overflow-y:auto">${st.orphans.map(o=>`<label style="display:flex;gap:8px;align-items:center;font-size:12px;padding:6px 2px;border-bottom:1px solid var(--border)"><input type="checkbox" ${STI.keepOrphan[o.id]?'checked':''} onchange="STI.keepOrphan['${o.id}']=this.checked;stmtRender()"> نگه‌دار — ${fmtDate(o.day,o.m,o.y)} ${o.tp==='income'?'+':'−'}${nf(o.a)} ${esc(o.dsc).slice(0,40)}</label>`).join('')}</div>`:''}
+  <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin:10px 0"><input type="checkbox" ${STI.fix?'checked':''} onchange="STI.fix=this.checked;stmtRender()"> ماهیت ثبت‌های تطبیق‌خورده را طبق قواعد اصلاح کن</label>
+  <div style="border-radius:12px;padding:10px 12px;font-size:12.5px;font-weight:800;${Math.abs(st.diff)<=1?'background:var(--grl);color:var(--gr)':'background:var(--rdl);color:var(--rd)'}">
+    ${Math.abs(st.diff)<=1?'✓ پس از ورود، ماندهٔ حساب در '+fmtDate(p.period.to.d,p.period.to.m,p.period.to.y)+' = '+nf(st.balance)+' تومان، دقیقاً برابر صورتحساب':'⚠️ ماندهٔ پس از ورود '+nf(st.balance)+' ولی صورتحساب '+nf(st.closing)+' — اختلاف '+nf(st.diff)}
+  </div>
+  <button class="btn btnp" style="margin-top:12px" onclick="stmtCommit()">ورود به سرمایه</button>`}
+  <button class="btn btns" onclick="cls('stmtm')">انصراف</button>`;
+}
+async function stmtCommit(){
+  const R=stmtBuild();if(!R.S){ntf('⚠️ '+R.err);return;}
+  if(Math.abs(R.st.diff)>1&&!confirm('مانده با صورتحساب برابر نیست. با این حال وارد شود؟'))return;
+  try{localStorage.setItem('srm_before_stmt',JSON.stringify(ST));}catch(e){}
+  ST=R.S;await sv();cls('stmtm');rDash();rTx();
+  ntf(`✅ صورتحساب وارد شد: ${toFa(R.st.created)} ردیف جدید، ${toFa(R.st.matched)} تطبیق`);
+}
+
 function markTheme(){const k=ST.theme||'auto';document.querySelectorAll('#set-theme .tb').forEach(b=>{const on=b.dataset.k===k;b.style.background=on?'var(--grad)':'';b.style.color=on?'#fff':'';});}
 function openSetSheet(){rSett();markTheme();ghStatus();document.getElementById('setm').classList.add('on');}
 // Export rental data for the standalone «املاک» app. Read-only: nothing in
