@@ -291,6 +291,8 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 .sg-lbl{font-size:12.5px;font-weight:800;color:var(--t2);margin:14px 2px 7px}
 .sg-txt{font-size:12px;color:var(--t3);margin:0 2px 2px;line-height:1.7}
 .sg-div{height:1px;background:var(--border);margin:16px 0 2px}
+#dashAudit,#dashSmsQ,#dashBk,#dashLoans,#dashFx{display:none!important}
+.hlp{position:absolute;top:14px;left:14px;width:32px;height:32px;border-radius:50%;border:none;background:var(--prl);color:var(--pr);font-weight:800;font-size:16px;cursor:pointer;font-family:'Vazirmatn',sans-serif;z-index:5}
 .stt-sec-lbl{font-size:12px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-right:4px}
 .stt-list{background:var(--card);border:0.5px solid var(--border);border-radius:var(--rad);box-shadow:var(--sh);overflow:hidden;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
 .stt-row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-bottom:0.5px solid var(--border);cursor:pointer}
@@ -418,6 +420,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   </div>
 
   <!-- v24: weekly review hub -->
+  <div id="dashTodo"></div>
   <div id="dashAudit"></div>
   <div id="dashSmsQ"></div>
   <div id="dashWeek"></div>
@@ -520,6 +523,7 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     <div id="assetTrend" style="margin-top:10px"></div>
   </div>
   <div class="card"><div class="card-t">خلاصه سالانه</div><div id="ys"></div></div>
+  <div class="card" id="invCard" style="display:none"></div>
   <div class="card" id="propCard" style="display:none">
     <div class="card-t">سودآوری و بازدهی املاک</div>
     <div id="propTbl"></div>
@@ -587,9 +591,9 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <div class="sg-txt" id="gh-status"></div>
   <button class="btn btns" onclick="openGhModal()">تنظیم پشتیبان GitHub</button>
   <div class="sg-div"></div>
-  <div class="sg-lbl">پشتیبان ابری Firebase (نیاز به VPN)</div>
+  <details><summary style="font-size:12.5px;font-weight:700;color:var(--t2);cursor:pointer;margin:2px 2px 8px">پیشرفته: پشتیبان Firebase (نیاز به VPN)</summary>
   <div class="sg-txt" id="cloud-status-lbl"></div>
-  <button class="btn btns" onclick="openCloudModal()">مدیریت پشتیبان ابری</button>
+  <button class="btn btns" onclick="openCloudModal()">مدیریت پشتیبان Firebase</button></details>
   <div class="sg-div"></div>
   <div class="sg-lbl">قفل برنامه</div>
   <div class="sg-txt" id="lock-status-lbl"></div>
@@ -615,6 +619,8 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
   <button class="btn btns" onclick="cls('setm')">بستن</button>
 </div>
 </div>
+<!-- v24.6: help -->
+<div class="ov" id="hlpm"><div class="mdl"><div class="mh"></div><h2 id="hlp-t"></h2><p id="hlp-b" style="font-size:14px;line-height:2;color:var(--t2)"></p><button class="btn btns" onclick="cls('hlpm')">متوجه شدم</button></div></div>
 <!-- v24.4: SMS account audit -->
 <div class="ov" id="smsam">
 <div class="mdl">
@@ -1857,7 +1863,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.4';
+const APP_VERSION='v24.6';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2119,7 +2125,7 @@ function rDash(){
   document.getElementById('td').textContent=`${t.wd} ${fmtDate(t.d,t.m-1,t.y)}`;
   updateMonthLabel();
   // FX remittance mini-card on the dashboard
-  rSmsAudit();rSmsCard();rWeek();rBackupCard();
+  rSmsAudit();rSmsCard();rWeek();rBackupCard();rTodo();
   const dfx=document.getElementById('dashFx');
   if(dfx){
     const deals=ST.fx||[];
@@ -2150,11 +2156,9 @@ function rDash(){
     const debt=loansDebt(), dep=depositLiability();
     const bd=document.getElementById('netWorthBreak');
     if(bd){
-      if(debt>0||dep!==0){
-        bd.style.display='block';
-        bd.textContent=`دارایی ${nf(assetsTotal())}`
-          +(debt>0?` − وام ${nf(debt)}`:'')
-          +(dep!==0?` − ودیعه ${nf(dep)}`:'')+' تومان';
+      if(ST.accounts&&ST.accounts.length){
+        const g=nwGroups();bd.style.display='block';
+        bd.textContent=`نقد و بانک ${nf(g.cash)}`+(g.inv?` · سرمایه‌گذاری ${nf(g.inv)}`:'')+(g.liab?` · بدهی ${nf(g.liab)}`:'');
       }
       else bd.style.display='none';
     }
@@ -3597,6 +3601,7 @@ function rPropTable(){
   }).join('');
 }
 function rRep(){
+  rInvest();
   const curTxs=getTx(SM);const{e:curExp}=totals(curTxs);
   rDonut(curTxs,curExp);
   rBudgets();
@@ -4257,8 +4262,25 @@ async function smsqSave(){
   flushAmlakOutbox();
 }
 // ---------- bridge to «املاک» (same Firebase account) ----------
+// v24.5: the inbox is a small JSON file in the same private repo (works without VPN)
+async function ghInboxUpdate(mut){
+  for(let i=0;i<3;i++){
+    const g=await ghFetch('/contents/amlak-inbox.json');let sha,data={items:{}};
+    if(g.ok){const j=await g.json();sha=j.sha;try{data=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));}catch(e){}}
+    else if(g.status!==404)throw new Error(ghErr(g));
+    if(!data.items)data.items={};mut(data);
+    const p=await ghFetch('/contents/amlak-inbox.json',{method:'PUT',body:JSON.stringify({message:'صندوق املاک',content:ghB64(JSON.stringify(data)),sha})});
+    if(p.ok)return true;if(p.status!==409&&p.status!==422)throw new Error(ghErr(p));
+  }
+  return false;
+}
 async function flushAmlakOutbox(){
   const box=ST.amlakOutbox||[];
+  if(box.length&&ghOn()){
+    try{const ok=await ghInboxUpdate(d=>{box.forEach(it=>{d.items[it.id]={id:it.id,a:it.a,date:it.date,bank:it.bank||'',acc:it.acc||'',createdAt:it.createdAt};});});
+      if(ok){const n=box.length;ST.amlakOutbox=[];await sv();ntf(`🏠 ${toFa(n)} واریز به «املاک» ارسال شد`);return n;}}catch(e){}
+    return 0;
+  }
   if(!box.length||typeof fbAuth==='undefined'||!fbAuth||!fbAuth.currentUser)return 0;
   let sent=0;
   for(const it of box.slice()){
@@ -4638,6 +4660,67 @@ async function stmtCommit(){
   ntf(`✅ صورتحساب وارد شد: ${toFa(R.st.created)} ردیف جدید، ${toFa(R.st.matched)} تطبیق`);
 }
 
+
+// ============================================================
+// v24.5/24.6 — ACCOUNT KINDS, INVESTMENTS, «کارهای من», HELP
+// ============================================================
+function accKind(a){
+  if(a.kind)return a.kind;
+  return /کارگزاری|بورس|سرمایه‌گذاری|سرمایه گذاری|صندوق|ارز|یورو|دلار|طلا|سکه|رمزارز|کریپتو|بیت/.test((a.bank||'')+' '+(a.name||''))?'invest':'bank';
+}
+function nwGroups(){
+  let cash=0,inv=0;(ST.accounts||[]).forEach(a=>{const b=calcAccBalance(a.id);if(accKind(a)==='invest')inv+=b;else cash+=b;});
+  return{cash,inv,liab:debtsTotal()+depositLiability()};
+}
+function rInvest(){
+  const el=document.getElementById('invCard');if(!el)return;
+  const inv=(ST.accounts||[]).filter(a=>!a.archived&&accKind(a)==='invest');
+  if(!inv.length){el.style.display='none';return;}
+  const t=today();const ids=new Set(inv.map(a=>a.id));
+  const reval=ST.tx.filter(x=>x.nature==='revaluation'&&ids.has(x.accId)).reduce((s,x)=>s+(x.tp==='income'?x.a:-x.a),0);
+  const yrInc=ST.tx.filter(x=>isPnL(x)&&x.tp==='income'&&x.y===t.y&&/سود/.test(getCat('income',x.cat).n||'')).reduce((s,x)=>s+x.a,0);
+  const total=inv.reduce((s,a)=>s+calcAccBalance(a.id),0);
+  el.style.display='block';
+  el.innerHTML=`<div style="font-size:14px;font-weight:800;color:var(--t1);margin-bottom:10px">💼 سرمایه‌گذاری‌ها</div>
+    ${inv.map(a=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${esc(a.bank)}${a.name?' — '+esc(a.name):''}</span><b>${nf(calcAccBalance(a.id))}</b></div>`).join('')}
+    <div style="display:flex;justify-content:space-between;padding:9px 0 4px;font-size:13.5px;font-weight:800"><span>جمع ارزش</span><span>${nf(total)} ت</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <div style="background:var(--grl);border-radius:12px;padding:9px 11px"><div style="font-size:12px;color:var(--gr);font-weight:700">سود دریافتی امسال</div><div style="font-size:15px;font-weight:800;color:var(--gr)">${nf(yrInc)}</div><div style="font-size:12px;color:var(--t3)">سود سهام، صندوق و سپرده</div></div>
+      <div style="background:var(--prl);border-radius:12px;padding:9px 11px"><div style="font-size:12px;color:var(--pr);font-weight:700">تغییر ارزش (به‌روزرسانی)</div><div style="font-size:15px;font-weight:800;color:var(--pr)">${reval>=0?'+':'−'}${nf(Math.abs(reval))}</div><div style="font-size:12px;color:var(--t3)">جزو درآمد ماهانه نیست</div></div>
+    </div>`;
+}
+function rTodo(){
+  const el=document.getElementById('dashTodo');if(!el)return;
+  const t=today();const rows=[];const R=(ic,txt,act,btn,c)=>rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+    <span style="font-size:18px">${ic}</span><div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:${c||'var(--t1)'}">${txt}</div>
+    <button class="btn btns" style="margin:0;width:auto;padding:7px 12px;font-size:12.5px" onclick="${act}">${btn}</button></div>`);
+  const aud=ST.smsAuditDone?0:smsAuditList().length;
+  if(aud)R('⚠️',`${toFa(aud)} پیامک ثبت‌شده احتمالاً در حساب اشتباه است`,'openSmsAudit()','بررسی','var(--rd)');
+  const n=(ST.smsQueue||[]).length;if(n)R('📩',`${toFa(n)} پیامک بانکی منتظر بررسی`,'smsqIdx=0;openSmsQueue()','بررسی');
+  const mk=`_${t.y}_${t.m-1}`;
+  (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0).forEach(l=>{
+    if(t.d<l.day||ST.tx.some(x=>x.loanId===l.id&&x.installmentId&&x.m===t.m-1&&x.y===t.y)||(ST.dismissed||{})[`loan_${l.id}${mk}`])return;
+    R('🏦',`قسط «${esc(l.n)}» — ${nf(Math.min(l.inst,l.remaining))} ت`,`payInstallment('${l.id}')`,'ثبت قسط');});
+  const fx=(ST.fx||[]).filter(d=>d.status!=='done').length;if(fx)R('💶',`${toFa(fx)} حوالهٔ ارزی در جریان`,'openFxList()','مشاهده');
+  const gh=ghOn()?(+localStorage.getItem(GH_LAST)||0):0;const last=Math.max(gh,getLastBackupTs());const days=last?Math.floor((Date.now()-last)/864e5):null;
+  if(ghOn()?(!gh||Date.now()-gh>=3*864e5):(!last||Date.now()-last>=7*864e5))
+    R('🛡️',days===null?'هنوز پشتیبانی گرفته نشده':`آخرین پشتیبان ${toFa(days)} روز پیش`,ghOn()?'ghBackup(false)':'openGhModal()',ghOn()?'پشتیبان الان':'فعال‌سازی');
+  el.innerHTML=`<div style="padding:12px 14px 0"><div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:14px;font-weight:800;color:var(--t1)">📋 کارهای من</span>
+      <button class="hlp" style="position:static;width:28px;height:28px;font-size:14px" onclick="showHelp(0)">؟</button></div>
+    ${rows.length?rows.join(''):'<div style="font-size:13px;color:var(--t3);padding:6px 0 10px">✅ کاری باقی نمانده است.</div>'}
+    <label class="btn btns" style="margin:10px 0 0;position:relative;display:flex;align-items:center;justify-content:center;font-size:12.5px">📥 دریافت پیامک‌های بانک از فایل<input type="file" accept=".txt,text/plain" onchange="smsImportFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
+  </div></div>`;
+}
+const HELP=[
+  ['خانه','«کارهای من» هر چیزی را که منتظر شماست نشان می‌دهد: پیامک‌های بانک، قسط‌های سررسید، پشتیبان. کارت «۷ روز گذشته» خلاصهٔ هفته است. برای ثبت دستی، دکمهٔ ➕ پایین صفحه.'],
+  ['تراکنش‌ها','همهٔ ثبت‌ها به تفکیک روز. برای ویرایش روی هر ردیف بزنید. دو ماه آخر نمایش داده می‌شود؛ برای قبل‌تر «نمایش ماه‌های قبل». بعد از ثبت یا حذف، تا ۶ ثانیه «↶ بازگردانی» دارید.'],
+  null,
+  ['گزارش','درآمد و هزینهٔ واقعی شما؛ انتقال بین حساب‌ها، پول پیش و اصل وام جزو آن نیستند. سرمایه‌گذاری‌ها در کارت جداگانه آمده‌اند.'],
+  ['بیشتر','کاشی‌ها ابزارهای کم‌کاربردترند. «تنظیمات»: ظاهر، پشتیبان، قفل، دسته‌بندی‌ها و داده‌ها (از جمله ورود صورتحساب بانک).']];
+function showHelp(i){const h=HELP[i];if(!h)return;document.getElementById('hlp-t').textContent=h[0];document.getElementById('hlp-b').textContent=h[1];document.getElementById('hlpm').classList.add('on');}
+document.addEventListener('DOMContentLoaded',()=>{[1,3,4].forEach(i=>{const hd=document.querySelector('#s'+i+' .hdr');if(!hd||hd.querySelector('.hlp'))return;hd.style.position='relative';
+  const b=document.createElement('button');b.className='hlp';b.textContent='؟';b.setAttribute('aria-label','راهنما');b.onclick=()=>showHelp(i);hd.appendChild(b);});});
 function markTheme(){const k=ST.theme||'auto';document.querySelectorAll('#set-theme .tb').forEach(b=>{const on=b.dataset.k===k;b.style.background=on?'var(--grad)':'';b.style.color=on?'#fff':'';});}
 function openSetSheet(){rSett();markTheme();ghStatus();document.getElementById('setm').classList.add('on');}
 // Export rental data for the standalone «املاک» app. Read-only: nothing in
@@ -5485,8 +5568,11 @@ function openAccList(){
       <span style="font-size:12px;font-weight:700;color:var(--pp)">ودیعهٔ مستأجران (بدهی)</span>
       <span style="font-size:13.5px;font-weight:800;color:var(--pp)">−${nf(depositLiability())} ت</span>
     </div>`:''}`;
-    const ordered=[...acc].sort((a,b)=>(a.archived?1:0)-(b.archived?1:0));
-    content.innerHTML=sumRow+ordered.map(a=>{
+    const KO={bank:0,invest:1};
+    const ordered=[...acc].sort((a,b)=>(a.archived?1:0)-(b.archived?1:0)||KO[accKind(a)]-KO[accKind(b)]);
+    let __lk='';const grpHdr=a=>{const k=a.archived?'arch':accKind(a);if(k===__lk)return'';__lk=k;
+      return `<div style="font-size:12.5px;font-weight:800;color:var(--t2);margin:14px 4px 6px">${k==='invest'?'سرمایه‌گذاری‌ها':k==='arch'?'بایگانی‌شده':'حساب‌های بانکی و نقد'}</div>`;};
+    content.innerHTML=sumRow+ordered.map(a=>{const __h=grpHdr(a);
       const bal=calcAccBalance(a.id);
       const cardDisp=a.cardno?a.cardno:(a.last4?'****-****-****-'+a.last4:'');
       const details=[
@@ -5504,7 +5590,7 @@ function openAccList(){
         :(bs.t?`<span style="color:#fff;font-size:12.5px;font-weight:800;line-height:1;text-align:center">${bs.t}</span>`:`<svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:#fff;stroke-width:1.8;fill:none"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>`);
       const badgeBg=logoFile?'#fff':badgeColor;
       const badgeShadow=logoFile?'0 2px 8px rgba(20,30,60,.15)':`0 3px 10px ${badgeColor}55`;
-      return `<div style="background:var(--bg);border-radius:14px;margin-bottom:8px;border:1px solid var(--border);overflow:hidden;${a.archived?'opacity:.62':''}">
+      return __h+`<div style="background:var(--bg);border-radius:14px;margin-bottom:8px;border:1px solid var(--border);overflow:hidden;${a.archived?'opacity:.62':''}">
         <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
           <div style="width:46px;height:46px;border-radius:14px;background:${badgeBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:${badgeShadow};${logoFile?'border:1px solid var(--border)':''}">
             ${badgeInner}
@@ -6192,7 +6278,7 @@ async function init(){
   setTimeout(chkRecurring, 3000);
   // v24.2: Firebase is optional and loaded in the background; the app never waits for Google.
   setTimeout(()=>{initFirebaseLazy().then(ok=>{if(ok)attachCloudListener();});},1500);
-  setTimeout(()=>{if(ghOn()&&(Date.now()-(+localStorage.getItem(GH_LAST)||0))>6*3600e3)ghBackup(true);},6000);
+  setTimeout(()=>{if(ghOn()&&(Date.now()-(+localStorage.getItem(GH_LAST)||0))>6*3600e3)ghBackup(true);if(ghOn())flushAmlakOutbox();},6000);
   setTimeout(chkLoansDue, 3500);
   // Auto-request notification permission on first launch
   if('Notification' in window && Notification.permission==='default'){
