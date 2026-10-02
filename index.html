@@ -681,7 +681,9 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
     <button class="tb ti" id="bi" onclick="styp('income')"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>درآمد</button>
     <button class="tb" id="be" onclick="styp('expense')"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>هزینه</button>
   </div>
-  <div class="fg"><label>دسته‌بندی</label><select id="tcat"></select></div>
+  <div class="fg"><label>دسته‌بندی</label><select id="tcat" onchange="tAmlakUI()"></select></div>
+  <label id="tamlakw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-4px 2px 12px"><input type="checkbox" id="tamlak" style="width:18px;height:18px"> ارسال به «املاک» (پرداخت اجارهٔ مستأجر)</label>
+  <div id="tamlaksent" style="display:none;font-size:12.5px;color:var(--gr);font-weight:700;margin:-4px 2px 12px">✓ این واریز قبلاً به «املاک» ارسال شده است</div>
   <div class="fg"><label>مبلغ (تومان)</label><input type="number" id="tamt" inputmode="numeric" placeholder="مثال: 5000000"></div>
   <div class="fg"><label>توضیحات</label><input type="text" id="tdsc" placeholder="اختیاری"></div>
   <div class="fg" id="acc-select-wrap">
@@ -1871,7 +1873,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.8';
+const APP_VERSION='v24.9';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2488,14 +2490,25 @@ function edTx(id){
   document.getElementById('tamt').value=t.a;document.getElementById('tdsc').value=t.dsc||'';
   document.getElementById('tday').value=t.day;document.getElementById('tyr').value=t.y||1404;
   fillMon('tmon',t.m);styp(t.tp);
-  setTimeout(()=>document.getElementById('tcat').value=t.cat,30);
+  setTimeout(()=>{const sel=document.getElementById('tcat');
+    // v24.9: special categories (پول پیش، اصل وام، …) are not in the list — show them so the record stays editable
+    if(t.cat&&![...sel.options].some(o=>o.value===t.cat)){const SP={deposit:'پول پیش (ودیعه)',revaluation:'به‌روزرسانی ارزش',loan:'اصل قسط وام',opening:'موجودی اولیه',transfer:'انتقال'};
+      const o=document.createElement('option');o.value=t.cat;o.textContent=SP[t.cat]||t.cat;sel.insertBefore(o,sel.firstChild);}
+    sel.value=t.cat;tAmlakUI();},30);
   fillAccSelects();
   setTimeout(()=>{if(t.accId)document.getElementById('tacc').value=t.accId;},30);
   document.getElementById('dtxb').style.display='block';
   document.getElementById('txm').classList.add('on');
 }
+function tAmlakUI(){
+  const w=document.getElementById('tamlakw'),sent=document.getElementById('tamlaksent');if(!w)return;
+  const cat=document.getElementById('tcat').value;const isRent=txtp==='income'&&/اجاره/.test((getCat('income',cat)||{}).n||'');
+  const orig=etx?ST.tx.find(t=>t.id===etx):null;const done=!!(orig&&orig.amlakSent);
+  w.style.display=isRent&&!done?'flex':'none';sent.style.display=isRent&&done?'block':'none';
+  if(isRent&&!done)document.getElementById('tamlak').checked=false;
+}
 function styp(tp){
-  txtp=tp;
+  txtp=tp;setTimeout(tAmlakUI,40);
   document.getElementById('bi').className='tb'+(tp==='income'?' ti':'');
   document.getElementById('be').className='tb'+(tp==='expense'?' te':'');
   fillCat('tcat',tp);
@@ -2529,7 +2542,9 @@ async function saveTx(){
 }
 async function finishSaveTx(a,cat,dsc,day,m,y,accId){
   const orig=etx?ST.tx.find(t=>t.id===etx):null;
-  const rec={id:etx||uid(),tp:txtp,cat,a,dsc,day,m,y,accId};
+  // v24.9: an edit used to rebuild the record from scratch and silently drop smsHash / stmtN / nature …
+  const rec=Object.assign({},orig||{},{id:etx||uid(),tp:txtp,cat,a,dsc,day,m,y,accId});
+  if(orig&&cat!==orig.cat&&['deposit','revaluation'].includes(orig.nature)){rec.nature='operating';delete rec.depositRole;} // re-categorised by hand
   if(orig&&orig.isRent){rec.isRent=true;rec.tenantId=orig.tenantId;rec.payKey=orig.payKey;
     rec.contractId=orig.contractId;rec.propertyId=orig.propertyId;rec.rentPeriod=orig.rentPeriod;rec.nature='operating';}
   if(orig&&orig.isOpening){rec.isOpening=true;rec.tp='income';rec.cat='opening';}
@@ -2543,6 +2558,11 @@ async function finishSaveTx(a,cat,dsc,day,m,y,accId){
     if(rec.payKey&&ST.pay[rec.payKey]) ST.pay[rec.payKey].amount=a;
   }
   if(txtp==='expense') budgetWarn(cat,m,y);
+  {const box=document.getElementById('tamlak');const w=document.getElementById('tamlakw');
+   if(box&&w&&w.style.display!=='none'&&box.checked&&!rec.amlakSent){if(!ST.amlakOutbox)ST.amlakOutbox=[];
+     const ac=(ST.accounts||[]).find(x=>x.id===accId);ST.amlakOutbox.push({id:uid(),kind:'rent',dir:'in',a,date:{y,m,d:day},bank:ac?ac.bank:'',acc:accId?getAccName(accId):'',createdAt:Date.now()});
+     rec.amlakSent=1;setTimeout(()=>flushAmlakOutbox(),300);}
+   else if(orig&&orig.amlakSent&&(orig.a!==a||orig.day!==day||orig.m!==m||orig.y!==y))setTimeout(()=>ntf('ℹ️ این واریز قبلاً به «املاک» رفته؛ آنجا هم اصلاحش کنید'),1600);}
   cls('txm');ntf('✅ ذخیره شد');
   rDash();rTx();rTen();
   await sv();
@@ -4279,7 +4299,7 @@ async function smsqSave(){
   ST.tx.push(rec);ST.smsCatHint[acc+'|'+smsqTp]=cat;
   if(smsqTp==='income'&&document.getElementById('smsq-amlak').checked){
     if(!ST.amlakOutbox)ST.amlakOutbox=[];
-    ST.amlakOutbox.push({id:uid(),a,date:{y,m,d:day},bank:q.p.bank||'',acc:getAccName(acc),txt:q.raw.slice(0,300),createdAt:Date.now()});
+    ST.amlakOutbox.push({id:uid(),a,date:{y,m,d:day},bank:q.p.bank||'',acc:getAccName(acc),txt:q.raw.slice(0,300),createdAt:Date.now()});rec.amlakSent=1;
   }
   ntf('✅ ثبت شد');await done({act:smsqTp,txId:rec.id});
   flushAmlakOutbox();
