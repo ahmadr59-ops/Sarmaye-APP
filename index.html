@@ -663,7 +663,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     </ol></details>
   <div class="fg"><label>نام کاربری GitHub</label><input id="gh-owner" dir="ltr" autocomplete="off"></div>
   <div class="fg"><label>نام ریپو</label><input id="gh-repo" dir="ltr" autocomplete="off"></div>
-  <div class="fg"><label>توکن دسترسی</label><input id="gh-token" type="password" dir="ltr" autocomplete="off"></div>
+  <div class="fg"><label>توکن دسترسی</label><input id="gh-token" type="password" dir="ltr" autocomplete="off">
+    <button type="button" class="btn btns" style="margin:8px 0 0;font-size:12.5px" onclick="copyTok('gh-token')">📋 کپی توکن (برای اپ‌های «املاک» و «صرافی»)</button></div>
   <div class="fg"><label>رمز رمزنگاری (اختیاری)</label><input id="gh-pass" type="password" dir="ltr" autocomplete="off" placeholder="خالی = بدون رمزنگاری"></div>
   <div style="font-size:12.5px;color:var(--t3);margin:-4px 2px 12px;line-height:1.7">اگر رمز بگذارید و فراموشش کنید، پشتیبان‌ها قابل بازیابی نیستند.</div>
   <button class="btn btnp" onclick="saveGhCfg()">ذخیره و آزمایش اتصال</button>
@@ -1876,7 +1877,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.11';
+const APP_VERSION='v24.12';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -4159,7 +4160,7 @@ function renderSmsQueue(){
   </div>
   ${twin?`<div style="background:var(--aml);color:var(--am);border-radius:10px;padding:9px 11px;font-size:12px;font-weight:600;margin-bottom:10px">این پیامک احتمالاً طرف دیگر انتقالِ ثبت‌شده «${esc(twin.dsc||'')}» است؛ پیشنهاد: نادیده.</div>`:''}
   <div class="ttog" id="smsq-tp" style="grid-template-columns:repeat(3,1fr)">
-    ${[['expense','هزینه'],['income','درآمد'],['transfer','انتقال']].concat(activeLoans().length?[['loan','قسط']]:[]).concat([['deposit','پول پیش'],['ignore','نادیده']]).map(([k,l])=>`<button class="tb" data-k="${k}" onclick="smsqSetTp('${k}')">${l}</button>`).join('')}
+    ${[['expense','هزینه'],['income','درآمد'],['transfer','انتقال']].concat(activeLoans().length?[['loan','قسط']]:[]).concat([['deposit','پول پیش'],['sarafi','صرافی'],['ignore','نادیده']]).map(([k,l])=>`<button class="tb" data-k="${k}" onclick="smsqSetTp('${k}')">${l}</button>`).join('')}
   </div>
   <div class="fg"><label id="smsq-acc-lbl">${acc.id?'حساب این پیامک':'این پیامک مربوط به کدام حساب شماست؟ <span style="color:var(--am);font-weight:600">(فقط یک بار می‌پرسم)</span>'}</label><select id="smsq-acc" onchange="smsqSetTp(smsqTp)">${opt(acc.id)}</select></div>
   <div id="smsq-other" class="fg" style="display:none"><label id="smsq-other-lbl"></label><select id="smsq-acc2" onchange="smsqFlow()">${opt(smsSuggestOther(p,acc.id))}</select>
@@ -4276,6 +4277,14 @@ async function smsqSave(){
     (out?l1:l2).smsHash=q.hash;ST.tx.push(l1,l2);
     ntf('✅ انتقال ثبت شد');return done({act:'transfer',txId:(out?l1:l2).id});
   }
+  if(smsqTp==='sarafi'){
+    const eu=sarafiAcc(true);const out=q.p.tp!=='income';const tid=uid();
+    const base={a,day,m,y,cat:'transfer',isTransfer:true,transferId:tid,nature:'transfer'};
+    const r={id:uid(),...base,tp:out?'expense':'income',accId:acc,dsc:dsc||(out?'خرید یورو (صرافی)':'فروش یورو (صرافی)'),smsHash:q.hash};
+    ST.tx.push(r,{id:uid(),...base,tp:out?'income':'expense',accId:eu.id,dsc:(out?'خرید یورو از ':'فروش یورو به ')+getAccName(acc)});
+    if(!ST.sarafiOutbox)ST.sarafiOutbox=[];ST.sarafiOutbox.push({id:uid(),kind:out?'pay':'recv',a,date:{y,m,d:day},bank:q.p.bank||'',acc:getAccName(acc),createdAt:Date.now()});
+    ntf(out?'✅ پرداخت خرید یورو ثبت شد (انتقال به «ارز (یورو)»)':'✅ دریافت فروش یورو ثبت شد');await done({act:'sarafi',txId:r.id});flushSarafiOutbox();return;
+  }
   if(smsqTp==='deposit'){
     const inn=q.p.tp==='income';
     const r={id:uid(),tp:inn?'income':'expense',cat:'deposit',a,dsc:dsc||(inn?'دریافت پول پیش':'بازگرداندن پول پیش')+' (پیامک)',day,m,y,accId:acc,nature:'deposit',depositRole:inn?'received':'returned',smsHash:q.hash};
@@ -4311,13 +4320,14 @@ async function smsqSave(){
 }
 // ---------- bridge to «املاک» (same Firebase account) ----------
 // v24.5: the inbox is a small JSON file in the same private repo (works without VPN)
-async function ghInboxUpdate(mut){
+async function ghInboxUpdate(mut,file){
+  file=file||'amlak-inbox.json';
   for(let i=0;i<3;i++){
-    const g=await ghFetch('/contents/amlak-inbox.json');let sha,data={items:{}};
+    const g=await ghFetch('/contents/'+file);let sha,data={items:{}};
     if(g.ok){const j=await g.json();sha=j.sha;try{data=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));}catch(e){}}
     else if(g.status!==404)throw new Error(ghErr(g));
     if(!data.items)data.items={};mut(data);
-    const p=await ghFetch('/contents/amlak-inbox.json',{method:'PUT',body:JSON.stringify({message:'صندوق املاک',content:ghB64(JSON.stringify(data)),sha})});
+    const p=await ghFetch('/contents/'+file,{method:'PUT',body:JSON.stringify({message:file.startsWith('sarafi')?'صندوق صرافی':'صندوق املاک',content:ghB64(JSON.stringify(data)),sha})});
     if(p.ok)return true;if(p.status!==409&&p.status!==422)throw new Error(ghErr(p));
   }
   return false;
@@ -4802,6 +4812,36 @@ async function balFixOpening(id){
   await sv();openBalIssues();rDash();ntf('✅ موجودی اولیه اصلاح شد');
 }
 async function balOk(id){if(ST.bankBal&&ST.bankBal[id])ST.bankBal[id].ok=true;await sv();openBalIssues();rDash();}
+// ============================================================
+// v24.12 — BRIDGE TO «صرافی»
+//  • payments tagged «صرافی» in the SMS inbox → sarafi-inbox.json (Sarafi attaches them to a deal)
+//  • Sarafi publishes sarafi-status.json = its NET euro position in toman; the «ارز (یورو)»
+//    account is brought to that value with a revaluation (outside income/expense).
+// ============================================================
+function sarafiAcc(create){
+  let a=(ST.accounts||[]).find(x=>!x.archived&&x.bank==='ارز (یورو)')||(ST.accounts||[]).find(x=>!x.archived&&accKind(x)==='invest'&&/یورو/.test((x.bank||'')+(x.name||'')));
+  if(!a&&create){a={id:uid(),bank:'ارز (یورو)',name:'',accno:'',cardno:'',last4:'',exp:'',iban:'',color:'#B08D3E',initDate:(()=>{const t=today();return{y:t.y,m:t.m-1,d:t.d};})(),initBalance:0,openTxId:null};ST.accounts.push(a);}
+  return a;
+}
+async function flushSarafiOutbox(){
+  const box=ST.sarafiOutbox||[];if(!box.length||!ghOn())return 0;
+  try{const ok=await ghInboxUpdate(d=>{box.forEach(it=>{d.items[it.id]=it;});},'sarafi-inbox.json');
+    if(ok){const n=box.length;ST.sarafiOutbox=[];await sv();ntf(`💶 ${toFa(n)} مورد به «صرافی» ارسال شد`);return n;}}catch(e){}
+  return 0;
+}
+async function sarafiSync(){
+  if(!ghOn())return false;
+  try{const g=await ghFetch('/contents/sarafi-status.json');if(!g.ok)return false;const j=await g.json();
+    const st=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));
+    if(!st||typeof st.target!=='number'||!(st.at>(ST.sarafiAt||0)))return false;
+    const eu=sarafiAcc(true);const bal=calcAccBalance(eu.id);const diff=Math.round(st.target-bal);
+    if(Math.abs(diff)>=1){const t=today();ST.tx.push({id:uid(),tp:diff>0?'income':'expense',cat:'revaluation',a:Math.abs(diff),dsc:`به‌روزرسانی ارزش یورو (صرافی: ${nf(st.eur)} € × ${nf(st.mkt||0)})`,day:t.d,m:t.m-1,y:t.y,accId:eu.id,nature:'revaluation',sarafi:1});}
+    ST.sarafiAt=st.at;await sv();rDash();return true;
+  }catch(e){return false;}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&typeof ghOn==='function'&&ghOn()){flushSarafiOutbox();sarafiSync();}});
+function copyTok(id){const v=(document.getElementById(id)||{}).value||'';if(!v){ntf('⚠️ توکنی وارد نشده');return;}
+  (navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>ntf('📋 توکن کپی شد؛ در اپ دیگر بچسبانید')).catch(()=>{const el=document.getElementById(id);el.type='text';el.select();ntf('توکن را انتخاب و کپی کنید');});}
 function markTheme(){const k=ST.theme||'auto';document.querySelectorAll('#set-theme .tb').forEach(b=>{const on=b.dataset.k===k;b.style.background=on?'var(--grad)':'';b.style.color=on?'#fff':'';});}
 function openSetSheet(){rSett();markTheme();ghStatus();{const b=document.getElementById('set-fx');if(b)b.style.display=(ST.fx||[]).length?'':'none';}document.getElementById('setm').classList.add('on');}
 // Export rental data for the standalone «املاک» app. Read-only: nothing in
@@ -6360,7 +6400,7 @@ async function init(){
   setTimeout(chkRecurring, 3000);
   // v24.2: Firebase is optional and loaded in the background; the app never waits for Google.
   setTimeout(()=>{initFirebaseLazy().then(ok=>{if(ok)attachCloudListener();});},1500);
-  setTimeout(()=>{if(ghOn()&&(Date.now()-(+localStorage.getItem(GH_LAST)||0))>6*3600e3)ghBackup(true);if(ghOn())flushAmlakOutbox();},6000);
+  setTimeout(()=>{if(ghOn()&&(Date.now()-(+localStorage.getItem(GH_LAST)||0))>6*3600e3)ghBackup(true);if(ghOn()){flushAmlakOutbox();flushSarafiOutbox();sarafiSync();}},6000);
   setTimeout(chkLoansDue, 3500);
   // Auto-request notification permission on first launch
   if('Notification' in window && Notification.permission==='default'){
