@@ -1873,7 +1873,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.9';
+const APP_VERSION='v24.10';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2332,7 +2332,7 @@ function txHtml(t){
       loanDisbursement:{g:'linear-gradient(145deg,#8C6A3F,#5C4526)',ic:ICONS.coin||ICONS.more,
         sub:'دریافت وام — نقدینگی و بدهی؛ درآمد محسوب نمی‌شود'}
     }[nat];
-    return `<div class="txi">
+    return `<div class="txi" onclick="${nat==='deposit'?`edTx('${t.id}')`:'openLoanList()'}">
       <div class="txic" style="background:${META.g}">
         <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:#fff;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${META.ic}</svg>
       </div>
@@ -2545,6 +2545,7 @@ async function finishSaveTx(a,cat,dsc,day,m,y,accId){
   // v24.9: an edit used to rebuild the record from scratch and silently drop smsHash / stmtN / nature …
   const rec=Object.assign({},orig||{},{id:etx||uid(),tp:txtp,cat,a,dsc,day,m,y,accId});
   if(orig&&cat!==orig.cat&&['deposit','revaluation'].includes(orig.nature)){rec.nature='operating';delete rec.depositRole;} // re-categorised by hand
+  if(orig&&cat!==orig.cat)rec.userEdited=1; // v24.10: a later statement re-import must not undo this
   if(orig&&orig.isRent){rec.isRent=true;rec.tenantId=orig.tenantId;rec.payKey=orig.payKey;
     rec.contractId=orig.contractId;rec.propertyId=orig.propertyId;rec.rentPeriod=orig.rentPeriod;rec.nature='operating';}
   if(orig&&orig.isOpening){rec.isOpening=true;rec.tp='income';rec.cat='opening';}
@@ -4638,7 +4639,7 @@ function stmtBuild(){
     if(e.nature==='ignore'){if(best){used.add(best.id);S.tx=S.tx.filter(t=>t.id!==best.id);st.deleted++;}st.ignored++;continue;}
     if(best){used.add(best.id);st.matched++;
       const same=(e.nature==='operating'&&natureOf(best)==='operating')||(e.nature==='transfer'&&best.isTransfer)||(e.nature==='deposit'&&best.nature==='deposit');
-      if(!same&&STI.fix){
+      if(!same&&STI.fix&&!best.userEdited){
         if(best.isTransfer&&best.transferId){S.tx=S.tx.filter(t=>!(t.transferId===best.transferId&&t.id!==best.id));}
         mk(r,e,best);st.fixed++;
       }else{best.a=r.a;best.stmt=tag;best.stmtN=r.n;}
