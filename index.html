@@ -616,6 +616,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     <button class="btn btns" style="margin:0" onclick="exportCSV()">خروجی Excel (CSV)</button>
     <button class="btn btns" id="set-fx" style="margin:0;display:none" onclick="cls('setm');openFxList()">حواله‌های ارزی قبلی</button>
   </div>
+  <button class="btn btns" style="margin-top:8px" onclick="cls('setm');openSms()">📋 ورود دستی متن پیامک</button>
   <label class="btn btns" style="position:relative;display:flex;align-items:center;justify-content:center;margin-top:8px">📄 ورود صورتحساب بانکی<input type="file" accept=".json,application/json" onchange="stmtOpen(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
   <input type="file" id="imp2" accept=".json" style="display:none" onchange="restore(this)">
   <div id="v1-row" style="display:none" onclick="openV1Modal()"><span id="v1-lbl"></span></div>
@@ -688,7 +689,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <div class="fg"><label>دسته‌بندی</label><select id="tcat" onchange="tAmlakUI()"></select></div>
   <label id="tamlakw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-4px 2px 12px"><input type="checkbox" id="tamlak" style="width:18px;height:18px"> ارسال به «املاک» (پرداخت اجارهٔ مستأجر)</label>
   <div id="tamlaksent" style="display:none;font-size:12.5px;color:var(--gr);font-weight:700;margin:-4px 2px 12px">✓ این واریز قبلاً به «املاک» ارسال شده است</div>
-  <div class="fg"><label>مبلغ (تومان)</label><input type="number" id="tamt" inputmode="numeric" placeholder="مثال: 5000000"></div>
+  <div class="fg"><label>مبلغ (تومان)</label><input type="text" id="tamt" inputmode="numeric" autocomplete="off" placeholder="مثال: ۵٬۰۰۰٬۰۰۰" oninput="qaFmt(this)"></div>
   <div class="fg"><label>توضیحات</label><input type="text" id="tdsc" placeholder="اختیاری"></div>
   <div class="fg" id="acc-select-wrap">
     <label>حساب بانکی (اختیاری)</label>
@@ -726,7 +727,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="ov" id="qam">
 <div class="mdl">
   <div class="mh"></div>
-  <div class="ttog" id="qa-tp"><button class="tb te" data-k="expense" onclick="qaTp('expense')">هزینه</button><button class="tb" data-k="income" onclick="qaTp('income')">درآمد</button></div>
+  <div class="ttog" id="qa-tp" style="grid-template-columns:repeat(3,1fr)"><button class="tb te" data-k="expense" onclick="qaTp('expense')">هزینه</button><button class="tb" data-k="income" onclick="qaTp('income')">درآمد</button><button class="tb" data-k="transfer" onclick="qaTp('transfer')">انتقال</button></div>
   <input id="qa-amt" inputmode="numeric" autocomplete="off" placeholder="۰" oninput="qaFmt(this)" style="width:100%;font-size:32px;font-weight:800;text-align:center;border:none;background:transparent;color:var(--t1);outline:none;font-family:'Vazirmatn',sans-serif;margin:10px 0 0">
   <div style="text-align:center;font-size:12px;color:var(--t3);margin-bottom:10px">تومان</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
@@ -734,7 +735,13 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   </div>
   <div id="qa-cats" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px"></div>
   <div class="fg" id="qa-catsel-w" style="display:none"><select id="qa-cat"></select></div>
-  <div class="fg"><label>حساب</label><select id="qa-acc"></select></div>
+  <div class="fg" id="qa-accw"><label>حساب</label><select id="qa-acc"></select></div>
+  <div id="qa-trw" style="display:none">
+    <div class="fg"><label>از حساب</label><select id="qa-from" onchange="qaSfUI()"></select></div>
+    <div style="text-align:center;margin:-8px 0 2px"><button type="button" class="qchip" onclick="qaSwap()">⇅ جابه‌جا</button></div>
+    <div class="fg"><label>به حساب</label><select id="qa-to" onchange="qaSfUI()"></select></div>
+    <label id="qa-sfw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-4px 2px 12px"><input type="checkbox" id="qa-sf" style="width:18px;height:18px"> ارسال به «صرافی» (پرداخت/دریافت یک معاملهٔ یورو)</label>
+  </div>
   <div class="fg"><label>توضیح (اختیاری)</label><input id="qa-dsc" type="text"></div>
   <details style="margin:0 0 10px"><summary style="font-size:12.5px;color:var(--pr);font-weight:700;cursor:pointer">تاریخ: <span id="qa-datelbl">امروز</span></summary>
     <div class="dategrid" style="margin-top:8px">
@@ -742,12 +749,9 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
       <div class="fg"><label>ماه</label><select id="qa-mon" onchange="qaDate()"></select></div>
       <div class="fg"><label>سال</label><input type="number" id="qa-yr" inputmode="numeric" onchange="qaDate()"></div>
     </div></details>
+  <div id="qa-err" style="display:none;color:var(--rd);font-size:13px;font-weight:700;margin:0 2px 10px"></div>
   <button class="btn btnp" onclick="qaSave()">ثبت</button>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px">
-    <button class="btn btns" style="font-size:12px" onclick="cls('qam');openTransfer()">انتقال</button>
-    <button class="btn btns" style="font-size:12px" onclick="cls('qam');openSms()">پیامک بانکی</button>
-    <button class="btn btns" style="font-size:12px" onclick="cls('qam');openTx()">فرم کامل</button>
-  </div>
+  <button class="btn" style="background:transparent;color:var(--pr);font-size:12.5px;margin-top:2px" onclick="qaMore()">گزینه‌های بیشتر (فرم کامل) ›</button>
 </div>
 </div>
 <div id="undobar" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:9000;align-items:center;gap:14px;background:#1C2B45;color:#fff;padding:11px 16px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:13px;font-weight:600;white-space:nowrap">
@@ -1051,18 +1055,20 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="mdl">
   <div class="mh"></div>
   <h2 id="transmt">انتقال بین حساب‌ها</h2>
-  <div class="fg"><label>از حساب</label><select id="trans-from"></select></div>
+  <div class="fg"><label>از حساب</label><select id="trans-from" onchange="transSfUI()"></select></div>
   <div style="text-align:center;margin:-6px 0 8px;color:var(--t3)">
     <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
   </div>
-  <div class="fg"><label>به حساب</label><select id="trans-to"></select></div>
-  <div class="fg"><label>مبلغ (تومان)</label><input type="number" id="trans-amt" inputmode="numeric" placeholder="مبلغ انتقال"></div>
+  <div class="fg"><label>به حساب</label><select id="trans-to" onchange="transSfUI()"></select></div>
+  <div class="fg"><label>مبلغ (تومان)</label><input type="text" id="trans-amt" inputmode="numeric" autocomplete="off" placeholder="مبلغ انتقال" oninput="qaFmt(this)"></div>
   <div class="fg"><label>توضیحات (اختیاری)</label><input type="text" id="trans-dsc" placeholder="مثال: انتقال برای خرید"></div>
   <div class="dategrid">
     <div class="fg"><label>روز</label><input type="number" id="trans-day" min="1" max="31" inputmode="numeric"></div>
     <div class="fg"><label>ماه</label><select id="trans-mon"></select></div>
     <div class="fg"><label>سال</label><input type="number" id="trans-yr" inputmode="numeric"></div>
   </div>
+  <label id="trans-sfw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-2px 2px 12px"><input type="checkbox" id="trans-sf" style="width:18px;height:18px"> ارسال به «صرافی» (پرداخت/دریافت یک معاملهٔ یورو)</label>
+  <div id="trans-err" style="display:none;color:var(--rd);font-size:13px;font-weight:700;margin:0 2px 10px"></div>
   <button class="btn btnp" id="trans-savebtn" onclick="doTransfer()">
     <svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg>ثبت انتقال
   </button>
@@ -1877,7 +1883,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.12';
+const APP_VERSION='v24.13';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2492,7 +2498,7 @@ function edTx(id){
   const t=ST.tx.find(x=>x.id===id);if(!t)return;
   etx=id;
   document.getElementById('txmt').textContent='ویرایش تراکنش';
-  document.getElementById('tamt').value=t.a;document.getElementById('tdsc').value=t.dsc||'';
+  document.getElementById('tamt').value=nf(t.a);document.getElementById('tdsc').value=t.dsc||'';
   document.getElementById('tday').value=t.day;document.getElementById('tyr').value=t.y||1404;
   fillMon('tmon',t.m);styp(t.tp);
   setTimeout(()=>{const sel=document.getElementById('tcat');
@@ -4417,11 +4423,18 @@ function openQuick(){
   document.getElementById('qa-datelbl').textContent='امروز';
   const accs=activeAccounts();const last=accs.some(a=>a.id===ST.lastAccId)?ST.lastAccId:'';
   document.getElementById('qa-acc').innerHTML='<option value="">— بدون حساب —</option>'+accs.map(a=>`<option value="${a.id}"${a.id===last?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('');
+  const opt=sel=>'<option value="">انتخاب کنید…</option>'+accs.map(a=>`<option value="${a.id}"${a.id===sel?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('');
+  document.getElementById('qa-from').innerHTML=opt(last);document.getElementById('qa-to').innerHTML=opt('');
+  document.getElementById('qa-sf').checked=false;document.getElementById('qa-err').style.display='none';
   qaTp('expense');document.getElementById('qam').classList.add('on');
   setTimeout(()=>document.getElementById('qa-amt').focus(),250);
 }
 function qaTp(k){
   qaType=k;qaCat='';
+  {const tr=k==='transfer';document.getElementById('qa-trw').style.display=tr?'':'none';document.getElementById('qa-accw').style.display=tr?'none':'';
+   document.getElementById('qa-cats').style.display=tr?'none':'flex';if(tr)document.getElementById('qa-catsel-w').style.display='none';
+   document.getElementById('qa-err').style.display='none';
+   if(tr){document.querySelectorAll('#qa-tp .tb').forEach(b=>{b.className='tb'+(b.dataset.k==='transfer'?' ti':'');});qaSfUI();return;}}
   document.querySelectorAll('#qa-tp .tb').forEach(b=>{b.className='tb'+(b.dataset.k===k?(k==='income'?' ti':' te'):'');});
   // 6 most-used categories of this type in the last 120 days, then the rest in list order
   const t=today();const to=jalOrdinal(t.y,t.m-1,t.d);const cnt={};
@@ -4436,10 +4449,43 @@ function qaFmt(el){const v=toLn(el.value);el.value=v?nf(v):'';}
 function qaMul(k){const el=document.getElementById('qa-amt');const v=toLn(el.value)||1;el.value=nf(v*k);}
 function qaDate(){const d=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);const t=today();
   document.getElementById('qa-datelbl').textContent=(d===t.d&&m===t.m-1&&y===t.y)?'امروز':fmtDate(d,m,y);}
+function qaErr(m){const e=document.getElementById('qa-err');e.textContent=m;e.style.display='block';ntf(m);}
+function qaSwap(){const f=document.getElementById('qa-from'),t=document.getElementById('qa-to');const v=f.value;f.value=t.value;t.value=v;qaSfUI();}
+function isEuroAcc(id){const eu=sarafiAcc(false);return !!(eu&&id&&eu.id===id);}
+function qaSfUI(){const f=document.getElementById('qa-from').value,t=document.getElementById('qa-to').value;document.getElementById('qa-sfw').style.display=(isEuroAcc(f)||isEuroAcc(t))?'flex':'none';}
+function transSfUI(){const f=document.getElementById('trans-from').value,t=document.getElementById('trans-to').value;document.getElementById('trans-sfw').style.display=(!etrans&&(isEuroAcc(f)||isEuroAcc(t)))?'flex':'none';}
+function sfPushFromTransfer(fromId,toId,a,date){
+  const out=isEuroAcc(toId);if(!out&&!isEuroAcc(fromId))return;const other=out?fromId:toId;const ac=(ST.accounts||[]).find(x=>x.id===other);
+  if(!ST.sarafiOutbox)ST.sarafiOutbox=[];ST.sarafiOutbox.push({id:uid(),kind:out?'pay':'recv',a,date,bank:ac?ac.bank:'',acc:getAccName(other),createdAt:Date.now()});
+}
+function qaMore(){
+  const a=toLn(document.getElementById('qa-amt').value),dsc=document.getElementById('qa-dsc').value;
+  const d=document.getElementById('qa-day').value,m=document.getElementById('qa-mon').value,y=document.getElementById('qa-yr').value;cls('qam');
+  if(qaType==='transfer'){const f=document.getElementById('qa-from').value,t=document.getElementById('qa-to').value;openTransfer();
+    setTimeout(()=>{if(a)document.getElementById('trans-amt').value=nf(a);document.getElementById('trans-dsc').value=dsc;document.getElementById('trans-from').value=f;document.getElementById('trans-to').value=t;
+      document.getElementById('trans-day').value=d;document.getElementById('trans-mon').value=m;document.getElementById('trans-yr').value=y;transSfUI();},60);return;}
+  const acc=document.getElementById('qa-acc').value,cat=qaCat,tp=qaType;openTx();styp(tp);
+  setTimeout(()=>{if(a)document.getElementById('tamt').value=nf(a);document.getElementById('tdsc').value=dsc;document.getElementById('tday').value=d;document.getElementById('tmon').value=m;document.getElementById('tyr').value=y;
+    document.getElementById('tacc').value=acc;if(cat)document.getElementById('tcat').value=cat;},60);
+}
 async function qaSave(){
   const a=toLn(document.getElementById('qa-amt').value);
-  if(!(a>0)){ntf('⚠️ مبلغ را وارد کنید');hiErr('qa-amt');return;}
-  if(!qaCat){ntf('⚠️ یک دسته انتخاب کنید');return;}
+  if(!(a>0)){qaErr('⚠️ مبلغ را وارد کنید');hiErr('qa-amt');return;}
+  if(qaType==='transfer'){
+    const f=document.getElementById('qa-from').value,t=document.getElementById('qa-to').value;
+    if(!f||!t){qaErr('⚠️ حساب مبدأ و مقصد را انتخاب کنید');return;}
+    if(f===t){qaErr('⚠️ حساب مبدأ و مقصد یکسان است');return;}
+    const day=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);
+    if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){qaErr('⚠️ تاریخ نامعتبر است');hiErr('qa-day');return;}
+    const bal=calcAccBalance(f);if(bal<a&&!confirm(`موجودی «${getAccName(f)}» در اپ ${nf(bal)} تومان است (کمتر از مبلغ). اگر موجودی واقعی کافی است، ثبت شود؟`))return;
+    const dsc=document.getElementById('qa-dsc').value.trim()||'انتقال بین حساب‌ها';const transferId=uid();
+    ST.tx.push({id:uid(),tp:'expense',cat:'transfer',a,dsc:'انتقال به '+getAccName(t)+' · '+dsc,day,m,y,accId:f,isTransfer:true,transferId,nature:'transfer'},
+               {id:uid(),tp:'income',cat:'transfer',a,dsc:'دریافت از '+getAccName(f)+' · '+dsc,day,m,y,accId:t,isTransfer:true,transferId,nature:'transfer'});
+    const sf=document.getElementById('qa-sfw').style.display!=='none'&&document.getElementById('qa-sf').checked;
+    if(sf)sfPushFromTransfer(f,t,a,{y,m,d:day});
+    ST.lastAccId=f;cls('qam');rDash();rTx();await sv();if(sf)flushSarafiOutbox();return;
+  }
+  if(!qaCat){qaErr('⚠️ یک دسته انتخاب کنید');return;}
   const day=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);
   if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){ntf('⚠️ تاریخ نامعتبر است');hiErr('qa-day');return;}
   const acc=document.getElementById('qa-acc').value;
@@ -5974,7 +6020,7 @@ function openTransfer(id){
       const fromLeg=leg.tp==='expense'?leg:pair;
       const toLeg=leg.tp==='income'?leg:pair;
       document.getElementById('transmt').textContent='ویرایش انتقال';
-      document.getElementById('trans-amt').value=leg.a;
+      document.getElementById('trans-amt').value=nf(leg.a);
       document.getElementById('trans-dsc').value=stripTransferDsc(leg.dsc);
       document.getElementById('trans-day').value=leg.day;
       fillMon('trans-mon', leg.m);
@@ -5998,6 +6044,7 @@ function openTransfer(id){
   fillMon('trans-mon', t.m-1);
   document.getElementById('trans-yr').value=t.y;
   document.getElementById('dtransb').style.display='none';
+  {const e=document.getElementById('trans-err');e.style.display='none';document.getElementById('trans-sf').checked=false;setTimeout(transSfUI,40);}
   document.getElementById('transm').classList.add('on');
 }
 // Strip the auto-generated "انتقال به X ·" / "دریافت از X ·" prefix back to the user's own note
@@ -6014,6 +6061,7 @@ function findTransferPair(leg){
 }
 
 async function doTransfer(){
+  const E=m=>{const e=document.getElementById('trans-err');if(e){e.textContent=m;e.style.display='block';}ntf(m);};
   const fromId=document.getElementById('trans-from').value;
   const toId=document.getElementById('trans-to').value;
   const amt=toLn(document.getElementById('trans-amt').value);
@@ -6021,22 +6069,22 @@ async function doTransfer(){
   const day=parseInt(document.getElementById('trans-day').value)||today().d;
   const m=parseInt(document.getElementById('trans-mon').value);
   const y=parseInt(document.getElementById('trans-yr').value)||today().y;
-  if(!fromId||!toId){ntf('⚠️ هر دو حساب را انتخاب کنید');return;}
-  if(fromId===toId){ntf('⚠️ حساب مبدا و مقصد یکسان است');return;}
-  if(!amt||amt<=0){ntf('⚠️ مبلغ باید بزرگتر از صفر باشد');hiErr('trans-amt');return;}
-  if(amt>100000000000){ntf('⚠️ مبلغ انتقال غیرمنطقی است');hiErr('trans-amt');return;}
-  if(day<1||day>jMaxDay(m,y)){ntf('⚠️ روز با طول ماه انتخابی سازگار نیست');return;}
+  if(!fromId||!toId){E('⚠️ هر دو حساب را انتخاب کنید');return;}
+  if(fromId===toId){E('⚠️ حساب مبدا و مقصد یکسان است');return;}
+  if(!amt||amt<=0){E('⚠️ مبلغ باید بزرگتر از صفر باشد');hiErr('trans-amt');return;}
+  if(amt>100000000000){E('⚠️ مبلغ انتقال غیرمنطقی است');hiErr('trans-amt');return;}
+  if(day<1||day>jMaxDay(m,y)){E('⚠️ روز با طول ماه انتخابی سازگار نیست');return;}
 
   if(etrans){
     // Editing an existing transfer — update both linked legs together so they never desync
     const leg=ST.tx.find(t=>t.id===etrans);
-    if(!leg){ntf('⚠️ تراکنش یافت نشد');return;}
+    if(!leg){E('⚠️ تراکنش یافت نشد');return;}
     const pair=findTransferPair(leg);
     const fromLeg=leg.tp==='expense'?leg:pair;
     const toLeg=leg.tp==='income'?leg:pair;
     // Balance check: add the OLD amount back before checking, since it's being replaced
     const effectiveBal=calcAccBalance(fromId)+(fromLeg?fromLeg.a:0);
-    if(effectiveBal<amt){ntf('⚠️ موجودی حساب مبدا کافی نیست');return;}
+    if(effectiveBal<amt&&!confirm(`موجودی «${getAccName(fromId)}» در اپ ${nf(effectiveBal)} تومان است (کمتر از مبلغ). اگر موجودی واقعی کافی است، ثبت شود؟`))return;
     const newDsc1='انتقال به '+getAccName(toId)+' · '+dsc;
     const newDsc2='دریافت از '+getAccName(fromId)+' · '+dsc;
     if(fromLeg){fromLeg.a=amt;fromLeg.dsc=newDsc1;fromLeg.day=day;fromLeg.m=m;fromLeg.y=y;}
@@ -6046,11 +6094,12 @@ async function doTransfer(){
   }
 
   const fromBal=calcAccBalance(fromId);
-  if(fromBal<amt){ntf('⚠️ موجودی حساب مبدا کافی نیست');return;}
+  if(fromBal<amt&&!confirm(`موجودی «${getAccName(fromId)}» در اپ ${nf(fromBal)} تومان است (کمتر از مبلغ). اگر موجودی واقعی کافی است، ثبت شود؟`))return;
   const transferId=uid();
   ST.tx.push({id:uid(),tp:'expense',cat:'transfer',a:amt,dsc:'انتقال به '+getAccName(toId)+' · '+dsc,day,m,y,accId:fromId,isTransfer:true,transferId});
   ST.tx.push({id:uid(),tp:'income',cat:'transfer',a:amt,dsc:'دریافت از '+getAccName(fromId)+' · '+dsc,day,m,y,accId:toId,isTransfer:true,transferId});
-  await sv();cls('transm');ntf('✅ انتقال ثبت شد');rDash();rTx();
+  if(document.getElementById('trans-sf').checked)sfPushFromTransfer(fromId,toId,amt,{y,m,d:day});
+  await sv();cls('transm');ntf('✅ انتقال ثبت شد');rDash();rTx();flushSarafiOutbox();
 }
 async function delTransfer(){
   if(!etrans) return;
