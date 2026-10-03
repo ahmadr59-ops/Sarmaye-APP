@@ -296,6 +296,8 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 /* v24.11 layout guards */
 input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{font-size:16px}
 [style*="grid-template-columns"]>*{min-width:0}
+.mdl{position:relative}
+.x-close{position:absolute;top:12px;left:12px;width:34px;height:34px;border-radius:50%;border:none;background:var(--bg,rgba(0,0,0,.06));color:var(--t2);font-size:16px;font-weight:800;cursor:pointer;z-index:3;font-family:'Vazirmatn',sans-serif}
 .stt-sec-lbl{font-size:12px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-right:4px}
 .stt-list{background:var(--card);border:0.5px solid var(--border);border-radius:var(--rad);box-shadow:var(--sh);overflow:hidden;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
 .stt-row{display:flex;align-items:center;gap:14px;padding:15px 16px;border-bottom:0.5px solid var(--border);cursor:pointer}
@@ -728,13 +730,10 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="mdl">
   <div class="mh"></div>
   <div class="ttog" id="qa-tp" style="grid-template-columns:repeat(3,1fr)"><button class="tb te" data-k="expense" onclick="qaTp('expense')">هزینه</button><button class="tb" data-k="income" onclick="qaTp('income')">درآمد</button><button class="tb" data-k="transfer" onclick="qaTp('transfer')">انتقال</button></div>
-  <input id="qa-amt" inputmode="numeric" autocomplete="off" placeholder="۰" oninput="qaFmt(this)" style="width:100%;font-size:32px;font-weight:800;text-align:center;border:none;background:transparent;color:var(--t1);outline:none;font-family:'Vazirmatn',sans-serif;margin:10px 0 0">
-  <div style="text-align:center;font-size:12px;color:var(--t3);margin-bottom:10px">تومان</div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-    <button class="qchip" onclick="qaMul(1000)">× هزار</button><button class="qchip" onclick="qaMul(1000000)">× میلیون</button><button class="qchip" onclick="document.getElementById('qa-amt').value=''">پاک</button>
-  </div>
-  <div id="qa-cats" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px"></div>
-  <div class="fg" id="qa-catsel-w" style="display:none"><select id="qa-cat"></select></div>
+  <input id="qa-amt" inputmode="numeric" autocomplete="off" placeholder="۰" oninput="qaFmt(this);qaWords()" style="width:100%;font-size:32px;font-weight:800;text-align:center;border:none;background:transparent;color:var(--t1);outline:none;font-family:'Vazirmatn',sans-serif;margin:10px 0 0">
+  <div id="qa-words" style="text-align:center;font-size:13px;color:var(--t3);margin-bottom:12px;min-height:20px">تومان</div>
+  <div class="fg" id="qa-catw"><label>دسته</label><select id="qa-cat" onchange="qaCatPick(this.value)"></select></div>
+  <label id="qa-amlakw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-4px 2px 12px"><input type="checkbox" id="qa-amlak" style="width:18px;height:18px"> ارسال به «املاک» (پرداخت اجارهٔ مستأجر)</label>
   <div class="fg" id="qa-accw"><label>حساب</label><select id="qa-acc"></select></div>
   <div id="qa-trw" style="display:none">
     <div class="fg"><label>از حساب</label><select id="qa-from" onchange="qaSfUI()"></select></div>
@@ -743,15 +742,13 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     <label id="qa-sfw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-4px 2px 12px"><input type="checkbox" id="qa-sf" style="width:18px;height:18px"> ارسال به «صرافی» (پرداخت/دریافت یک معاملهٔ یورو)</label>
   </div>
   <div class="fg"><label>توضیح (اختیاری)</label><input id="qa-dsc" type="text"></div>
-  <details style="margin:0 0 10px"><summary style="font-size:12.5px;color:var(--pr);font-weight:700;cursor:pointer">تاریخ: <span id="qa-datelbl">امروز</span></summary>
-    <div class="dategrid" style="margin-top:8px">
-      <div class="fg"><label>روز</label><input type="number" id="qa-day" inputmode="numeric" onchange="qaDate()"></div>
-      <div class="fg"><label>ماه</label><select id="qa-mon" onchange="qaDate()"></select></div>
-      <div class="fg"><label>سال</label><input type="number" id="qa-yr" inputmode="numeric" onchange="qaDate()"></div>
-    </div></details>
+  <div class="fg"><label>تاریخ <button type="button" class="qchip" style="padding:2px 10px;margin-inline-start:6px;font-size:12px" onclick="qaToday()">امروز</button></label>
+    <div style="display:grid;grid-template-columns:1fr 1.4fr 1.1fr;gap:8px">
+      <select id="qa-day" aria-label="روز"></select><select id="qa-mon" onchange="qaDays()" aria-label="ماه"></select><select id="qa-yr" onchange="qaDays()" aria-label="سال"></select>
+    </div></div>
   <div id="qa-err" style="display:none;color:var(--rd);font-size:13px;font-weight:700;margin:0 2px 10px"></div>
   <button class="btn btnp" onclick="qaSave()">ثبت</button>
-  <button class="btn" style="background:transparent;color:var(--pr);font-size:12.5px;margin-top:2px" onclick="qaMore()">گزینه‌های بیشتر (فرم کامل) ›</button>
+
 </div>
 </div>
 <div id="undobar" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:9000;align-items:center;gap:14px;background:#1C2B45;color:#fff;padding:11px 16px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:13px;font-weight:600;white-space:nowrap">
@@ -1883,7 +1880,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.13';
+const APP_VERSION='v24.14';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -4419,8 +4416,7 @@ let qaType='expense',qaCat='';
 function openQuick(){
   qaType='expense';qaCat='';
   document.getElementById('qa-amt').value='';document.getElementById('qa-dsc').value='';
-  const t=today();document.getElementById('qa-day').value=t.d;document.getElementById('qa-yr').value=t.y;fillMon('qa-mon',t.m-1);
-  document.getElementById('qa-datelbl').textContent='امروز';
+  qaToday();document.getElementById('qa-words').textContent='تومان';document.getElementById('qa-amlak').checked=false;
   const accs=activeAccounts();const last=accs.some(a=>a.id===ST.lastAccId)?ST.lastAccId:'';
   document.getElementById('qa-acc').innerHTML='<option value="">— بدون حساب —</option>'+accs.map(a=>`<option value="${a.id}"${a.id===last?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('');
   const opt=sel=>'<option value="">انتخاب کنید…</option>'+accs.map(a=>`<option value="${a.id}"${a.id===sel?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('');
@@ -4431,24 +4427,33 @@ function openQuick(){
 }
 function qaTp(k){
   qaType=k;qaCat='';
-  {const tr=k==='transfer';document.getElementById('qa-trw').style.display=tr?'':'none';document.getElementById('qa-accw').style.display=tr?'none':'';
-   document.getElementById('qa-cats').style.display=tr?'none':'flex';if(tr)document.getElementById('qa-catsel-w').style.display='none';
-   document.getElementById('qa-err').style.display='none';
-   if(tr){document.querySelectorAll('#qa-tp .tb').forEach(b=>{b.className='tb'+(b.dataset.k==='transfer'?' ti':'');});qaSfUI();return;}}
-  document.querySelectorAll('#qa-tp .tb').forEach(b=>{b.className='tb'+(b.dataset.k===k?(k==='income'?' ti':' te'):'');});
-  // 6 most-used categories of this type in the last 120 days, then the rest in list order
+  const tr=k==='transfer';
+  document.getElementById('qa-trw').style.display=tr?'':'none';document.getElementById('qa-accw').style.display=tr?'none':'';
+  document.getElementById('qa-catw').style.display=tr?'none':'';document.getElementById('qa-err').style.display='none';
+  document.querySelectorAll('#qa-tp .tb').forEach(b=>{b.className='tb'+(b.dataset.k===k?(k==='expense'?' te':' ti'):'');});
+  if(tr){qaSfUI();qaRentUI();return;}
+  // dropdown: your most-used categories first (last 120 days), then all the rest, then «new category»
   const t=today();const to=jalOrdinal(t.y,t.m-1,t.d);const cnt={};
   ST.tx.forEach(x=>{if(x.tp!==k||!isPnL(x))return;const o=jalOrdinal(x.y||t.y,x.m||0,x.day||1);if(to-o>=0&&to-o<=120)cnt[x.cat]=(cnt[x.cat]||0)+1;});
-  const cats=(ST.cats[k]||[]).slice().sort((a,b)=>(cnt[b.id]||0)-(cnt[a.id]||0)).slice(0,6);
-  document.getElementById('qa-cats').innerHTML=cats.map(c=>`<button class="qchip" data-c="${c.id}" onclick="qaPick('${c.id}')">${esc(c.n)}</button>`).join('')+`<button class="qchip" onclick="qaMore()">سایر…</button>`;
-  fillCat('qa-cat',k);document.getElementById('qa-catsel-w').style.display='none';
+  const all=(ST.cats[k]||[]).slice();const top=all.filter(c=>cnt[c.id]).sort((a,b)=>cnt[b.id]-cnt[a.id]).slice(0,6);const rest=all.filter(c=>!top.includes(c));
+  const o=c=>`<option value="${c.id}">${esc(c.n)}</option>`;
+  document.getElementById('qa-cat').innerHTML='<option value="">انتخاب دسته…</option>'+(top.length?`<optgroup label="پرکاربرد">${top.map(o).join('')}</optgroup><optgroup label="همه">${rest.map(o).join('')}</optgroup>`:all.map(o).join(''))+'<option value="__new__">➕ دستهٔ جدید…</option>';
+  qaRentUI();
 }
-function qaPick(id){qaCat=id;document.querySelectorAll('#qa-cats .qchip').forEach(b=>b.classList.toggle('on',b.dataset.c===id));document.getElementById('qa-catsel-w').style.display='none';}
-function qaMore(){const w=document.getElementById('qa-catsel-w');w.style.display='';const sel=document.getElementById('qa-cat');sel.onchange=function(){if(this.value==='__new__'){openCat(qaType);this.value='';return;}qaCat=this.value;document.querySelectorAll('#qa-cats .qchip').forEach(b=>b.classList.remove('on'));};}
+function qaCatPick(v){if(v==='__new__'){document.getElementById('qa-cat').value='';openCat(qaType);return;}qaCat=v;qaRentUI();}
+function qaRentUI(){const isRent=qaType==='income'&&qaCat&&/اجاره/.test((getCat('income',qaCat)||{}).n||'');document.getElementById('qa-amlakw').style.display=isRent?'flex':'none';}
+function qaWords(){const a=toLn(document.getElementById('qa-amt').value);document.getElementById('qa-words').textContent=a?amtWords(a)+' تومان':'تومان';}
+function amtWords(a){const parts=[];const u=[[1e9,'میلیارد'],[1e6,'میلیون'],[1e3,'هزار']];let r=Math.round(a);
+  for(const [v,n] of u){const q=Math.floor(r/v);if(q){parts.push(toFa(q)+' '+n);r-=q*v;}}if(r)parts.push(toFa(r));return parts.join(' و ');}
+function qaDays(){const m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);const d=document.getElementById('qa-day');const cur=parseInt(d.value)||1;
+  const mx=jMaxDay(m,y);d.innerHTML=Array.from({length:mx},(_,i)=>`<option value="${i+1}">${toFa(i+1)}</option>`).join('');d.value=String(Math.min(cur,mx));}
+function qaToday(){const t=today();const y=document.getElementById('qa-yr');y.innerHTML=[t.y-2,t.y-1,t.y,t.y+1].map(v=>`<option value="${v}">${toFa(v)}</option>`).join('');y.value=String(t.y);
+  {const mo=document.getElementById('qa-mon');mo.innerHTML=MFA.map((n,i)=>`<option value="${i}">${n}</option>`).join('');mo.value=String(t.m-1);}const d=document.getElementById('qa-day');d.innerHTML='<option value="'+t.d+'"></option>';d.value=String(t.d);qaDays();d.value=String(t.d);}
+
+
 function qaFmt(el){const v=toLn(el.value);el.value=v?nf(v):'';}
-function qaMul(k){const el=document.getElementById('qa-amt');const v=toLn(el.value)||1;el.value=nf(v*k);}
-function qaDate(){const d=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);const t=today();
-  document.getElementById('qa-datelbl').textContent=(d===t.d&&m===t.m-1&&y===t.y)?'امروز':fmtDate(d,m,y);}
+
+
 function qaErr(m){const e=document.getElementById('qa-err');e.textContent=m;e.style.display='block';ntf(m);}
 function qaSwap(){const f=document.getElementById('qa-from'),t=document.getElementById('qa-to');const v=f.value;f.value=t.value;t.value=v;qaSfUI();}
 function isEuroAcc(id){const eu=sarafiAcc(false);return !!(eu&&id&&eu.id===id);}
@@ -4458,16 +4463,7 @@ function sfPushFromTransfer(fromId,toId,a,date){
   const out=isEuroAcc(toId);if(!out&&!isEuroAcc(fromId))return;const other=out?fromId:toId;const ac=(ST.accounts||[]).find(x=>x.id===other);
   if(!ST.sarafiOutbox)ST.sarafiOutbox=[];ST.sarafiOutbox.push({id:uid(),kind:out?'pay':'recv',a,date,bank:ac?ac.bank:'',acc:getAccName(other),createdAt:Date.now()});
 }
-function qaMore(){
-  const a=toLn(document.getElementById('qa-amt').value),dsc=document.getElementById('qa-dsc').value;
-  const d=document.getElementById('qa-day').value,m=document.getElementById('qa-mon').value,y=document.getElementById('qa-yr').value;cls('qam');
-  if(qaType==='transfer'){const f=document.getElementById('qa-from').value,t=document.getElementById('qa-to').value;openTransfer();
-    setTimeout(()=>{if(a)document.getElementById('trans-amt').value=nf(a);document.getElementById('trans-dsc').value=dsc;document.getElementById('trans-from').value=f;document.getElementById('trans-to').value=t;
-      document.getElementById('trans-day').value=d;document.getElementById('trans-mon').value=m;document.getElementById('trans-yr').value=y;transSfUI();},60);return;}
-  const acc=document.getElementById('qa-acc').value,cat=qaCat,tp=qaType;openTx();styp(tp);
-  setTimeout(()=>{if(a)document.getElementById('tamt').value=nf(a);document.getElementById('tdsc').value=dsc;document.getElementById('tday').value=d;document.getElementById('tmon').value=m;document.getElementById('tyr').value=y;
-    document.getElementById('tacc').value=acc;if(cat)document.getElementById('tcat').value=cat;},60);
-}
+
 async function qaSave(){
   const a=toLn(document.getElementById('qa-amt').value);
   if(!(a>0)){qaErr('⚠️ مبلغ را وارد کنید');hiErr('qa-amt');return;}
@@ -4485,14 +4481,16 @@ async function qaSave(){
     if(sf)sfPushFromTransfer(f,t,a,{y,m,d:day});
     ST.lastAccId=f;cls('qam');rDash();rTx();await sv();if(sf)flushSarafiOutbox();return;
   }
-  if(!qaCat){qaErr('⚠️ یک دسته انتخاب کنید');return;}
+  if(!qaCat){qaErr('⚠️ دسته را انتخاب کنید');return;}
   const day=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);
   if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){ntf('⚠️ تاریخ نامعتبر است');hiErr('qa-day');return;}
   const acc=document.getElementById('qa-acc').value;
-  ST.tx.push({id:uid(),tp:qaType,cat:qaCat,a,dsc:document.getElementById('qa-dsc').value.trim(),day,m,y,accId:acc,nature:'operating'});
+  const rec={id:uid(),tp:qaType,cat:qaCat,a,dsc:document.getElementById('qa-dsc').value.trim(),day,m,y,accId:acc,nature:'operating'};ST.tx.push(rec);
+  let toAmlak=false;if(document.getElementById('qa-amlakw').style.display!=='none'&&document.getElementById('qa-amlak').checked){if(!ST.amlakOutbox)ST.amlakOutbox=[];
+    const ac=(ST.accounts||[]).find(x=>x.id===acc);ST.amlakOutbox.push({id:uid(),kind:'rent',dir:'in',a,date:{y,m,d:day},bank:ac?ac.bank:'',acc:acc?getAccName(acc):'',createdAt:Date.now()});rec.amlakSent=1;toAmlak=true;}
   if(acc)ST.lastAccId=acc;
   if(qaType==='expense')budgetWarn(qaCat,m,y);
-  cls('qam');rDash();rTx();await sv();
+  cls('qam');rDash();rTx();await sv();if(toAmlak)flushAmlakOutbox();
 }
 // ---------- Undo (single-level, whole-state snapshot) ----------
 let __undoSnap=null,__undoTimer=null;
@@ -5105,6 +5103,9 @@ function ntf(msg){
   setTimeout(()=>n.classList.remove('on'),2500);
 }
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
+// v24.14: a ✕ on every sheet — closing means «cancel»
+document.querySelectorAll('.ov .mdl').forEach(m=>{if(m.querySelector('.x-close'))return;const b=document.createElement('button');b.type='button';b.className='x-close';b.textContent='✕';b.setAttribute('aria-label','بستن');
+  b.onclick=()=>{const o=m.closest('.ov');if(o)o.classList.remove('on');if(o&&o.id==='transm')etrans=null;};m.insertBefore(b,m.firstChild);});
 
 // ============================================================
 // SERVICE WORKER
