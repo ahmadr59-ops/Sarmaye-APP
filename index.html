@@ -1307,16 +1307,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 </div>
 
 <!-- Theme picker -->
-<div class="ov" id="thememdl">
-<div class="mdl">
-  <div class="mh"></div>
-  <h2>حالت نمایش</h2>
-  <button class="btn btns" onclick="setTheme('auto')">🌗 خودکار (هماهنگ با سیستم)</button>
-  <button class="btn btns" onclick="setTheme('light')">☀️ روشن</button>
-  <button class="btn btns" onclick="setTheme('dark')">🌙 تیره</button>
-  <button class="btn btns" onclick="cls('thememdl')" style="margin-top:6px">بستن</button>
-</div>
-</div>
+
 
 <script>
 // ============================================================
@@ -1686,6 +1677,12 @@ function migrateState(s){
   if(!Array.isArray(s.fx)) s.fx=[];
   // v24.4: repair duplicate transaction ids created by the old generator (keeps every record)
   {const seen=new Set();(s.tx||[]).forEach(t=>{if(!t.id||seen.has(t.id))t.id=uid();seen.add(t.id);});}
+  // v24.15: merge the many «به‌روزرسانی ارزش یورو» rows into ONE per account (same total); drop retired rent notifications
+  if(!s.revalV2){const by={};(s.tx||[]).forEach(t=>{if(t.nature==='revaluation'&&t.sarafi){(by[t.accId]=by[t.accId]||[]).push(t);}});
+    Object.entries(by).forEach(([acc,L])=>{if(L.length<2)return;const sum=L.reduce((a,t)=>a+(t.tp==='income'?t.a:-t.a),0);
+      const last=L.slice().sort((a,b)=>jalOrdinal(b.y,b.m,b.day)-jalOrdinal(a.y,a.m,a.day))[0];const ids=new Set(L.map(t=>t.id));
+      s.tx=s.tx.filter(t=>!ids.has(t.id));if(Math.round(sum)!==0)s.tx.push({...last,id:last.id,tp:sum>=0?'income':'expense',a:Math.abs(Math.round(sum))});});
+    s.notifLog=(s.notifLog||[]).filter(n=>!['rent','deposit','renew'].includes(n.type));s.revalV2=1;}
   // v24.8: old per-SMS mismatch flags were computed against TODAY's balance (false alarms); clear once
   if(!s.smsMmV2){Object.values(s.smsSeen||{}).forEach(v=>{if(v&&v.mm)v.mm=0;});s.smsMmV2=1;}
   // v23.3 bank-SMS inbox state
@@ -1880,7 +1877,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.14';
+const APP_VERSION='v24.15';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2038,7 +2035,7 @@ function applyTheme(){
 if(window.matchMedia){
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if((ST.theme||'auto')==='auto')applyTheme();});
 }
-async function setTheme(v){ST.theme=v;applyTheme();updateThemeLabel();cls('thememdl');await sv();}
+async function setTheme(v){ST.theme=v;applyTheme();updateThemeLabel();await sv();}
 function updateThemeLabel(){
   const el=document.getElementById('theme-lbl');
   if(el) el.textContent={auto:'خودکار (هماهنگ با سیستم)',light:'روشن',dark:'تیره'}[ST.theme||'auto'];
@@ -2434,7 +2431,8 @@ function setTxSearch(v){
 }
 function rTx(){
   renderAccFilterChips();
-  let txs=sortByDate([...ST.tx]); // ALL transactions, no month filter
+  let txs=sortByDate(ST.tx.filter(t=>!t.isOpening&&t.nature!=='revaluation')); // v24.15: real money movements only
+  const hiddenVal=ST.tx.filter(t=>t.nature==='revaluation').length;
   if(txFilter==='income') txs=txs.filter(t=>t.tp==='income');
   else if(txFilter==='expense') txs=txs.filter(t=>t.tp==='expense');
   if(txAccFilter) txs=txs.filter(t=>t.accId===txAccFilter);
@@ -2468,7 +2466,7 @@ function rTx(){
   const flush=()=>{if(!grp.length)return;const f=grp[0];let net=0;grp.forEach(x=>{if(isPnL(x))net+=x.tp==='income'?x.a:-x.a;});
     html+=`<div class="dayhdr"><span>${fmtDate(f.day||1,f.m||0,f.y||1404)}</span><span style="color:${net>0?'var(--gr)':net<0?'var(--rd)':'var(--t3)'}">${net?(net>0?'+':'−')+nf(Math.abs(net)):''}</span></div>`+grp.map(txHtml).join('');grp=[];};
   txs.forEach(x=>{const k=(x.y||1404)+'-'+(x.m||0)+'-'+(x.day||1);if(k!==key){flush();key=k;}grp.push(x);});flush();
-  c.innerHTML=html+(more?`<button class="btn btns" style="margin:14px 0" onclick="txMonths+=2;rTx()">نمایش ماه‌های قبل (${toFa(more)} ماه دیگر)</button>`:'');
+  c.innerHTML=html+(hiddenVal?`<div style="font-size:12.5px;color:var(--t3);text-align:center;margin:14px 8px 0;line-height:1.8">به‌روزرسانی‌های ارزش (یورو، پرتفوی) در این فهرست نیستند؛ اثرشان در «گزارش ← سرمایه‌گذاری‌ها» و موجودی حساب‌ها دیده می‌شود.</div>`:'')+(more?`<button class="btn btns" style="margin:14px 0" onclick="txMonths+=2;rTx()">نمایش ماه‌های قبل (${toFa(more)} ماه دیگر)</button>`:'');
 }
 let txMonths=2;
 function fillMon(id,sel){document.getElementById(id).innerHTML=MFA.map((m,i)=>`<option value="${i}"${i===sel?' selected':''}>${toFa(pad2(i+1))}</option>`).join('');}
@@ -3600,7 +3598,7 @@ function tenArrears(ten){
 function rPropTable(){
   const card=document.getElementById('propCard');
   const box=document.getElementById('propTbl');
-  if(!contracts().length){card.style.display='none';return;}
+  if(true){card.style.display='none';return;} // v24.15: rent is managed in «املاک»
   card.style.display='block';
   const y=SY;
   box.innerHTML=tenList().map(ten=>{
@@ -3855,75 +3853,7 @@ function testNotif(){
   ntf('🔔 اعلان ارسال شد');
 }
 // Check due rents and send notifications
-function chkDue(){
-  const t=today();
-  const pending=[];
-  const depPending=[];
-  const renewals=[];
-  tenList().forEach(ten=>{
-    // Renewal reminder: current month is the LAST rent month of the last period (or later)
-    const ce=contractEnd(ten);
-    const curIdx=t.y*12+(t.m-1);
-    if(curIdx>=ce.idx) renewals.push(ten);
-    const r=rentFor(ten,t.m-1,t.y);
-    if(r<=0) return; // no rent due this month
-    const dueDay=(tenPeriods(ten).slice(-1)[0].sd)||ten.start_d||1;
-    if(t.d>=dueDay){
-      const st=rentStatus(ten,t.y,t.m-1);
-      if(st.state==='none'||st.state==='partial'){
-        pending.push(ten);
-        if(Notification.permission==='granted'){
-          const msg=st.state==='partial'
-            ?`${ten.n} — اجاره ${fmtMonthYear(t.m-1,t.y)} ناقص است (${nf(st.paid)} از ${nf(st.due)} تومان)`
-            :`${ten.n} — اجاره ${fmtMonthYear(t.m-1,t.y)} پرداخت نشده`;
-          new Notification('سرمایه — یادآور اجاره',{body:msg,icon:'icon-192.png'});
-        }
-      }
-    }
-    // Deposit not yet received/returned
-    if(ten.dep>0&&!ten.depReceived&&!ten.depReturned&&ten.status!=='terminated'){
-      depPending.push(ten);
-      if(Notification.permission==='granted'){
-        new Notification('سرمایه — یادآور ودیعه',{
-          body:`${ten.n} — ودیعه واحد «${ten.unit}» به مبلغ ${nf(ten.dep)} تومان هنوز دریافت نشده`,
-          icon:'icon-192.png'
-        });
-      }
-    }
-  });
-  if(pending.length||depPending.length){
-    if(!ST.notifLog) ST.notifLog=[];
-    const today_str=`${t.y}/${t.m}/${t.d}`;
-    pending.forEach(ten=>{
-      const exists=ST.notifLog.find(n=>n.tenId===ten.id&&n.date===today_str&&n.type!=='deposit');
-      if(!exists){
-        ST.notifLog.unshift({id:uid(),tenId:ten.id,tenName:ten.n,type:'rent',
-          date:today_str,month:pad2(t.m),year:t.y,read:false});
-      }
-    });
-    depPending.forEach(ten=>{
-      const exists=ST.notifLog.find(n=>n.tenId===ten.id&&n.date===today_str&&n.type==='deposit');
-      if(!exists){
-        ST.notifLog.unshift({id:uid(),tenId:ten.id,tenName:ten.n,type:'deposit',depAmount:ten.dep,
-          date:today_str,month:pad2(t.m),year:t.y,read:false});
-      }
-    });
-    ST.notifLog=ST.notifLog.slice(0,30);
-    sv();
-  }
-  if(renewals.length){
-    if(!ST.notifLog) ST.notifLog=[];
-    const dstr=`${t.y}/${t.m}/${t.d}`;
-    let added=false;
-    renewals.forEach(r=>{
-      const exists=ST.notifLog.find(n=>n.type==='renew'&&n.tenId===r.id&&n.date===dstr);
-      if(!exists){ST.notifLog.unshift({id:uid(),tenId:r.id,tenName:r.n,type:'renew',date:dstr,month:pad2(t.m),year:t.y,read:false});added=true;}
-    });
-    if(added){ST.notifLog=ST.notifLog.slice(0,30);sv();}
-    ntf(`📋 قرارداد رو به پایان: ${renewals.map(r=>r.n).join('، ')} — تمدید کنید`);
-  }
-  chkNotifBadge();
-}
+
 
 function chkNotifBadge(){
   const unread=(ST.notifLog||[]).filter(n=>!n.read).length;
@@ -4878,7 +4808,9 @@ async function sarafiSync(){
   try{const g=await ghFetch('/contents/sarafi-status.json');if(!g.ok)return false;const j=await g.json();
     const st=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));
     if(!st||typeof st.target!=='number'||!(st.at>(ST.sarafiAt||0)))return false;
-    const eu=sarafiAcc(true);const bal=calcAccBalance(eu.id);const diff=Math.round(st.target-bal);
+    const eu=sarafiAcc(true);
+    ST.tx=ST.tx.filter(t=>!(t.accId===eu.id&&t.nature==='revaluation'&&t.sarafi));   // v24.15: replace, don't accumulate
+    const diff=Math.round(st.target-calcAccBalance(eu.id));
     if(Math.abs(diff)>=1){const t=today();ST.tx.push({id:uid(),tp:diff>0?'income':'expense',cat:'revaluation',a:Math.abs(diff),dsc:`به‌روزرسانی ارزش یورو (صرافی: ${nf(st.eur)} € × ${nf(st.mkt||0)})`,day:t.d,m:t.m-1,y:t.y,accId:eu.id,nature:'revaluation',sarafi:1});}
     ST.sarafiAt=st.at;await sv();rDash();return true;
   }catch(e){return false;}
@@ -5075,7 +5007,7 @@ async function applyBackupObject(p){
 // ============================================================
 // UI HELPERS
 // ============================================================
-function cls(id){document.getElementById(id).classList.remove('on');}
+function cls(id){const e=document.getElementById(id);if(e)e.classList.remove('on');}
 
 // Highlight input field with error shake animation, then restore
 function hiErr(id){
