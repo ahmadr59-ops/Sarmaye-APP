@@ -766,12 +766,11 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="mdl">
   <div class="mh"></div>
   <h2>پیامک بانکی</h2>
-  <p style="font-size:12px;color:var(--t2);line-height:1.8;margin:-8px 0 14px">مبلغ و تاریخ از روی پیامک تشخیص داده می‌شود. لطفاً نوع (درآمد/هزینه) و دسته‌بندی را خودتان انتخاب کنید.</p>
+  <p style="font-size:12px;color:var(--t2);line-height:1.8;margin:-8px 0 14px">متن یک یا چند پیامک بانک را بچسبانید (بین پیامک‌ها یک خط خالی). هر پیامک به «صندوق پیامک» می‌رود و آنجا مثل پیامک‌های Shortcut بررسی می‌شود؛ پیامکِ تکراری دوباره ثبت نمی‌شود.</p>
   <div class="fg"><label>متن پیامک را Paste کنید</label>
-    <textarea id="smst" placeholder="متن پیامک بانک را اینجا paste کنید..." rows="6"></textarea>
+    <textarea id="smst" placeholder="متن پیامک بانک را اینجا بچسبانید…" rows="6"></textarea>
   </div>
-  <button class="btn btnp" onclick="parseSms()"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>تشخیص خودکار</button>
-  <button class="btn btns" onclick="smsQueuePaste()">📩 افزودن به صندوق پیامک</button>
+  <button class="btn btnp" onclick="smsQueuePaste()">📩 افزودن به صندوق پیامک</button>
   <label class="btn btns" style="position:relative;display:flex;align-items:center;justify-content:center">📥 دریافت پیامک‌ها از فایل Shortcut<input type="file" accept=".txt,text/plain" onchange="smsImportFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
   <details style="margin:8px 0 4px"><summary style="font-size:12px;color:var(--pr);font-weight:700;cursor:pointer">راهنمای ساخت Shortcut دریافت خودکار پیامک</summary>
     <ol style="font-size:12px;color:var(--t2);line-height:2;padding-right:18px;margin-top:6px">
@@ -781,33 +780,15 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
       <li>همین Automation را یک بار دیگر برای پیامک بانک شهر بسازید؛ کلمهٔ <b>موجودي</b> را از خود پیامک کپی کنید (با «ي» عربی نوشته شده و تطبیق iOS دقیق است).</li>
       <li>هر وقت خواستید: همین‌جا «دریافت پیامک‌ها از فایل» ← انتخاب <code>sarmaye-sms.txt</code>. پیامک‌های تکراری خودکار کنار گذاشته می‌شوند.</li>
     </ol></details>
-  <div id="smsr" style="display:none;margin-top:12px"></div>
-  <div id="smsf" style="display:none;margin-top:8px">
-    <div class="ttog">
-      <button class="tb" id="sbi" onclick="sst('income')"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>درآمد</button>
-      <button class="tb" id="sbe" onclick="sst('expense')"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>هزینه</button>
-    </div>
-    <div class="fg"><label>دسته‌بندی</label><select id="scat"></select></div>
-    <div class="fg"><label>مبلغ (تومان)</label><input type="number" id="samt" inputmode="numeric">
-      <div style="display:flex;gap:6px;margin-top:6px">
-        <button type="button" onclick="scaleSmsAmount(0.1)" style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">تشخیص اشتباه بود، ریالی بود (÷۱۰)</button>
-        <button type="button" onclick="scaleSmsAmount(10)" style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif">تشخیص اشتباه بود، تومانی بود (×۱۰)</button>
-      </div>
-    </div>
-    <div class="fg"><label>توضیحات</label><input type="text" id="sdsc"></div>
-    <div class="fg" id="sacc-select-wrap">
-      <label>حساب بانکی (اختیاری)</label>
-      <select id="sacc">
-        <option value="">انتخاب نشده</option>
-      </select>
-    </div>
-    <div class="dategrid">
-      <div class="fg"><label>روز</label><input type="number" id="sday" min="1" max="31" inputmode="numeric"></div>
-      <div class="fg"><label>ماه</label><select id="smon"></select></div>
-      <div class="fg"><label>سال</label><input type="number" id="syr" inputmode="numeric"></div>
-    </div>
-    <button class="btn btnp" onclick="saveSms()"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>ثبت تراکنش</button>
-  </div>
+  <details style="margin:4px 0"><summary style="font-size:12px;color:var(--pr);font-weight:700;cursor:pointer">ارسال یک پیامک از Messages بدون کپی (Shortcut «ارسال به سرمایه»)</summary>
+    <ol style="font-size:12px;color:var(--t2);line-height:2;padding-right:18px;margin-top:6px">
+      <li>Shortcuts ← + ← نام: <b>ارسال به سرمایه</b> ← از ⓘ پایین صفحه <b>Show in Share Sheet</b> را روشن و ورودی را <b>Text</b> کنید.</li>
+      <li>اکشن <b>Text</b> با این سطرها: <code>###SMS</code> · <b>Current Date</b> (ISO 8601) · <code>دستی</code> · <b>Shortcut Input</b>.</li>
+      <li>اکشن <b>Append to Text File</b> ← همان فایل <code>Shortcuts/sarmaye-sms.txt</code> ← Make New Line روشن.</li>
+      <li>در Messages متن پیامک را انتخاب کنید ← <b>Share</b> ← <b>ارسال به سرمایه</b>. دفعهٔ بعد «📥 دریافت از فایل» آن را هم می‌آورد.</li>
+    </ol></details>
+  
+  
   <button class="btn btns" style="margin-top:10px" onclick="cls('smsm')">انصراف</button>
 </div>
 </div>
@@ -1877,7 +1858,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.15';
+const APP_VERSION='v24.16';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2761,89 +2742,7 @@ function maskCard(txt){
 }
 
 // ---- Main parse function ----
-function parseSms(){
-  const raw=document.getElementById('smst').value;
-  if(!raw.trim()){ntf('⚠️ متن پیامک را وارد کنید');return;}
 
-  // Normalize digits
-  const txt=normDigits(raw);
-
-  // v23.3: sender-profile engine (signed amounts, MM/DD dates, Persian/Arabic ی)
-  const _p        = parseBankSms('',raw);
-  const bankName  = _p.bank||detectBankName(raw);
-  const txType    = _p.tp;
-  const amount    = _p.a;
-  const balance   = _p.balKnown?_p.bal:0;
-  const date      = _p.d;
-
-  // Build result panel
-  const res=document.getElementById('smsr');
-  res.style.display='block';
-
-  const typeLabel = txType==='income'
-    ?'<span style="color:var(--gr);font-weight:700">واریز ↑</span>'
-    : txType==='expense'
-    ?'<span style="color:var(--rd);font-weight:700">برداشت ↓</span>'
-    :'<span style="color:var(--am)">نامشخص</span>';
-
-  const amountHtml = amount>0
-    ?`<div style="font-size:22px;font-weight:800;color:var(--t1);margin:8px 0 2px">${nf(amount)} <span style="font-size:13px;font-weight:600;color:var(--t3)">تومان</span></div>`
-    :`<div style="color:var(--rd);font-weight:600;margin:8px 0">⚠️ مبلغی تشخیص داده نشد — لطفاً دستی وارد کنید</div>`;
-
-  const dateHtml=`<div style="font-size:12.5px;color:var(--t2);margin-top:4px">📅 ${fmtDate(date.d,date.m,date.y)}</div>`;
-  const balHtml=balance>0
-    ?`<div style="font-size:12px;color:var(--pr);margin-top:6px;font-weight:600">💰 موجودی: ${nf(balance)} تومان</div>`:'';
-
-  res.innerHTML=`
-  <div class="smsbox">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
-      <div style="font-size:12px;font-weight:700;color:var(--t3)">نتیجه تشخیص</div>
-      ${typeLabel}
-    </div>
-    ${amountHtml}
-    ${dateHtml}
-    ${balHtml}
-    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-      <label style="font-size:12.5px;color:var(--t3);font-weight:600;display:block;margin-bottom:5px">بانک تشخیص داده‌شده</label>
-      <div style="display:flex;gap:6px">
-        <input type="text" id="sms-bank-edit" value="${bankName}"
-          placeholder="نام بانک..."
-          style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:'Vazirmatn',sans-serif;font-size:16px;font-weight:600;color:var(--t1);background:var(--bg)">
-        <button onclick="smsApplyBank()" style="padding:8px 12px;border-radius:10px;border:none;background:var(--prl);color:var(--pr);font-family:'Vazirmatn',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">اعمال</button>
-      </div>
-      ${(ST.accounts||[]).length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px">${(ST.accounts).map(a=>`<button onclick="document.getElementById('sms-bank-edit').value='${String(a.bank||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}';document.getElementById('sacc').value='${a.id}'" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);background:var(--card);font-family:'Vazirmatn',sans-serif;font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer">${esc(a.bank)}</button>`).join('')}</div>`:''}
-    </div>
-  </div>`;
-
-  // Show form
-  document.getElementById('smsf').style.display='block';
-  if(amount>0) document.getElementById('samt').value=amount;
-  document.getElementById('sday').value=date.d;
-  fillMon('smon', date.m);
-  document.getElementById('syr').value=date.y;
-  // Description: leave empty by default; user can optionally add their own note
-  document.getElementById('sdsc').value='';
-  // Account: populate selector and auto-select the account matching the detected bank
-  fillAccSelects();
-  autoSelectSmsAccount(bankName);
-  {const _acc=smsAccFor(_p);if(_acc.id)document.getElementById('sacc').value=_acc.id;}
-
-  // Auto-set type
-  if(txType) sst(txType); else sst('expense');
-
-  // Balance update offer
-  if(balance>0&&(ST.accounts||[]).length>0){
-    const balBtn=document.createElement('button');
-    balBtn.className='btn btns';
-    balBtn.style.marginTop='8px';
-    balBtn.innerHTML='📊 بروزرسانی موجودی حساب';
-    balBtn.onclick=()=>{
-      const bk=document.getElementById('sms-bank-edit')?.value||bankName;
-      cls('smsm');openBalanceUpdate(balance,bk);
-    };
-    res.appendChild(balBtn);
-  }
-}
 
 // Apply bank name change to description field + re-sync account selection
 function scaleSmsAmount(factor){
@@ -2880,30 +2779,7 @@ function sst(tp){
   document.getElementById('sbe').className='tb'+(tp==='expense'?' te':'');
   fillCat('scat',tp);
 }
-async function saveSms(){
-  if(!smtp){ntf('⚠️ نوع تراکنش (درآمد/هزینه) را انتخاب کنید');return;}
-  const a=toLn(document.getElementById('samt').value);
-  const cat=document.getElementById('scat').value;
-  const dsc=document.getElementById('sdsc').value.trim();
-  const accId=document.getElementById('sacc')?.value||'';
-  const day=parseInt(document.getElementById('sday').value);
-  const m=parseInt(document.getElementById('smon').value);
-  const y=parseInt(document.getElementById('syr').value)||today().y;
-  // --- Validation ---
-  if(!a||a<=0){ntf('⚠️ مبلغ باید بزرگتر از صفر باشد');hiErr('samt');return;}
-  if(a>100000000000){ntf('⚠️ مبلغ وارد شده غیرمنطقی است');hiErr('samt');return;}
-  if(!cat||cat===''||cat==='انتخاب کنید...'){ntf('⚠️ دسته‌بندی را انتخاب کنید');hiErr('scat');return;}
-  if(!day||day<1||day>31){ntf('⚠️ روز باید بین ۱ تا ۳۱ باشد');hiErr('sday');return;}
-  if(y<1380||y>1450){ntf('⚠️ سال وارد شده معتبر نیست');hiErr('syr');return;}
-  const maxDay=jMaxDay(m,y);
-  if(day>maxDay){ntf(`⚠️ ماه ${toFa(pad2(m+1))} حداکثر ${toFa(maxDay)} روز دارد`);hiErr('sday');return;}
-  const isDup=ST.tx.some(t=>!t.isTransfer&&!t.isRent&&!t.isOpening&&t.tp===smtp&&t.a===a&&t.day===day&&t.m===m&&t.y===y&&(t.accId||'')===(accId||''));
-  if(isDup){
-    openDupWarning(()=>finishSaveSms(cat,a,dsc,accId,day,m,y));
-    return;
-  }
-  await finishSaveSms(cat,a,dsc,accId,day,m,y);
-}
+
 async function finishSaveSms(cat,a,dsc,accId,day,m,y){
   const rec={id:uid(),tp:smtp,cat,a,dsc:dsc||'پیامک بانکی',day,m,y,accId};
   cls('smsm');ntf('✅ تراکنش ثبت شد');
@@ -3996,9 +3872,16 @@ function parseBankSms(sender,raw,ref){
   return{profile:P?P.id:'',bank,tp,a,bal,balKnown,d:{y:d.y,m:d.m-1,d:d.d},time,dateGuessed:guessed,keys:[...new Set(keys)],others:[...new Set(others)],ignore,hash:smsHash(snd.trim().toLowerCase()+'|'+t.trim())};
 }
 // Shortcut file: records start with a line «###SMS», then ISO date, sender, body
+// a block is a separate SMS only if it has an amount AND a transaction word («مانده/موجودی» alone is just a balance line)
+function looksLikeSms(t){t=String(t||'');return /[\d۰-۹][\d۰-۹,٬]{2,}/.test(t)&&/(برداشت|واریز|واريز|مبلغ|خرید|خريد|انتقال|(?:^|\n|:)\s*[+\-]\s*[\d۰-۹])/.test(t);}
 function splitSmsFile(text){
   const s=String(text||'').replace(/\r/g,'');
-  if(!/^###SMS\s*$/m.test(s)) return s.trim()?[{sender:'',recv:null,raw:s.trim()}]:[];
+  if(!/^###SMS\s*$/m.test(s)){
+    // v24.16: pasted text may hold several messages separated by a blank line — split only if EVERY block looks like a bank SMS
+    const blocks=s.split(/\n\s*\n+/).map(b=>b.trim()).filter(Boolean);
+    if(blocks.length>1&&blocks.every(looksLikeSms))return blocks.map(b=>({sender:'',recv:null,raw:b}));
+    return s.trim()?[{sender:'',recv:null,raw:s.trim()}]:[];
+  }
   return s.split(/^###SMS\s*$/m).map(c=>c.replace(/^\n+/,'')).filter(c=>c.trim()).map(c=>{
     const L=c.split('\n');let recv=null;
     const dt=Date.parse((L[0]||'').trim());
@@ -4741,7 +4624,10 @@ function rTodo(){
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:14px;font-weight:800;color:var(--t1)">📋 کارهای من</span>
       <button class="hlp" style="position:static;width:28px;height:28px;font-size:14px" onclick="showHelp(0)">؟</button></div>
     ${rows.length?rows.join(''):'<div style="font-size:13px;color:var(--t3);padding:6px 0 10px">✅ کاری باقی نمانده است.</div>'}
-    <label class="btn btns" style="margin:10px 0 0;position:relative;display:flex;align-items:center;justify-content:center;font-size:12.5px">📥 دریافت پیامک‌های بانک از فایل<input type="file" accept=".txt,text/plain" onchange="smsImportFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <button class="btn btns" style="margin:0;font-size:12.5px" onclick="smsPasteQuick()">📋 چسباندن پیامک</button>
+      <label class="btn btns" style="margin:0;position:relative;display:flex;align-items:center;justify-content:center;font-size:12.5px">📥 دریافت از فایل<input type="file" accept=".txt,text/plain" onchange="smsImportFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
+    </div>
   </div></div>`;
 }
 const HELP=[
@@ -4818,6 +4704,14 @@ async function sarafiSync(){
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&typeof ghOn==='function'&&ghOn()){flushSarafiOutbox();sarafiSync();}});
 function copyTok(id){const v=(document.getElementById(id)||{}).value||'';if(!v){ntf('⚠️ توکنی وارد نشده');return;}
   (navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>ntf('📋 توکن کپی شد؛ در اپ دیگر بچسبانید')).catch(()=>{const el=document.getElementById(id);el.type='text';el.select();ntf('توکن را انتخاب و کپی کنید');});}
+// v24.16: one-tap paste from the clipboard into the SMS inbox (falls back to the paste box)
+async function smsPasteQuick(){
+  let t='';try{if(navigator.clipboard&&navigator.clipboard.readText)t=await navigator.clipboard.readText();}catch(e){}
+  if(t&&looksLikeSms(t)){const res=smsImport(t);await sv();rDash();
+    if(!res.added){ntf(res.dup?'این پیامک قبلاً بررسی شده است':'پیامکی شناخته نشد');return;}
+    ntf(`📩 ${toFa(res.added)} پیامک به صندوق اضافه شد`);smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash===res.hashes[0]));openSmsQueue();return;}
+  openSms();if(t)document.getElementById('smst').value=t;
+}
 function markTheme(){const k=ST.theme||'auto';document.querySelectorAll('#set-theme .tb').forEach(b=>{const on=b.dataset.k===k;b.style.background=on?'var(--grad)':'';b.style.color=on?'#fff':'';});}
 function openSetSheet(){rSett();markTheme();ghStatus();{const b=document.getElementById('set-fx');if(b)b.style.display=(ST.fx||[]).length?'':'none';}document.getElementById('setm').classList.add('on');}
 // Export rental data for the standalone «املاک» app. Read-only: nothing in
@@ -5025,8 +4919,6 @@ function hiErr(id){
 }
 function openSms(){
   document.getElementById('smst').value='';
-  document.getElementById('smsr').style.display='none';
-  document.getElementById('smsf').style.display='none';
   document.getElementById('smsm').classList.add('on');
 }
 function ntf(msg){
