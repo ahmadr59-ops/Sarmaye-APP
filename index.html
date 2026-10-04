@@ -773,7 +773,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <h2>پیامک بانکی</h2>
   <p style="font-size:12px;color:var(--t2);line-height:1.8;margin:-8px 0 14px">متن یک یا چند پیامک بانک را بچسبانید (بین پیامک‌ها یک خط خالی). هر پیامک به «صندوق پیامک» می‌رود و آنجا مثل پیامک‌های Shortcut بررسی می‌شود؛ پیامکِ تکراری دوباره ثبت نمی‌شود.</p>
   <div class="fg"><label>متن پیامک را Paste کنید</label>
-    <textarea id="smst" placeholder="متن پیامک بانک را اینجا بچسبانید…" rows="6"></textarea>
+    <textarea id="smst" placeholder="متن پیامک بانک را اینجا بچسبانید…" rows="6" onpaste="setTimeout(()=>{if(looksLikeSms(this.value))smsQueuePaste();},80)"></textarea>
+  <div id="smsm-msg" style="display:none;font-size:13px;font-weight:600;color:var(--t1);background:var(--bg);border-radius:10px;padding:9px 11px;margin:6px 0 10px;line-height:1.9"></div>
   </div>
   <button class="btn btnp" onclick="smsQueuePaste()">📩 افزودن به صندوق پیامک</button>
   <label class="btn btns" style="position:relative;display:flex;align-items:center;justify-content:center">📥 دریافت پیامک‌ها از فایل Shortcut<input type="file" accept=".txt,text/plain" onchange="smsImportFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
@@ -1864,7 +1865,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.19';
+const APP_VERSION='v24.20';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2466,12 +2467,26 @@ function rTx(){
   c.innerHTML=html+(hiddenVal?`<div style="font-size:12.5px;color:var(--t3);text-align:center;margin:14px 8px 0;line-height:1.8">به‌روزرسانی‌های ارزش (یورو، پرتفوی) در این فهرست نیستند؛ اثرشان در «گزارش ← سرمایه‌گذاری‌ها» و موجودی حساب‌ها دیده می‌شود.</div>`:'')+(more?`<button class="btn btns" style="margin:14px 0" onclick="txMonths+=2;rTx()">نمایش ماه‌های قبل (${toFa(more)} ماه دیگر)</button>`:'');
 }
 let txMonths=2;
-function fillMon(id,sel){document.getElementById(id).innerHTML=MFA.map((m,i)=>`<option value="${i}"${i===sel?' selected':''}>${toFa(pad2(i+1))}</option>`).join('');}
+function fillMon(id,sel){document.getElementById(id).innerHTML=MFA.map((m,i)=>`<option value="${i}"${i===sel?' selected':''}>${m}</option>`).join('');}
+// v24.20: shared date controls (values stay numeric, so every save path is unchanged)
+const DAY_OPTS=()=>Array.from({length:31},(_,i)=>`<option value="${i+1}">${toFa(i+1)}</option>`).join('');
+const YEAR_OPTS=()=>{const cy=today().y;let h='';for(let y=1395;y<=cy+1;y++)h+=`<option value="${y}">${toFa(y)}</option>`;return h;};
+function dateMsg(d,m,y){if(!(y>1380&&y<1500))return '⚠️ سال نامعتبر است';const mx=jMaxDay(m,y);return d>mx?`⚠️ ${MFA[m]} ${toFa(mx)} روز دارد`:'⚠️ تاریخ نامعتبر است';}
+function upgradeDateInputs(){
+  [['tday','d'],['trans-day','d'],['loanpay-day','d'],['acc-init-d','d'],['tyr','y'],['trans-yr','y'],['loanpay-yr','y'],['acc-init-y','y']].forEach(([id,k])=>{
+    const el=document.getElementById(id);if(!el||el.tagName==='SELECT')return;const sel=document.createElement('select');sel.id=id;
+    sel.innerHTML=k==='d'?DAY_OPTS():YEAR_OPTS();el.replaceWith(sel);});
+}
+document.addEventListener('DOMContentLoaded',upgradeDateInputs);
+function catOptions(tp){
+  const t=today();const to=jalOrdinal(t.y,t.m-1,t.d);const cnt={};
+  ST.tx.forEach(x=>{if(x.tp!==tp||!isPnL(x))return;const o=jalOrdinal(x.y||t.y,x.m||0,x.day||1);if(to-o>=0&&to-o<=120)cnt[x.cat]=(cnt[x.cat]||0)+1;});
+  const all=(ST.cats[tp]||[]).slice();const top=all.filter(c=>cnt[c.id]).sort((a,b)=>cnt[b.id]-cnt[a.id]).slice(0,6);const rest=all.filter(c=>!top.includes(c));
+  const o=c=>`<option value="${c.id}">${esc(c.n)}</option>`;
+  return '<option value="">انتخاب دسته…</option>'+(top.length?`<optgroup label="پرکاربرد">${top.map(o).join('')}</optgroup><optgroup label="همه">${rest.map(o).join('')}</optgroup>`:all.map(o).join(''))+'<option value="__new__">➕ دستهٔ جدید…</option>';
+}
 function fillCat(id,tp){
-  document.getElementById(id).innerHTML=
-    '<option value="">انتخاب کنید...</option>'+
-    ST.cats[tp].map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join('')+
-    `<option value="__new__">➕ دسته‌بندی جدید</option>`;
+  document.getElementById(id).innerHTML=catOptions(tp);
   document.getElementById(id).onchange=function(){if(this.value==='__new__'){openCat(tp);this.value='';}};
 }
 function openTx(){
@@ -2531,7 +2546,7 @@ async function saveTx(){
   if(!y||y<1380||y>1450){ntf('⚠️ سال وارد شده معتبر نیست (۱۳۸۰–۱۴۵۰)');hiErr('tyr');return;}
   // Month-day validation (Jalali: months 1-6 = 31 days, 7-11 = 30 days, 12 = 29/30)
   const maxDay=jMaxDay(m,y);
-  if(day>maxDay){ntf(`⚠️ ماه ${toFa(pad2(m+1))} حداکثر ${toFa(maxDay)} روز دارد`);hiErr('tday');return;}
+  if(day>maxDay){ntf(dateMsg(day,m,y));hiErr('tday');return;}
   const accId=document.getElementById('tacc')?.value||'';
   // --- Duplicate detection (new transactions only, not edits) ---
   if(!etx){
@@ -4011,12 +4026,12 @@ function renderSmsQueue(){
     <div class="fg"><label>سود/کارمزدِ این قسط (تومان)</label><input id="smsq-int" inputmode="numeric" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
     <div style="font-size:12.5px;color:var(--t3);margin:-4px 2px 10px;line-height:1.7">اصل قسط از بدهی کم می‌شود؛ فقط سود به‌عنوان هزینه ثبت می‌شود.</div>
   </div>
-  <div id="smsq-catw" class="fg"><label>دسته‌بندی</label><div id="smsq-chips" style="display:flex;flex-wrap:wrap;gap:7px"></div><select id="smsq-cat" style="display:none;margin-top:8px"></select></div>
+  <div id="smsq-catw" class="fg"><label>دسته</label><select id="smsq-cat"></select></div>
   <div class="fg"><label>مبلغ (تومان)</label><input id="smsq-amt" inputmode="numeric" value="${p.a||''}" oninput="smsqBalCheck()"></div>
   <div class="dategrid">
-    <div class="fg"><label>روز</label><input type="number" id="smsq-day" value="${p.d.d}" inputmode="numeric"></div>
+    <div class="fg"><label>روز</label><select id="smsq-day">${DAY_OPTS()}</select></div>
     <div class="fg"><label>ماه</label><select id="smsq-mon"></select></div>
-    <div class="fg"><label>سال</label><input type="number" id="smsq-yr" value="${p.d.y}" inputmode="numeric"></div>
+    <div class="fg"><label>سال</label><select id="smsq-yr">${YEAR_OPTS()}</select></div>
   </div>
   <div class="fg"><label>توضیحات (اختیاری)</label><input id="smsq-dsc" type="text"></div>
   <label id="smsq-amlakw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" id="smsq-amlak" style="width:18px;height:18px"> این واریز، اجارهٔ یک ملک است (ارسال به «املاک»)</label>
@@ -4028,7 +4043,7 @@ function renderSmsQueue(){
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
     <button class="btn btns" onclick="smsqMove(-1)">قبلی</button><button class="btn btns" onclick="smsqMove(1)">بعدی (بعداً)</button>
   </div>`;
-  fillMon('smsq-mon',p.d.m);smsqSetTp(smsqTp);
+  fillMon('smsq-mon',p.d.m);document.getElementById('smsq-day').value=String(p.d.d);document.getElementById('smsq-yr').value=String(p.d.y);smsqSetTp(smsqTp);
 }
 function smsqSetTp(k){
   smsqTp=k;
@@ -4042,14 +4057,8 @@ function smsqSetTp(k){
   if(isPL){
     fillCat('smsq-cat',k);
     const acc=document.getElementById('smsq-acc').value;
-    const hint=(ST.smsCatHint||{})[acc+'|'+k];const sel=document.getElementById('smsq-cat');sel.style.display='none';
-    // chips: your 6 most-used categories of this type (last 120 days); «سایر…» opens the full list
-    const t0=today();const to=jalOrdinal(t0.y,t0.m-1,t0.d);const cnt={};
-    ST.tx.forEach(x=>{if(x.tp!==k||!isPnL(x))return;const o=jalOrdinal(x.y||t0.y,x.m||0,x.day||1);if(to-o>=0&&to-o<=120)cnt[x.cat]=(cnt[x.cat]||0)+1;});
-    let top=(ST.cats[k]||[]).slice().sort((a,b)=>(cnt[b.id]||0)-(cnt[a.id]||0)).slice(0,6);
-    if(hint&&!top.some(c=>c.id===hint)){const h=(ST.cats[k]||[]).find(c=>c.id===hint);if(h)top=[h].concat(top.slice(0,5));}
+    const hint=(ST.smsCatHint||{})[acc+'|'+k];const sel=document.getElementById('smsq-cat');
     sel.value=hint&&[...sel.options].some(o=>o.value===hint)?hint:'';
-    document.getElementById('smsq-chips').innerHTML=top.map(c=>`<button class="qchip${c.id===sel.value?' on':''}" data-c="${c.id}" onclick="smsqPick('${c.id}')">${esc(c.n)}</button>`).join('')+`<button class="qchip" onclick="smsqMoreCat()">سایر…</button>`;
   }
   if(k==='transfer'){
     const out=(ST.smsQueue[smsqIdx]||{p:{}}).p.tp!=='income';
@@ -4081,8 +4090,8 @@ function smsqBalCheck(){smsqDupeCheck();
     ?`<span style="color:var(--gr);font-weight:700">✓ موجودی طبق بانک (${nf(q.p.bal)}) با موجودی اپ پس از ثبت برابر است</span>`
     :`<span style="color:var(--am);font-weight:700">⚠️ موجودی طبق بانک ${nf(q.p.bal)}، در اپ پس از ثبت ${nf(after)} — اختلاف ${nf(diff)} تومان (احتمالاً تراکنشی ثبت نشده)</span>`;
 }
-function smsqPick(id){const sel=document.getElementById('smsq-cat');sel.value=id;document.querySelectorAll('#smsq-chips .qchip').forEach(b=>b.classList.toggle('on',b.dataset.c===id));}
-function smsqMoreCat(){const sel=document.getElementById('smsq-cat');sel.style.display='';sel.onchange=function(){if(this.value==='__new__'){openCat(smsqTp);this.value='';return;}document.querySelectorAll('#smsq-chips .qchip').forEach(b=>b.classList.remove('on'));};}
+
+
 function smsqFlow(){
   const el=document.getElementById('smsq-flow');if(!el)return;const q=ST.smsQueue[smsqIdx];if(!q)return;
   const a=document.getElementById('smsq-acc').value,b=document.getElementById('smsq-acc2').value;const out=q.p.tp!=='income';
@@ -4116,7 +4125,7 @@ async function smsqSave(){
   const y=parseInt(document.getElementById('smsq-yr').value);
   if(!acc){ntf('⚠️ حساب را انتخاب کنید');hiErr('smsq-acc');return;}
   if(!(a>0)){ntf('⚠️ مبلغ نامعتبر است');hiErr('smsq-amt');return;}
-  if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){ntf('⚠️ تاریخ نامعتبر است');hiErr('smsq-day');return;}
+  if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){ntf(dateMsg(day,m,y));hiErr('smsq-day');return;}
   smsLearn(q.p.keys,acc);
   const dsc=document.getElementById('smsq-dsc').value.trim();
   if(smsqTp==='transfer'){
@@ -4209,11 +4218,18 @@ function smsImportFile(input){
   r.readAsText(f);
 }
 async function smsQueuePaste(){
-  const raw=document.getElementById('smst').value;
-  if(!raw.trim()){ntf('⚠️ متن پیامک را وارد کنید');return;}
-  const res=smsImport(raw);await sv();rDash();
-  if(!res.added){ntf('این پیامک قبلاً بررسی شده است');return;}
-  cls('smsm');smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash===res.hashes[0]));openSmsQueue();
+  const raw=document.getElementById('smst').value;const msg=h=>{const e=document.getElementById('smsm-msg');e.innerHTML=h;e.style.display='block';};
+  if(!raw.trim())return msg('متن پیامک را این‌جا بچسبانید.');
+  const parts=splitSmsFile(raw),good=parts.filter(r=>looksLikeSms(r.raw)),skipped=parts.length-good.length;
+  if(!good.length)return msg('⚠️ متن پیامک بانک شناخته نشد: مبلغ یا نوع تراکنش (برداشت، واریز، خرید، انتقال) پیدا نشد.');
+  let inQ=null,seen=null,added=0;const hashes=[];
+  good.forEach(r=>{const p=parseBankSms(r.sender,r.raw,null);if(!inQ&&ST.smsQueue.some(q=>q.hash===p.hash))inQ=p.hash;else if(!seen&&ST.smsSeen[p.hash])seen=ST.smsSeen[p.hash];
+    const x=smsImport(r.raw);added+=x.added;hashes.push(...x.hashes);});
+  await sv();rDash();
+  if(added){cls('smsm');smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash===hashes[0]));openSmsQueue();ntf(`📩 ${toFa(added)} پیامک به صندوق اضافه شد`+(skipped?` (${toFa(skipped)} تکهٔ غیرپیامکی کنار گذاشته شد)`:''));return;}
+  if(inQ)return msg(`این پیامک <b>همین الان در صندوق</b> است و منتظر بررسی. <button class="qchip" onclick="cls('smsm');smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash==='${inQ}'));openSmsQueue()">باز کردن</button>`);
+  if(seen)return msg(`این پیامک <b>قبلاً بررسی و ثبت شده</b>${seen.at?' ('+new Date(seen.at).toLocaleDateString('fa-IR')+')':''}؛ دوباره ثبت نمی‌شود.`);
+  msg('چیزی اضافه نشد.');
 }
 
 
@@ -4280,12 +4296,7 @@ function qaTp(k){
   document.getElementById('qa-catw').style.display=tr?'none':'';document.getElementById('qa-err').style.display='none';
   document.querySelectorAll('#qa-tp .tb').forEach(b=>{b.className='tb'+(b.dataset.k===k?(k==='expense'?' te':' ti'):'');});
   if(tr){qaSfUI();qaRentUI();return;}
-  // dropdown: your most-used categories first (last 120 days), then all the rest, then «new category»
-  const t=today();const to=jalOrdinal(t.y,t.m-1,t.d);const cnt={};
-  ST.tx.forEach(x=>{if(x.tp!==k||!isPnL(x))return;const o=jalOrdinal(x.y||t.y,x.m||0,x.day||1);if(to-o>=0&&to-o<=120)cnt[x.cat]=(cnt[x.cat]||0)+1;});
-  const all=(ST.cats[k]||[]).slice();const top=all.filter(c=>cnt[c.id]).sort((a,b)=>cnt[b.id]-cnt[a.id]).slice(0,6);const rest=all.filter(c=>!top.includes(c));
-  const o=c=>`<option value="${c.id}">${esc(c.n)}</option>`;
-  document.getElementById('qa-cat').innerHTML='<option value="">انتخاب دسته…</option>'+(top.length?`<optgroup label="پرکاربرد">${top.map(o).join('')}</optgroup><optgroup label="همه">${rest.map(o).join('')}</optgroup>`:all.map(o).join(''))+'<option value="__new__">➕ دستهٔ جدید…</option>';
+  document.getElementById('qa-cat').innerHTML=catOptions(k);
   qaRentUI();
 }
 function qaCatPick(v){if(v==='__new__'){document.getElementById('qa-cat').value='';openCat(qaType);return;}qaCat=v;qaRentUI();}
@@ -4294,7 +4305,7 @@ function qaWords(){const a=toLn(document.getElementById('qa-amt').value);documen
 function amtWords(a){const parts=[];const u=[[1e9,'میلیارد'],[1e6,'میلیون'],[1e3,'هزار']];let r=Math.round(a);
   for(const [v,n] of u){const q=Math.floor(r/v);if(q){parts.push(toFa(q)+' '+n);r-=q*v;}}if(r)parts.push(toFa(r));return parts.join(' و ');}
 function qaDays(){const m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);const d=document.getElementById('qa-day');const cur=parseInt(d.value)||1;
-  const mx=jMaxDay(m,y);d.innerHTML=Array.from({length:mx},(_,i)=>`<option value="${i+1}">${toFa(i+1)}</option>`).join('');d.value=String(Math.min(cur,mx));}
+  if(d.options.length!==31)d.innerHTML=DAY_OPTS();d.value=String(cur);}
 function qaToday(){const t=today();const y=document.getElementById('qa-yr');y.innerHTML=[t.y-2,t.y-1,t.y,t.y+1].map(v=>`<option value="${v}">${toFa(v)}</option>`).join('');y.value=String(t.y);
   {const mo=document.getElementById('qa-mon');mo.innerHTML=MFA.map((n,i)=>`<option value="${i}">${n}</option>`).join('');mo.value=String(t.m-1);}const d=document.getElementById('qa-day');d.innerHTML='<option value="'+t.d+'"></option>';d.value=String(t.d);qaDays();d.value=String(t.d);}
 
@@ -4320,7 +4331,7 @@ async function qaSave(){
     if(!f||!t){qaErr('⚠️ حساب مبدأ و مقصد را انتخاب کنید');return;}
     if(f===t){qaErr('⚠️ حساب مبدأ و مقصد یکسان است');return;}
     const day=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);
-    if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){qaErr('⚠️ تاریخ نامعتبر است');hiErr('qa-day');return;}
+    if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){qaErr(dateMsg(day,m,y));hiErr('qa-day');return;}
     const bal=calcAccBalance(f);if(bal<a&&!confirm(`موجودی «${getAccName(f)}» در اپ ${nf(bal)} تومان است (کمتر از مبلغ). اگر موجودی واقعی کافی است، ثبت شود؟`))return;
     const dsc=document.getElementById('qa-dsc').value.trim()||'انتقال بین حساب‌ها';const transferId=uid();
     ST.tx.push({id:uid(),tp:'expense',cat:'transfer',a,dsc:'انتقال به '+getAccName(t)+' · '+dsc,day,m,y,accId:f,isTransfer:true,transferId,nature:'transfer'},
@@ -4331,7 +4342,7 @@ async function qaSave(){
   }
   if(!qaCat){qaErr('⚠️ دسته را انتخاب کنید');return;}
   const day=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);
-  if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){ntf('⚠️ تاریخ نامعتبر است');hiErr('qa-day');return;}
+  if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){qaErr(dateMsg(day,m,y));hiErr('qa-day');return;}
   const acc=document.getElementById('qa-acc').value;
   const rec={id:uid(),tp:qaType,cat:qaCat,a,dsc:document.getElementById('qa-dsc').value.trim(),day,m,y,accId:acc,nature:'operating'};ST.tx.push(rec);
   let toAmlak=false;if(document.getElementById('qa-amlakw').style.display!=='none'&&document.getElementById('qa-amlak').checked){if(!ST.amlakOutbox)ST.amlakOutbox=[];
@@ -4741,11 +4752,9 @@ function copyTok(id){const v=(document.getElementById(id)||{}).value||'';if(!v){
   (navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>ntf('📋 توکن کپی شد؛ در اپ دیگر بچسبانید')).catch(()=>{const el=document.getElementById(id);el.type='text';el.select();ntf('توکن را انتخاب و کپی کنید');});}
 // v24.16: one-tap paste from the clipboard into the SMS inbox (falls back to the paste box)
 async function smsPasteQuick(){
-  let t='';try{if(navigator.clipboard&&navigator.clipboard.readText)t=await navigator.clipboard.readText();}catch(e){}
-  if(t&&looksLikeSms(t)){const res=smsImport(t);await sv();rDash();
-    if(!res.added){ntf(res.dup?'این پیامک قبلاً بررسی شده است':'پیامکی شناخته نشد');return;}
-    ntf(`📩 ${toFa(res.added)} پیامک به صندوق اضافه شد`);smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash===res.hashes[0]));openSmsQueue();return;}
-  openSms();if(t)document.getElementById('smst').value=t;
+  // v24.20: no clipboard API (iOS waits on an easy-to-miss «Paste» bubble) — open the box at once, ready to paste;
+  // pasting an SMS there adds it to the inbox automatically
+  openSms();setTimeout(()=>document.getElementById('smst').focus(),120);
 }
 // ============================================================
 // v24.18 — WHERE DID THIS RECORD COME FROM? (source, created time, look-alikes)
@@ -4979,6 +4988,7 @@ function hiErr(id){
   },2000);
 }
 function openSms(){
+  {const m=document.getElementById('smsm-msg');if(m){m.style.display='none';m.innerHTML='';}const t=document.getElementById('smst');if(t)t.value='';}
   document.getElementById('smst').value='';
   document.getElementById('smsm').classList.add('on');
 }
@@ -5379,7 +5389,7 @@ async function confirmPayInstallment(){
   if(!accId){ntf('⚠️ حساب پرداخت را انتخاب کنید');return;}
   if(calcAccBalance(accId)<amt&&!confirm('موجودی حساب کمتر از مبلغ قسط است. ادامه می‌دهید؟')) return;
   const pd=parseInt(document.getElementById('loanpay-day').value),pm=parseInt(document.getElementById('loanpay-mon').value),py=parseInt(document.getElementById('loanpay-yr').value);
-  if(!(py>1380&&py<1500)||!(pd>=1&&pd<=jMaxDay(pm,py))){ntf('⚠️ تاریخ پرداخت نامعتبر است');hiErr('loanpay-day');return;}
+  if(!(py>1380&&py<1500)||!(pd>=1&&pd<=jMaxDay(pm,py))){ntf(dateMsg(pd,pm,py));hiErr('loanpay-day');return;}
   ensureLoanCat();
   const insId=uid();
   if(principal>0){
@@ -5960,7 +5970,7 @@ async function doTransfer(){
   if(fromId===toId){E('⚠️ حساب مبدا و مقصد یکسان است');return;}
   if(!amt||amt<=0){E('⚠️ مبلغ باید بزرگتر از صفر باشد');hiErr('trans-amt');return;}
   if(amt>100000000000){E('⚠️ مبلغ انتقال غیرمنطقی است');hiErr('trans-amt');return;}
-  if(day<1||day>jMaxDay(m,y)){E('⚠️ روز با طول ماه انتخابی سازگار نیست');return;}
+  if(day<1||day>jMaxDay(m,y)){E(dateMsg(day,m,y));return;}
 
   if(etrans){
     // Editing an existing transfer — update both linked legs together so they never desync
