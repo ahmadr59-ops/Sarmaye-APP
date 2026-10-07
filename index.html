@@ -1045,6 +1045,17 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 </div>
 
 <!-- MODAL: Transfer between accounts -->
+<div class="ov" id="valm">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2 id="valm-t">ارزش امروز</h2>
+  <div id="valm-cur" style="font-size:13px;color:var(--t2);line-height:1.9;margin:-6px 0 12px"></div>
+  <div class="fg"><label>ارزش امروز (تومان) — همان «ارزش روز» در اپ کارگزاری</label><input type="text" id="valm-v" inputmode="numeric" autocomplete="off" oninput="qaFmt(this)"></div>
+  <div id="valm-err" style="display:none;color:var(--rd);font-size:13px;font-weight:700;margin:0 2px 10px"></div>
+  <button class="btn btnp" onclick="saveVal()">ثبت ارزش امروز</button>
+  <div id="valm-hist" style="margin-top:10px"></div>
+</div>
+</div>
 <div class="ov" id="transm">
 <div class="mdl">
   <div class="mh"></div>
@@ -1675,6 +1686,13 @@ function migrateState(s){
   if(!Array.isArray(s.fx)) s.fx=[];
   // v24.4: repair duplicate transaction ids created by the old generator (keeps every record)
   {const seen=new Set();(s.tx||[]).forEach(t=>{if(!t.id||seen.has(t.id))t.id=uid();seen.add(t.id);});}
+  // v24.24: one revaluation row per investment account; seed value history (date = last revaluation, else account start)
+  if(!s.valV1&&Array.isArray(s.accounts)&&Array.isArray(s.tx)){s.valHist=s.valHist||{};
+    s.accounts.filter(a=>accKind(a)==='invest').forEach(a=>{mergeReval(s,a.id);if(s.valHist[a.id])return;
+      const bal=s.tx.reduce((x,t)=>t.accId===a.id?x+(t.tp==='income'?t.a:-t.a):x,0);const rv=s.tx.find(t=>t.accId===a.id&&t.nature==='revaluation'&&!t.sarafi);
+      const d=rv?{y:rv.y,m:rv.m,d:rv.day}:(a.initDate?{y:a.initDate.y,m:a.initDate.m,d:a.initDate.d}:null);
+      if(d&&bal>0)s.valHist[a.id]=[{d,v:Math.round(bal),at:0}];});
+    s.valV1=1;}
   // v24.23: non-bank texts that slipped into the SMS inbox are removed
   if(Array.isArray(s.smsQueue))s.smsQueue=s.smsQueue.filter(q=>(q.p&&q.p.a>0)||looksLikeSms(q.raw));
   // v24.15: merge the many «به‌روزرسانی ارزش یورو» rows into ONE per account (same total); drop retired rent notifications
@@ -1877,7 +1895,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.23';
+const APP_VERSION='v24.24';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2176,7 +2194,7 @@ function rDash(){
     if(bd){
       if(ST.accounts&&ST.accounts.length){
         const g=nwGroups();bd.style.display='block';
-        bd.textContent=NW_SHOW?`نقد و بانک ${nf(g.cash)}`+(g.inv?` · سرمایه‌گذاری ${nf(g.inv)}`:'')+(g.liab?` · بدهی ${nf(g.liab)}`:''):'برای دیدن دارایی، روی 👁 بزنید';
+        rValRow();bd.textContent=NW_SHOW?`نقد و بانک ${nf(g.cash)}`+(g.inv?` · سرمایه‌گذاری ${nf(g.inv)}`:'')+(g.liab?` · بدهی ${nf(g.liab)}`:''):'برای دیدن دارایی، روی 👁 بزنید';
       }
       else bd.style.display='none';
     }
@@ -4647,6 +4665,55 @@ function nwGroups(){
   let cash=0,inv=0;(ST.accounts||[]).forEach(a=>{const b=calcAccBalance(a.id);if(accKind(a)==='invest')inv+=b;else cash+=b;});
   return{cash,inv,liab:debtsTotal()+depositLiability()};
 }
+// ============================================================
+// v24.24 — MANUALLY VALUED INVESTMENTS (Mofid portfolio, crypto…): value + «as of» date,
+// one-tap update, ONE running revaluation row per account (outside income/expense).
+// The euro account is excluded — «صرافی» keeps it current.
+// ============================================================
+let valAcc=null;
+function manualInv(){const eu=(typeof sarafiAcc==='function')?sarafiAcc(false):null;return (ST.accounts||[]).filter(a=>!a.archived&&accKind(a)==='invest'&&!(eu&&eu.id===a.id));}
+function todayOrd(){const t=today();return jalOrdinal(t.y,t.m-1,t.d);}
+function valLast(id){const h=(ST.valHist||{})[id]||[];return h.length?h[h.length-1]:null;}
+function valAge(id){const l=valLast(id);return l?todayOrd()-jalOrdinal(l.d.y,l.d.m,l.d.d):null;}
+function ageTxt(n){return n===null?'تاریخ ارزش‌گذاری نامعلوم':n<=0?'امروز':n===1?'دیروز':toFa(n)+' روز پیش';}
+function rValRow(){
+  let el=document.getElementById('valRow');const bd=document.getElementById('netWorthBreak');if(!bd)return;
+  if(!el){el=document.createElement('div');el.id='valRow';el.style.cssText='margin-top:8px;display:flex;flex-direction:column;gap:6px';bd.insertAdjacentElement('afterend',el);}
+  const L=manualInv();if(!L.length){el.innerHTML='';return;}
+  el.innerHTML=L.map(a=>{const ag=valAge(a.id),old=ag===null||ag>7;
+    return `<button onclick="openVal('${a.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;border:0;border-radius:12px;padding:7px 11px;font-family:'Vazirmatn',sans-serif;font-size:12.5px;cursor:pointer;text-align:right;background:${old?'rgba(255,184,0,.22)':'rgba(255,255,255,.14)'};color:#fff">
+      <span>📈 ${esc(a.bank)}${a.name?' — '+esc(a.name):''}: <b>${NW_SHOW?nf(calcAccBalance(a.id)):'••••••'}</b></span><span style="white-space:nowrap">${old?'⚠️ ':''}${ageTxt(ag)} · به‌روزرسانی ›</span></button>`;}).join('');
+}
+function openVal(id){
+  const a=(ST.accounts||[]).find(x=>x.id===id);if(!a)return;valAcc=id;
+  document.getElementById('valm-t').textContent='ارزش امروز — '+a.bank+(a.name?' ('+a.name+')':'');
+  document.getElementById('valm-cur').innerHTML=`ارزش فعلی در اپ: <b>${nf(calcAccBalance(id))}</b> تومان · آخرین به‌روزرسانی: <b>${ageTxt(valAge(id))}</b>`;
+  document.getElementById('valm-v').value='';document.getElementById('valm-err').style.display='none';
+  const h=((ST.valHist||{})[id]||[]).slice(-8).reverse();
+  document.getElementById('valm-hist').innerHTML=h.length?`<div style="font-size:12.5px;font-weight:800;color:var(--t2);margin-bottom:4px">ارزش‌های ثبت‌شده</div>`+h.map((x,i)=>{const prev=h[i+1];const ch=prev?x.v-prev.v:null;
+    return `<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--border)"><span>${fmtDate(x.d.d,x.d.m,x.d.y)}</span><span><b>${nf(x.v)}</b>${ch===null?'':` <span style="color:${ch>=0?'var(--gr)':'var(--rd)'}">(${ch>=0?'+':'−'}${nf(Math.abs(ch))})</span>`}</span></div>`;}).join(''):'';
+  document.getElementById('valm').classList.add('on');setTimeout(()=>document.getElementById('valm-v').focus(),250);
+}
+function mergeReval(S,id){   // ONE revaluation row per account; total (and so the balance) unchanged
+  const L=S.tx.filter(t=>t.accId===id&&t.nature==='revaluation'&&!t.sarafi);if(L.length<2)return;
+  const sum=L.reduce((a,t)=>a+(t.tp==='income'?t.a:-t.a),0);const last=L.slice().sort((a,b)=>jalOrdinal(b.y,b.m,b.day)-jalOrdinal(a.y,a.m,a.day))[0];
+  const ids=new Set(L.map(t=>t.id));S.tx=S.tx.filter(t=>!ids.has(t.id));
+  if(Math.round(sum)!==0)S.tx.push({...last,tp:sum>=0?'income':'expense',a:Math.abs(Math.round(sum)),dsc:'به‌روزرسانی ارزش (پرتفوی)'});
+}
+async function saveVal(){
+  const id=valAcc;const v=toLn(document.getElementById('valm-v').value);const E=m=>{const e=document.getElementById('valm-err');e.textContent=m;e.style.display='block';};
+  if(!(v>0))return E('⚠️ ارزش امروز را وارد کنید');
+  const cur=calcAccBalance(id);if(cur>0&&Math.abs(v-cur)/cur>0.2&&!confirm(`ارزش جدید ${nf(v)} با ارزش فعلی ${nf(cur)} بیش از ۲۰٪ فرق دارد (شاید صفر کم یا زیاد شده). درست است؟`))return;
+  const before=JSON.stringify(ST);const t=today();
+  ST.tx=ST.tx.filter(x=>!(x.accId===id&&x.nature==='revaluation'&&!x.sarafi));
+  const diff=Math.round(v-calcAccBalance(id));
+  if(diff)ST.tx.push({id:uid(),tp:diff>0?'income':'expense',cat:'revaluation',a:Math.abs(diff),dsc:'به‌روزرسانی ارزش (پرتفوی)',day:t.d,m:t.m-1,y:t.y,accId:id,nature:'revaluation',valManual:1});
+  if(!ST.valHist)ST.valHist={};const h=ST.valHist[id]||(ST.valHist[id]=[]);const d={y:t.y,m:t.m-1,d:t.d};
+  if(h.length&&jalOrdinal(h[h.length-1].d.y,h[h.length-1].d.m,h[h.length-1].d.d)===jalOrdinal(d.y,d.m,d.d))h.pop();
+  h.push({d,v,at:Date.now()});if(h.length>24)h.splice(0,h.length-24);
+  await sv();cls('valm');rDash();if(typeof rRep==='function')try{rRep();}catch(e){}
+  __undoSnap=before;showUndo('✅ ارزش به‌روز شد');
+}
 function rInvest(){
   const el=document.getElementById('invCard');if(!el)return;
   const inv=(ST.accounts||[]).filter(a=>!a.archived&&accKind(a)==='invest');
@@ -4657,7 +4724,9 @@ function rInvest(){
   const total=inv.reduce((s,a)=>s+calcAccBalance(a.id),0);
   el.style.display='block';
   el.innerHTML=`<div style="font-size:14px;font-weight:800;color:var(--t1);margin-bottom:10px">💼 سرمایه‌گذاری‌ها</div>
-    ${inv.map(a=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${esc(a.bank)}${a.name?' — '+esc(a.name):''}</span><b>${nf(calcAccBalance(a.id))}</b></div>`).join('')}
+    ${inv.map(a=>{const man=manualInv().some(x=>x.id===a.id);const ag=man?valAge(a.id):null;const h=(ST.valHist||{})[a.id]||[];const ch=h.length>1?h[h.length-1].v-h[0].v:null;
+      return `<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><div style="display:flex;justify-content:space-between"><span>${esc(a.bank)}${a.name?' — '+esc(a.name):''}</span><b>${nf(calcAccBalance(a.id))}</b></div>
+      ${man?`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:${ag===null||ag>7?'var(--am)':'var(--t3)'};margin-top:2px"><span>ارزش ${ageTxt(ag)}${ch===null?'':` · <span style="color:${ch>=0?'var(--gr)':'var(--rd)'}">${ch>=0?'+':'−'}${nf(Math.abs(ch))} از ${fmtDate(h[0].d.d,h[0].d.m,h[0].d.y)} (تحقق‌نیافته)</span>`}</span><button class="qchip" onclick="openVal('${a.id}')">به‌روزرسانی</button></div>`:`<div style="font-size:12px;color:var(--t3);margin-top:2px">خودکار از «صرافی»</div>`}</div>`;}).join('')}
     <div style="display:flex;justify-content:space-between;padding:9px 0 4px;font-size:13.5px;font-weight:800"><span>جمع ارزش</span><span>${nf(total)} ت</span></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <div style="background:var(--grl);border-radius:12px;padding:9px 11px"><div style="font-size:12px;color:var(--gr);font-weight:700">سود دریافتی امسال</div><div style="font-size:15px;font-weight:800;color:var(--gr)">${nf(yrInc)}</div><div style="font-size:12px;color:var(--t3)">سود سهام، صندوق و سپرده</div></div>
@@ -4672,6 +4741,7 @@ function rTodo(){
   const aud=ST.smsAuditDone?0:smsAuditList().length;
   if(aud)R('⚠️',`${toFa(aud)} پیامک ثبت‌شده احتمالاً در حساب اشتباه است`,'openSmsAudit()','بررسی','var(--rd)');
   const bi=balIssues().length;if(bi)R('⚖️',`موجودی ${toFa(bi)} حساب با آخرین پیامک بانک یکی نیست`,'openBalIssues()','بررسی','var(--am)');
+  manualInv().forEach(a=>{const ag=valAge(a.id);if(ag===null||ag>7)R('📈',`ارزش «${esc(a.bank)}» ${ag===null?'تاریخ ندارد':toFa(ag)+' روز است به‌روز نشده'}`,`openVal('${a.id}')`,'به‌روزرسانی','var(--am)');});
   const n=(ST.smsQueue||[]).length;if(n)R('📩',`${toFa(n)} پیامک بانکی منتظر بررسی`,'smsqIdx=0;openSmsQueue()','بررسی');
   const mk=`_${t.y}_${t.m-1}`;
   (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0).forEach(l=>{
