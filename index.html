@@ -1026,6 +1026,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   </div>
   <button class="btn btnp" onclick="saveAcc()">ذخیره</button>
   <button class="btn btns" onclick="cls('accm')">انصراف</button>
+  <button class="btn btns" id="maccb" style="display:none" onclick="openMerge()">🔀 ادغام در حساب دیگر و حذف این حساب</button>
   <button class="btn btnd" id="daccb" style="display:none" onclick="delAcc()">
     <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>حذف حساب
   </button>
@@ -1054,6 +1055,16 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <div id="valm-err" style="display:none;color:var(--rd);font-size:13px;font-weight:700;margin:0 2px 10px"></div>
   <button class="btn btnp" onclick="saveVal()">ثبت ارزش امروز</button>
   <div id="valm-hist" style="margin-top:10px"></div>
+</div>
+</div>
+<div class="ov" id="mergem">
+<div class="mdl">
+  <div class="mh"></div>
+  <h2 id="mergem-t">ادغام حساب</h2>
+  <p style="font-size:12.5px;color:var(--t2);line-height:1.9;margin:-6px 0 12px">همهٔ تراکنش‌های این حساب به حساب مقصد منتقل می‌شوند، انتقال‌های بین این دو حساب (که دیگر معنایی ندارند) حذف می‌شوند و بعد این حساب حذف می‌شود. <b>خالص دارایی و درآمد/هزینه تغییر نمی‌کنند.</b></p>
+  <div class="fg"><label>حساب مقصد (جایی که این پول واقعاً هست)</label><select id="mergem-dst" onchange="mergePreview()"></select></div>
+  <div id="mergem-sum" style="font-size:13px;line-height:2;background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:12px"></div>
+  <button class="btn btnp" id="mergem-go" onclick="doMerge()">ادغام و حذف</button>
 </div>
 </div>
 <div class="ov" id="transm">
@@ -1895,7 +1906,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.25';
+const APP_VERSION='v24.26';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -5791,7 +5802,7 @@ function openAccList(){
         </div>
         ${details?`<div style="border-top:0.5px solid var(--border);padding:10px 14px;display:flex;flex-direction:column;gap:6px">${details}</div>`:''}
         <div style="border-top:0.5px solid var(--border);padding:8px 14px;display:flex;justify-content:flex-end;gap:7px">
-          ${a.id===SAVINGS_ACC_ID?'':(a.archived
+          ${(a.archived
             ?`<button onclick="unarchiveAcc('${a.id}')" style="background:var(--grl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--gr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">فعال‌سازی</button>`
             :`<button onclick="archiveAcc('${a.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font-size:12px;color:var(--t2);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">آرشیو</button>`)}
           <button onclick="openAccForm('${a.id}')" style="background:var(--prl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">ویرایش</button>
@@ -5848,6 +5859,7 @@ function openAccForm(id){
   cls('acclist');
   document.getElementById('accmt').textContent=id?'ویرایش حساب':'حساب جدید';
   document.getElementById('daccb').style.display=id?'flex':'none';
+  document.getElementById('maccb').style.display=id&&(ST.accounts||[]).length>1?'flex':'none';
   // Populate month selects
   fillMon('acc-init-m',today().m-1);
   if(id){
@@ -5954,6 +5966,44 @@ async function saveAcc(){
 // calculation (they still hold money) but disappear from the pickers.
 function activeAccounts(){return (ST.accounts||[]).filter(a=>!a.archived);}
 function accTxCount(id){return (ST.tx||[]).filter(t=>t.accId===id).length;}
+// v24.26 — MERGE an account into another, then delete it (net worth and income/expense unchanged)
+function mergePlan(src,dst){
+  const own=ST.tx.filter(t=>t.accId===src);const drop=new Set();let moved=0;
+  own.forEach(t=>{if(t.isTransfer){const p=findTransferPair(t);if(p&&p.accId===dst){drop.add(t.id);drop.add(p.id);return;}}if(!t.isOpening)moved++;});
+  const sA=ST.accounts.find(a=>a.id===src),dA=ST.accounts.find(a=>a.id===dst);
+  const op=a=>{const o=a&&a.openTxId?ST.tx.find(t=>t.id===a.openTxId):null;return o?(o.tp==='income'?o.a:-o.a):0;};
+  return{own,drop,moved,pairs:drop.size/2,srcOpen:op(sA),dstOpen:op(dA),before:calcAccBalance(dst),after:calcAccBalance(dst)+calcAccBalance(src)};
+}
+function openMerge(){
+  const src=eAccId;const a=ST.accounts.find(x=>x.id===src);if(!a)return;
+  document.getElementById('mergem-t').textContent='ادغام «'+a.bank+(a.name?' — '+a.name:'')+'»';
+  document.getElementById('mergem-dst').innerHTML='<option value="">انتخاب کنید…</option>'+(ST.accounts||[]).filter(x=>x.id!==src&&!x.archived).map(x=>`<option value="${x.id}">${esc(x.bank)}${x.name?' - '+esc(x.name):''}</option>`).join('');
+  mergePreview();cls('accm');document.getElementById('mergem').classList.add('on');
+}
+function mergePreview(){
+  const dst=document.getElementById('mergem-dst').value,el=document.getElementById('mergem-sum'),go=document.getElementById('mergem-go');
+  if(!dst){el.innerHTML='حساب مقصد را انتخاب کنید.';go.disabled=true;go.style.opacity='.5';return;}
+  const p=mergePlan(eAccId,dst);go.disabled=false;go.style.opacity='';
+  el.innerHTML=`• ${toFa(p.moved)} تراکنش به حساب مقصد منتقل می‌شود<br>• ${toFa(p.pairs)} انتقال بین این دو حساب حذف می‌شود${p.srcOpen?`<br>• موجودی اولیهٔ این حساب (${nf(p.srcOpen)}) به موجودی اولیهٔ مقصد اضافه می‌شود`:''}<br>• موجودی مقصد: <b>${nf(p.before)}</b> ← <b>${nf(p.after)}</b>`;
+}
+async function doMerge(){
+  const src=eAccId,dst=document.getElementById('mergem-dst').value;if(!src||!dst||src===dst)return;
+  const sA=ST.accounts.find(a=>a.id===src),dA=ST.accounts.find(a=>a.id===dst);if(!sA||!dA)return;
+  const before=JSON.stringify(ST),nw0=netWorth(),pl0=JSON.stringify(totals(ST.tx));const p=mergePlan(src,dst);
+  ST.tx=ST.tx.filter(t=>!p.drop.has(t.id)&&!(sA.openTxId&&t.id===sA.openTxId));
+  ST.tx.forEach(t=>{if(t.accId===src)t.accId=dst;});
+  dA.initBalance=(dA.initBalance||0)+(sA.initBalance||0);
+  if(p.srcOpen)upsertOpeningTx(dA,p.dstOpen+p.srcOpen);
+  // other references to the old account (recurring items, loans, SMS hints…) now point to the destination
+  const fix=o=>{if(!o||typeof o!=='object')return;Object.keys(o).forEach(k=>{if(o[k]===src&&/acc/i.test(k))o[k]=dst;});};
+  Object.keys(ST).forEach(k=>{const v=ST[k];if(k==='tx'||k==='accounts')return;if(Array.isArray(v))v.forEach(fix);});
+  if(ST.smsCatHint)Object.keys(ST.smsCatHint).forEach(k=>{if(k.startsWith(src+'|')){ST.smsCatHint[dst+k.slice(src.length)]=ST.smsCatHint[dst+k.slice(src.length)]||ST.smsCatHint[k];delete ST.smsCatHint[k];}});
+  if(ST.bankBal)delete ST.bankBal[src];if(ST.lastAccId===src)ST.lastAccId=dst;
+  ST.accounts=ST.accounts.filter(a=>a.id!==src);
+  if(Math.abs(netWorth()-nw0)>1||JSON.stringify(totals(ST.tx))!==pl0){ST=JSON.parse(before);ntf('⚠️ ادغام انجام نشد: نتیجه با خالص دارایی قبلی جور نبود');return;}
+  await sv();cls('mergem');updateAccCountDisplay();fillAccSelects();rDash();rTx();
+  __undoSnap=before;showUndo('🔀 حساب ادغام و حذف شد');
+}
 // Deleting an account that has transactions would orphan them: the balance
 // vanishes from net worth while the same transactions keep driving the P&L.
 // So deletion is only allowed while the account is still empty.
