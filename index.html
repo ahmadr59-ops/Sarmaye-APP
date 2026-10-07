@@ -1675,6 +1675,8 @@ function migrateState(s){
   if(!Array.isArray(s.fx)) s.fx=[];
   // v24.4: repair duplicate transaction ids created by the old generator (keeps every record)
   {const seen=new Set();(s.tx||[]).forEach(t=>{if(!t.id||seen.has(t.id))t.id=uid();seen.add(t.id);});}
+  // v24.23: non-bank texts that slipped into the SMS inbox are removed
+  if(Array.isArray(s.smsQueue))s.smsQueue=s.smsQueue.filter(q=>(q.p&&q.p.a>0)||looksLikeSms(q.raw));
   // v24.15: merge the many «به‌روزرسانی ارزش یورو» rows into ONE per account (same total); drop retired rent notifications
   if(!s.revalV2){const by={};(s.tx||[]).forEach(t=>{if(t.nature==='revaluation'&&t.sarafi){(by[t.accId]=by[t.accId]||[]).push(t);}});
     Object.entries(by).forEach(([acc,L])=>{if(L.length<2)return;const sum=L.reduce((a,t)=>a+(t.tp==='income'?t.a:-t.a),0);
@@ -1875,7 +1877,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.22';
+const APP_VERSION='v24.23';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2231,7 +2233,7 @@ function rDash(){
       :'';
   }
   const rc=document.getElementById('rtx');
-  const last=sortByDate([...ST.tx]).slice(0,5);
+  TX_UNIFIED=true;const last=sortByDate(ST.tx.filter(t=>!t.isOpening&&t.nature!=='revaluation'&&!(t.isTransfer&&t.tp==='income'&&findTransferPair(t)))).slice(0,5);
   rc.innerHTML=last.length?last.map(txHtml).join(''):emptyHtml('bag','تراکنشی ثبت نشده');
   const isIos=/iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone=window.navigator.standalone;
@@ -3943,14 +3945,16 @@ function splitSmsFile(text){
 function jRefFromMs(ms){const g=new Date(ms);const j=gToJ(g.getFullYear(),g.getMonth()+1,g.getDate());return{y:j.y,m:j.m,d:j.d};}
 function smsImport(text){
   if(!ST.smsQueue)ST.smsQueue=[];if(!ST.smsSeen)ST.smsSeen={};
-  let added=0,dup=0;const hashes=[];
+  let added=0,dup=0,skipped=0;const hashes=[];
   splitSmsFile(text).forEach(r=>{
     const p=parseBankSms(r.sender,r.raw,r.recv?jRefFromMs(r.recv):null);
     if(ST.smsSeen[p.hash]||ST.smsQueue.some(q=>q.hash===p.hash)){dup++;return;}
+    // v24.23: e.g. «فرماندهی» contains «مانده», so the iPhone automation forwards it — not a bank transaction
+    if(!(p.a>0)&&!looksLikeSms(r.raw)){ST.smsSeen[p.hash]={at:Date.now(),skip:1};skipped++;return;}
     ST.smsQueue.push({id:uid(),hash:p.hash,sender:r.sender,raw:r.raw,recv:r.recv,p});added++;hashes.push(p.hash);
   });
   ST.smsQueue.sort((x,y)=>(x.p.d.y-y.p.d.y)||(x.p.d.m-y.p.d.m)||(x.p.d.d-y.p.d.d));
-  return{added,dup,hashes};
+  return{added,dup,skipped,hashes};
 }
 function smsAccFor(p){
   const accs=activeAccounts();
@@ -4020,7 +4024,7 @@ function renderSmsQueue(){
   <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--t2);margin-bottom:8px">
     <span>${toFa(smsqIdx+1)} از ${toFa(Q.length)}</span><span>${esc(p.bank||q.sender||'بانک نامشخص')}</span></div>
   <div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px">
-    <div style="font-size:24px;font-weight:800;color:${p.tp==='income'?'var(--gr)':'var(--rd)'}">${p.tp==='income'?'+':'−'}${nf(p.a)} <span style="font-size:12px;color:var(--t3)">تومان</span></div>
+    ${p.a>0?`<div style="font-size:24px;font-weight:800;color:${p.tp==='income'?'var(--gr)':'var(--rd)'}">${p.tp==='income'?'+':'−'}${nf(p.a)} <span style="font-size:12px;color:var(--t3)">تومان</span></div>`:`<div style="font-size:15px;font-weight:800;color:var(--am)">⚠️ مبلغ در این پیامک پیدا نشد — اگر تراکنش نیست «نادیده» را بزنید</div>`}
     <div style="font-size:12px;color:var(--t2);margin-top:2px">${fmtDate(p.d.d,p.d.m,p.d.y)}${p.time?' ساعت '+toFa(p.time):''}${p.dateGuessed?' <b style="color:var(--am)">(تاریخ در پیامک نبود)</b>':''}</div>
     <details style="margin-top:6px"><summary style="font-size:12.5px;color:var(--t3);cursor:pointer">متن پیامک</summary><pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--t2);margin-top:6px">${esc(q.raw)}</pre></details>
   </div>
@@ -4809,7 +4813,7 @@ async function smsInboxPull(verbose){
   if(!ghOn()){say('⚠️ پشتیبان GitHub فعال نیست (تنظیمات ← پشتیبان GitHub).','err');return 0;}
   if(smsPulling){say('⏳ در حال بررسی…','busy');return 0;}
   if(verbose)pullStatus('⏳ در حال بررسی پوشهٔ پیامک‌ها در GitHub…','busy');
-  smsPulling=true;let added=0,files=0;
+  smsPulling=true;let added=0,files=0,skipped=0;
   try{
     const r=await ghFetch('/contents/sms');
     if(r.status===404){say('✓ اتصال برقرار است — پیامک تازه‌ای از Shortcut نرسیده.','ok');return 0;}
@@ -4817,13 +4821,13 @@ async function smsInboxPull(verbose){
     const L=(await r.json()).filter(f=>f&&f.type==='file').slice(0,40);
     for(const f of L){
       const g=await ghFetch('/contents/sms/'+encodeURIComponent(f.name),{accept:'application/vnd.github.raw+json'});
-      if(!g.ok)continue;const res=smsImport(await g.text());added+=res.added;files++;
+      if(!g.ok)continue;const res=smsImport(await g.text());added+=res.added;files++;skipped+=res.skipped||0;
       await sv();   // saved locally BEFORE the file is removed from GitHub
       await ghFetch('/contents/sms/'+encodeURIComponent(f.name),{method:'DELETE',body:JSON.stringify({message:'پیامک خوانده شد',sha:f.sha})}).catch(()=>{});
     }
     if(files){ST.smsLastAuto=Date.now();await sv();rDash();}
     if(added){ntf(`📩 ${toFa(added)} پیامک تازه از گوشی رسید`);if(verbose)pullStatus(`✓ ${toFa(added)} پیامک تازه به صندوق اضافه شد.`,'ok');}
-    else say(files?`✓ ${toFa(files)} فایل خوانده شد؛ پیامک تازه‌ای در آن‌ها نبود (یا قبلاً در صندوق بودند).`:'✓ اتصال برقرار است — پیامک تازه‌ای از Shortcut نرسیده.','ok');
+    else say(files?`✓ ${toFa(files)} فایل خوانده شد؛ پیامک تراکنشی تازه‌ای نبود${skipped?` (${toFa(skipped)} پیامک غیربانکی کنار گذاشته شد)`:''}.`:'✓ اتصال برقرار است — پیامک تازه‌ای از Shortcut نرسیده.','ok');
     return added;
   }catch(e){say('⚠️ '+(e.message||'اتصال به GitHub برقرار نشد (اینترنت؟)'),'err');return 0;}
   finally{smsPulling=false;}
