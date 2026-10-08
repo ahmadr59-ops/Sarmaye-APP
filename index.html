@@ -635,6 +635,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <p style="font-size:13px;color:var(--t2);line-height:1.9;margin-bottom:10px">برای هر حساب، موجودیِ اعلام‌شده در <b>آخرین پیامک بانک</b> با موجودی اپ <b>تا همان روز</b> مقایسه شده است. اگر تراکنشی را ثبت نکرده‌اید، آن را ثبت کنید. اگر اختلاف از موجودی شروع حساب است، «اصلاح موجودی اولیه» را بزنید.</p>
   <div id="balm-body"></div><button class="btn btns" onclick="cls('balm')">بستن</button></div></div>
 <!-- v24.6: help -->
+<div class="ov" id="depm"><div class="mdl"><div class="mh"></div><h2>مقایسهٔ ودیعه با «املاک»</h2><div id="depm-body"></div><button class="btn btns" onclick="cls('depm')">بستن</button></div></div>
 <div class="ov" id="hlpm"><div class="mdl"><div class="mh"></div><h2 id="hlp-t"></h2><p id="hlp-b" style="font-size:14px;line-height:2;color:var(--t2)"></p><button class="btn btns" onclick="cls('hlpm')">متوجه شدم</button></div></div>
 <!-- v24.4: SMS account audit -->
 <div class="ov" id="smsam">
@@ -1906,7 +1907,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.26';
+const APP_VERSION='v24.27';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2443,11 +2444,14 @@ function renderAccFilterChips(){
 }
 
 function sortByDate(txs){
+  const ix=new Map(ST.tx.map((t,i)=>[t,i]));txs=txs.map(t=>Object.assign(Object.create(null),{t,__i:ix.has(t)?ix.get(t):0,id:t.id,y:t.y,m:t.m,day:t.day}));
   return [...txs].sort((a,b)=>{
     const da=(a.y||1404)*10000+(a.m||0)*100+(a.day||1);
     const db=(b.y||1404)*10000+(b.m||0)*100+(b.day||1);
-    return db-da;
-  });
+    if(db!==da)return db-da;
+    // v24.27: same day → newest entry first (creation time from the id; else later in the list = newer)
+    return ((idTime(b.id)||0)-(idTime(a.id)||0))||(b.__i-a.__i);
+  }).map(w=>w.t);
 }
 // Approximate Jalali ordinal day count (ignores leap-year +1 day; fine for week/month quick filters)
 const JAL_MDAYS=[0,31,62,93,124,155,186,216,246,276,306,336];
@@ -4376,6 +4380,7 @@ async function qaSave(){
     if(f===t){qaErr('⚠️ حساب مبدأ و مقصد یکسان است');return;}
     const day=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);
     if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){qaErr(dateMsg(day,m,y));hiErr('qa-day');return;}
+    {const d=dupTransfer(f,t,a,day,m,y);if(d&&!dupAsk(d))return;}
     const bal=calcAccBalance(f);if(bal<a&&!confirm(`موجودی «${getAccName(f)}» در اپ ${nf(bal)} تومان است (کمتر از مبلغ). اگر موجودی واقعی کافی است، ثبت شود؟`))return;
     const dsc=document.getElementById('qa-dsc').value.trim()||'انتقال بین حساب‌ها';const transferId=uid();
     ST.tx.push({id:uid(),tp:'expense',cat:'transfer',a,dsc:'انتقال به '+getAccName(t)+' · '+dsc,day,m,y,accId:f,isTransfer:true,transferId,nature:'transfer'},
@@ -4388,6 +4393,7 @@ async function qaSave(){
   const day=parseInt(document.getElementById('qa-day').value),m=parseInt(document.getElementById('qa-mon').value),y=parseInt(document.getElementById('qa-yr').value);
   if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){qaErr(dateMsg(day,m,y));hiErr('qa-day');return;}
   const acc=document.getElementById('qa-acc').value;
+  {const d=dupSameDay(qaType,a,acc,day,m,y);if(d&&!dupAsk(d))return;}
   const rec={id:uid(),tp:qaType,cat:qaCat,a,dsc:document.getElementById('qa-dsc').value.trim(),day,m,y,accId:acc,nature:'operating'};ST.tx.push(rec);
   let toAmlak=false;if(document.getElementById('qa-amlakw').style.display!=='none'&&document.getElementById('qa-amlak').checked){if(!ST.amlakOutbox)ST.amlakOutbox=[];
     const ac=(ST.accounts||[]).find(x=>x.id===acc);ST.amlakOutbox.push({id:uid(),kind:'rent',dir:'in',a,date:{y,m,d:day},bank:ac?ac.bank:'',acc:acc?getAccName(acc):'',createdAt:Date.now()});rec.amlakSent=1;toAmlak=true;}
@@ -4395,6 +4401,12 @@ async function qaSave(){
   if(qaType==='expense')budgetWarn(qaCat,m,y);
   cls('qam');rDash();rTx();await sv();if(toAmlak)flushAmlakOutbox();
 }
+// v24.27: same amount, same account, same day already recorded? → ask (never block)
+function dupSameDay(tp,a,accId,day,m,y){
+  return ST.tx.find(x=>!x.isOpening&&x.nature!=='revaluation'&&!x.isTransfer&&x.tp===tp&&x.accId===accId&&Math.abs(x.a-a)<=1&&x.day===day&&x.m===m&&x.y===y);}
+function dupTransfer(f,t,a,day,m,y){
+  return ST.tx.find(x=>x.isTransfer&&x.tp==='expense'&&x.accId===f&&Math.abs(x.a-a)<=1&&x.day===day&&x.m===m&&x.y===y&&(()=>{const p=findTransferPair(x);return p&&p.accId===t;})());}
+function dupAsk(x){return confirm(`⚠️ مشابه این تراکنش امروز ثبت شده:\n«${(x.dsc||'').slice(0,60)}» — ${nf(x.a)} تومان\n\nدوباره ثبت شود؟`);}
 // ---------- Undo (single-level, whole-state snapshot) ----------
 let __undoSnap=null,__undoTimer=null;
 function showUndo(label){
@@ -4754,6 +4766,7 @@ function rTodo(){
   if(aud)R('⚠️',`${toFa(aud)} پیامک ثبت‌شده احتمالاً در حساب اشتباه است`,'openSmsAudit()','بررسی','var(--rd)');
   const bi=balIssues().length;if(bi)R('⚖️',`موجودی ${toFa(bi)} حساب با آخرین پیامک بانک یکی نیست`,'openBalIssues()','بررسی','var(--am)');
   manualInv().forEach(a=>{const ag=valAge(a.id);if(ag===null||ag>7)R('📈',`ارزش «${esc(a.bank)}» ${ag===null?'تاریخ ندارد':toFa(ag)+' روز است به‌روز نشده'}`,`openVal('${a.id}')`,'به‌روزرسانی','var(--am)');});
+  {const dm=depMismatch();if(dm)R('🏠',`ودیعهٔ مستأجران: املاک ${nf(dm.amlak)} ولی سرمایه ${nf(dm.sarmaye)} تومان`,'openDepCompare()','مقایسه','var(--am)');}
   const n=(ST.smsQueue||[]).length;if(n)R('📩',`${toFa(n)} پیامک بانکی منتظر بررسی`,'smsqIdx=0;openSmsQueue()','بررسی');
   const mk=`_${t.y}_${t.m-1}`;
   (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0).forEach(l=>{
@@ -4831,6 +4844,32 @@ async function flushSarafiOutbox(){
     if(ok){const n=box.length;ST.sarafiOutbox=[];await sv();ntf(`💶 ${toFa(n)} مورد به «صرافی» ارسال شد`);return n;}}catch(e){}
   return 0;
 }
+// v24.27: «املاک» publishes amlak-status.json = deposits held under its contracts. Sarmaye does NOT overwrite
+// its own number (it comes from the deposit records); it only shows a mismatch to review.
+async function amlakDepSync(){
+  if(!ghOn())return false;
+  try{const g=await ghFetch('/contents/amlak-status.json');if(!g.ok)return false;const j=await g.json();
+    const st=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));
+    if(!st||typeof st.deposits!=='number'||!(st.at>((ST.amlakDep||{}).at||0)))return false;
+    ST.amlakDep={at:st.at,total:st.deposits,list:Array.isArray(st.list)?st.list.slice(0,80):[]};await sv();rDash();return true;
+  }catch(e){return false;}
+}
+function depMismatch(){const A=ST.amlakDep;if(!A)return null;const s=depositLiability();const diff=Math.round(A.total-s);
+  if(Math.abs(diff)<1||ST.amlakDepOk===A.total+'|'+s)return null;return{amlak:A.total,sarmaye:s,diff};}
+function openDepCompare(){
+  const A=ST.amlakDep||{list:[]};const s=depositLiability();
+  const dep=sortByDate(ST.tx.filter(t=>natureOf(t)==='deposit'));
+  const row=(l,r,c)=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px"><span style="color:var(--t2);min-width:0">${l}</span><b style="white-space:nowrap;color:${c||'var(--t1)'}">${r}</b></div>`;
+  const box=(t,inner,tot)=>`<div style="background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:9px"><div style="font-size:13.5px;font-weight:800;color:var(--t1);margin-bottom:4px">${t}</div>${inner}<div style="display:flex;justify-content:space-between;padding-top:7px;font-size:13px;font-weight:800"><span>جمع</span><span>${nf(tot)} ت</span></div></div>`;
+  const diff=Math.round((A.total||0)-s);
+  document.getElementById('depm-body').innerHTML=
+    `<div style="font-size:13px;line-height:1.9;color:var(--t2);margin-bottom:9px">املاک: <b>${nf(A.total||0)}</b> · سرمایه: <b>${nf(s)}</b> · اختلاف: <b style="color:${Math.abs(diff)<1?'var(--gr)':'var(--rd)'}">${Math.abs(diff)<1?'ندارد ✅':(diff>0?'+':'−')+nf(Math.abs(diff))+' ت'}</b>${A.at?'<br>آخرین دریافت از املاک: '+new Date(A.at).toLocaleString('fa-IR'):''}</div>`+
+    box('🏠 قراردادها در «املاک»',(A.list||[]).map(c=>row(esc(c.n||'—'),nf(c.dep||0))).join('')||'<div style="font-size:12.5px;color:var(--t3)">جزئیات ارسال نشده</div>',A.total||0)+
+    box('💼 ثبت‌های ودیعه در «سرمایه»',dep.map(t=>row(`${fmtDate(t.day,t.m,t.y)} · ${esc((t.dsc||getCat(t.tp,t.cat).n||'').slice(0,40))}`,(t.tp==='income'?'+':'−')+nf(t.a),t.tp==='income'?'var(--gr)':'var(--rd)')).join('')||'<div style="font-size:12.5px;color:var(--t3)">ثبتی وجود ندارد</div>',s)+
+    (Math.abs(diff)>=1?`<p style="font-size:12.5px;color:var(--t2);line-height:1.9">اگر ودیعه‌ای گرفته یا پس داده‌اید که در سرمایه ثبت نشده، آن را با ➕ (دستهٔ ودیعه) ثبت کنید. اگر اختلاف درست است (مثلاً ودیعه هنوز کامل دریافت نشده)، «درست است» را بزنید.</p><button class="btn btns" style="margin-bottom:8px" onclick="depOk()">درست است، نادیده بگیر</button>`:'');
+  document.getElementById('depm').classList.add('on');
+}
+async function depOk(){const A=ST.amlakDep;if(!A)return;ST.amlakDepOk=A.total+'|'+depositLiability();await sv();cls('depm');rDash();}
 async function sarafiSync(){
   if(!ghOn())return false;
   try{const g=await ghFetch('/contents/sarafi-status.json');if(!g.ok)return false;const j=await g.json();
@@ -4843,7 +4882,7 @@ async function sarafiSync(){
     ST.sarafiAt=st.at;await sv();rDash();return true;
   }catch(e){return false;}
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&typeof ghOn==='function'&&ghOn()){flushSarafiOutbox();sarafiSync();}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&typeof ghOn==='function'&&ghOn()){flushSarafiOutbox();sarafiSync();amlakDepSync();}});
 function copyTok(id){const v=(document.getElementById(id)||{}).value||'';if(!v){ntf('⚠️ توکنی وارد نشده');return;}
   (navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>ntf('📋 توکن کپی شد؛ در اپ دیگر بچسبانید')).catch(()=>{const el=document.getElementById(id);el.type='text';el.select();ntf('توکن را انتخاب و کپی کنید');});}
 // v24.16: one-tap paste from the clipboard into the SMS inbox (falls back to the paste box)
@@ -6162,6 +6201,7 @@ async function doTransfer(){
     return;
   }
 
+  {const d=dupTransfer(fromId,toId,amt,day,m,y);if(d&&!dupAsk(d))return;}
   const fromBal=calcAccBalance(fromId);
   if(fromBal<amt&&!confirm(`موجودی «${getAccName(fromId)}» در اپ ${nf(fromBal)} تومان است (کمتر از مبلغ). اگر موجودی واقعی کافی است، ثبت شود؟`))return;
   const transferId=uid();
@@ -6518,7 +6558,7 @@ async function init(){
   setTimeout(chkRecurring, 3000);
   // v24.2: Firebase is optional and loaded in the background; the app never waits for Google.
   setTimeout(()=>{initFirebaseLazy().then(ok=>{if(ok)attachCloudListener();});},1500);
-  setTimeout(()=>{if(ghOn()&&(Date.now()-(+localStorage.getItem(GH_LAST)||0))>6*3600e3)ghBackup(true);if(ghOn()){flushAmlakOutbox();flushSarafiOutbox();sarafiSync();}},6000);
+  setTimeout(()=>{if(ghOn()&&(Date.now()-(+localStorage.getItem(GH_LAST)||0))>6*3600e3)ghBackup(true);if(ghOn()){flushAmlakOutbox();flushSarafiOutbox();sarafiSync();amlakDepSync();}},6000);
   setTimeout(()=>{if(ghOn())smsInboxPull(false);},2000);
   setTimeout(chkLoansDue, 3500);
   // Auto-request notification permission on first launch
