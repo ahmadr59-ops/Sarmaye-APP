@@ -1913,7 +1913,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.28';
+const APP_VERSION='v24.29';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2540,8 +2540,11 @@ function fillCat(id,tp){
   document.getElementById(id).innerHTML=catOptions(tp);
   document.getElementById(id).onchange=function(){if(this.value==='__new__'){openCat(tp);this.value='';}};
 }
+// v24.29: an expense that came from «صرافی» (خرج ارزی) — only its category is editable here
+function txLock(on){['tamt','tdsc','tday','tmon','tyr','tacc','bi','be'].forEach(id=>{const e=document.getElementById(id);if(e){e.disabled=on;e.style.opacity=on?'.55':'';}});
+  const d=document.getElementById('dtxb');if(d&&on)d.style.display='none';}
 function openTx(){
-  etx=null;document.getElementById('tx-src').innerHTML='';
+  txLock(false);etx=null;document.getElementById('tx-src').innerHTML='';
   document.getElementById('txmt').textContent='تراکنش جدید';
   document.getElementById('tamt').value='';document.getElementById('tdsc').value='';
   document.getElementById('dtxb').style.display='none';
@@ -2566,7 +2569,8 @@ function edTx(id){
     sel.value=t.cat;tAmlakUI();},30);
   fillAccSelects();
   setTimeout(()=>{if(t.accId)document.getElementById('tacc').value=t.accId;},30);
-  document.getElementById('dtxb').style.display='block';
+  document.getElementById('dtxb').style.display='block';txLock(!!t.sfSpend);
+  if(t.sfSpend)document.getElementById('tx-src').innerHTML+=`<div style="font-size:12.5px;color:var(--am);font-weight:700;line-height:1.8;margin:6px 0 10px">💶 این هزینه از «صرافی» آمده است؛ مبلغ، تاریخ و حذف را در صرافی انجام دهید (تب صندوق ← خرج‌ها). اینجا فقط دسته قابل تغییر است.</div>`;
   document.getElementById('txm').classList.add('on');
 }
 function tAmlakUI(){
@@ -2618,6 +2622,7 @@ async function finishSaveTx(a,cat,dsc,day,m,y,accId){
   if(orig&&orig.isRent){rec.isRent=true;rec.tenantId=orig.tenantId;rec.payKey=orig.payKey;
     rec.contractId=orig.contractId;rec.propertyId=orig.propertyId;rec.rentPeriod=orig.rentPeriod;rec.nature='operating';}
   if(orig&&orig.isOpening){rec.isOpening=true;rec.tp='income';rec.cat='opening';}
+  if(orig&&orig.sfSpend)Object.assign(rec,{tp:orig.tp,a:orig.a,dsc:orig.dsc,day:orig.day,m:orig.m,y:orig.y,accId:orig.accId}); // v24.29: owned by «صرافی»
   if(etx){const idx=ST.tx.findIndex(t=>t.id===etx);if(idx>=0)ST.tx[idx]=rec;else ST.tx.push(rec);}
   else ST.tx.push(rec);
   // Keep the tenant payment record's amount in sync if this tx is linked to a rent payment
@@ -2640,6 +2645,7 @@ async function finishSaveTx(a,cat,dsc,day,m,y,accId){
 async function delTx(){
   if(!etx)return;
   const delObj=ST.tx.find(t=>t.id===etx);
+  if(delObj&&delObj.sfSpend){ntf('⚠️ این هزینه از «صرافی» آمده؛ آن را در صرافی حذف کنید');return;}
   ST.tx=ST.tx.filter(t=>t.id!==etx);
   if(delObj&&delObj.isRent){
     const rp=(ST.rentPayments||[]).find(p=>p.txId===delObj.id);
