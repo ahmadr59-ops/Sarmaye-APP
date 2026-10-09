@@ -751,7 +751,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     <div class="fg"><label>از حساب</label><select id="qa-from" onchange="qaSfUI()"></select></div>
     <div style="text-align:center;margin:-8px 0 2px"><button type="button" class="qchip" onclick="qaSwap()">⇅ جابه‌جا</button></div>
     <div class="fg"><label>به حساب</label><select id="qa-to" onchange="qaSfUI()"></select></div>
-    <label id="qa-sfw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-4px 2px 12px"><input type="checkbox" id="qa-sf" style="width:18px;height:18px"> ارسال به «صرافی» (پرداخت/دریافت یک معاملهٔ یورو)</label>
+    <label id="qa-sfw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-4px 2px 12px"><input type="checkbox" id="qa-sf" style="width:18px;height:18px"> ارسال به «صرافی» (پرداخت/دریافت یک معاملهٔ ارز)</label>
   </div>
   <div class="fg"><label>توضیح (اختیاری)</label><input id="qa-dsc" type="text"></div>
   <div class="fg"><label>تاریخ <button type="button" class="qchip" style="padding:2px 10px;margin-inline-start:6px;font-size:12px" onclick="qaToday()">امروز</button></label>
@@ -1091,7 +1091,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     <div class="fg"><label>ماه</label><select id="trans-mon"></select></div>
     <div class="fg"><label>سال</label><input type="number" id="trans-yr" inputmode="numeric"></div>
   </div>
-  <label id="trans-sfw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-2px 2px 12px"><input type="checkbox" id="trans-sf" style="width:18px;height:18px"> ارسال به «صرافی» (پرداخت/دریافت یک معاملهٔ یورو)</label>
+  <label id="trans-sfw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:-2px 2px 12px"><input type="checkbox" id="trans-sf" style="width:18px;height:18px"> ارسال به «صرافی» (پرداخت/دریافت یک معاملهٔ ارز)</label>
   <div id="trans-err" style="display:none;color:var(--rd);font-size:13px;font-weight:700;margin:0 2px 10px"></div>
   <button class="btn btnp" id="trans-savebtn" onclick="doTransfer()">
     <svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg>ثبت انتقال
@@ -1913,7 +1913,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.27';
+const APP_VERSION='v24.28';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -4194,10 +4194,10 @@ async function smsqSave(){
   if(smsqTp==='sarafi'){
     const eu=sarafiAcc(true);const out=q.p.tp!=='income';const tid=uid();
     const base={a,day,m,y,cat:'transfer',isTransfer:true,transferId:tid,nature:'transfer'};
-    const r={id:uid(),...base,tp:out?'expense':'income',accId:acc,dsc:dsc||(out?'خرید یورو (صرافی)':'فروش یورو (صرافی)'),smsHash:q.hash};
-    ST.tx.push(r,{id:uid(),...base,tp:out?'income':'expense',accId:eu.id,dsc:(out?'خرید یورو از ':'فروش یورو به ')+getAccName(acc)});
+    const r={id:uid(),...base,tp:out?'expense':'income',accId:acc,dsc:dsc||(out?'خرید ارز (صرافی)':'فروش ارز (صرافی)'),smsHash:q.hash};
+    ST.tx.push(r,{id:uid(),...base,tp:out?'income':'expense',accId:eu.id,dsc:(out?'خرید ارز از ':'فروش ارز به ')+getAccName(acc)});
     if(!ST.sarafiOutbox)ST.sarafiOutbox=[];ST.sarafiOutbox.push({id:uid(),kind:out?'pay':'recv',a,date:{y,m,d:day},bank:q.p.bank||'',acc:getAccName(acc),createdAt:Date.now()});
-    ntf(out?'✅ پرداخت خرید یورو ثبت شد (انتقال به «ارز (یورو)»)':'✅ دریافت فروش یورو ثبت شد');await done({act:'sarafi',txId:r.id});flushSarafiOutbox();return;
+    ntf(out?'✅ پرداخت خرید ارز ثبت شد (انتقال به «ارز»)':'✅ دریافت فروش ارز ثبت شد');await done({act:'sarafi',txId:r.id});flushSarafiOutbox();return;
   }
   if(smsqTp==='deposit'){
     const inn=q.p.tp==='income';
@@ -4862,8 +4862,10 @@ async function balOk(id){if(ST.bankBal&&ST.bankBal[id])ST.bankBal[id].ok=true;aw
 //    account is brought to that value with a revaluation (outside income/expense).
 // ============================================================
 function sarafiAcc(create){
-  let a=(ST.accounts||[]).find(x=>!x.archived&&x.bank==='ارز (یورو)')||(ST.accounts||[]).find(x=>!x.archived&&accKind(x)==='invest'&&/یورو/.test((x.bank||'')+(x.name||'')));
-  if(!a&&create){a={id:uid(),bank:'ارز (یورو)',name:'',accno:'',cardno:'',last4:'',exp:'',iban:'',color:'#B08D3E',initDate:(()=>{const t=today();return{y:t.y,m:t.m-1,d:t.d};})(),initBalance:0,openTxId:null};ST.accounts.push(a);}
+  // v24.28: «صرافی» now holds euro AND dollar → the account is «ارز» (old «ارز (یورو)» renamed in place; same id/history)
+  let a=(ST.accounts||[]).find(x=>!x.archived&&(x.bank==='ارز'||x.bank==='ارز (یورو)'))||(ST.accounts||[]).find(x=>!x.archived&&accKind(x)==='invest'&&/یورو/.test((x.bank||'')+(x.name||'')));
+  if(a&&a.bank==='ارز (یورو)')a.bank='ارز';
+  if(!a&&create){a={id:uid(),bank:'ارز',name:'',accno:'',cardno:'',last4:'',exp:'',iban:'',color:'#B08D3E',initDate:(()=>{const t=today();return{y:t.y,m:t.m-1,d:t.d};})(),initBalance:0,openTxId:null};ST.accounts.push(a);}
   return a;
 }
 async function flushSarafiOutbox(){
@@ -4898,15 +4900,32 @@ function openDepCompare(){
   document.getElementById('depm').classList.add('on');
 }
 async function depOk(){const A=ST.amlakDep;if(!A)return;ST.amlakDepOk=A.total+'|'+depositLiability();await sv();cls('depm');rDash();}
+// v24.28: «صرافی» v2 publishes each spend at its average-cost toman. Each becomes ONE expense on the «ارز»
+// account (keyed by the spend id): created once, amount/date kept in step, removed if deleted in «صرافی».
+// A category the user picks here is never overwritten.
+function sarafiParts(st){const S={EUR:'€',USD:'$'};
+  if(st.byCur&&typeof st.byCur==='object'){const p=Object.entries(st.byCur).filter(([,v])=>v&&v.amt).map(([k,v])=>`${nf(v.amt)} ${S[k]||k} × ${nf(v.mkt||0)}`);if(p.length)return p.join(' + ');}
+  return `${nf(st.eur||0)} € × ${nf(st.mkt||0)}`;}
+function sfSpendCat(name){const L=ST.cats.expense||(ST.cats.expense=[]);let c=L.find(x=>x.n===name)||L.find(x=>x.n==='خرج ارزی');
+  if(!c){c={id:'c'+uid(),n:'خرج ارزی',i:'more',c:'#B08D3E'};L.push(c);}return c.id;}
+function sarafiSpends(list,eu){
+  const ok=list.filter(x=>x&&x.id&&x.toman>0&&x.date);const ids=new Set(ok.map(x=>x.id));
+  ST.tx=ST.tx.filter(t=>!(t.sfSpend&&!ids.has(t.sfSpend)));
+  ok.forEach(x=>{const dsc=`خرج ارزی ${nf(x.amt)} ${x.cur==='USD'?'$':'€'} — ${x.cat||''}${x.note?' · '+x.note:''} (صرافی)`;
+    let t=ST.tx.find(z=>z.sfSpend===x.id);
+    if(!t)ST.tx.push({id:uid(),tp:'expense',cat:sfSpendCat(x.cat),a:Math.round(x.toman),dsc,day:x.date.d,m:x.date.m,y:x.date.y,accId:eu.id,nature:'operating',sfSpend:x.id});
+    else Object.assign(t,{a:Math.round(x.toman),dsc,day:x.date.d,m:x.date.m,y:x.date.y,accId:eu.id});});
+}
 async function sarafiSync(){
   if(!ghOn())return false;
   try{const g=await ghFetch('/contents/sarafi-status.json');if(!g.ok)return false;const j=await g.json();
     const st=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));
     if(!st||typeof st.target!=='number'||!(st.at>(ST.sarafiAt||0)))return false;
     const eu=sarafiAcc(true);
+    if(Array.isArray(st.spends))sarafiSpends(st.spends,eu);   // v24.28: currency spent abroad = a real expense (before the revaluation)
     ST.tx=ST.tx.filter(t=>!(t.accId===eu.id&&t.nature==='revaluation'&&t.sarafi));   // v24.15: replace, don't accumulate
     const diff=Math.round(st.target-calcAccBalance(eu.id));
-    if(Math.abs(diff)>=1){const t=today();ST.tx.push({id:uid(),tp:diff>0?'income':'expense',cat:'revaluation',a:Math.abs(diff),dsc:`به‌روزرسانی ارزش یورو (صرافی: ${nf(st.eur)} € × ${nf(st.mkt||0)})`,day:t.d,m:t.m-1,y:t.y,accId:eu.id,nature:'revaluation',sarafi:1});}
+    if(Math.abs(diff)>=1){const t=today();ST.tx.push({id:uid(),tp:diff>0?'income':'expense',cat:'revaluation',a:Math.abs(diff),dsc:`به‌روزرسانی ارزش ارز (صرافی: ${sarafiParts(st)})`,day:t.d,m:t.m-1,y:t.y,accId:eu.id,nature:'revaluation',sarafi:1});}
     ST.sarafiAt=st.at;await sv();rDash();return true;
   }catch(e){return false;}
 }
