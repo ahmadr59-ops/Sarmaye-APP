@@ -4,7 +4,13 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "package*.json",
+      "*.test.cjs",
+      "tests.js",
+      "smoke.js",
+      "README.md",
+      "RELIABILITY_NOTES.md"
     ]
   }
 }

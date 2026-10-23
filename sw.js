@@ -1,4 +1,4 @@
-const CACHE = 'sarmaye-v24-29';
+const CACHE = 'sarmaye-v24-30';
 const FILES = [
   './',
   './index.html',
@@ -26,15 +26,16 @@ self.addEventListener('install', e => {
     caches.open(CACHE)
       // cache:'reload' bypasses the browser's HTTP cache for the precache fetch itself,
       // so a fresh sw.js also means a genuinely fresh copy of every precached file
-      .then(c => Promise.all(FILES.map(f => fetch(f, {cache:'reload'}).then(res => c.put(f, res)).catch(()=>{}))))
-      .then(() => self.skipWaiting())
+      .then(c => c.addAll(FILES.map(f => new Request(f, {cache:'reload'}))))
+      // Leave activation to the browser while an older page is still open.
+      // A failed install must never replace the working offline application.
   );
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k.startsWith('sarmaye-') && k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -49,18 +50,26 @@ self.addEventListener('fetch', e => {
     // response, which was the actual cause of needing a manual cache clear on updates.
     // v24.2: never hang on a filtered/slow network — after 3 s fall back to the cached app.
     const net = fetch(req, {cache:'no-store'}).then(res => {
-      const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return res;
+      if (!res.ok || !(res.headers.get('content-type') || '').includes('text/html')) {
+        throw new Error('Invalid application response');
+      }
+      const cp = res.clone();
+      e.waitUntil(caches.open(CACHE).then(c => c.put(req, cp)).catch(()=>{}));
+      return res;
     });
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000));
     e.respondWith(
       Promise.race([net, timeout]).catch(async () =>
-        (await caches.match(req)) || (await caches.match('./')) || net)
+        (await caches.match(req)) || (await caches.match('./')) ||
+        new Response('برنامه آفلاین هنوز آماده نیست. دوباره با اینترنت باز کنید.', {
+          status:503, headers:{'Content-Type':'text/plain; charset=utf-8'}
+        }))
     );
     return;
   }
   // Cache-first for static assets (icons, manifest, etc.)
   e.respondWith(
-    caches.match(req).then(cached => cached || fetch(req).catch(() => caches.match('./')))
+    caches.match(req).then(cached => cached || fetch(req))
   );
 });
 

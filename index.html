@@ -930,7 +930,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <h2>تنظیمات اعلان‌ها</h2>
   <div style="background:var(--prl);border-radius:14px;padding:14px;margin-bottom:14px;font-size:13.5px;line-height:1.8;color:var(--pr)">
     <strong style="display:block;margin-bottom:4px">یادآور اجاره</strong>
-    هر روز ساعت ۸ صبح بررسی می‌شود. اگر سررسید اجاره رسیده و پرداخت نشده باشد، اعلان نمایش داده می‌شود.
+    اعلان زمان‌بندی‌شده در زمان بسته‌بودن برنامه فعال نیست. سررسیدها را هنگام استفاده از برنامه بررسی کنید.
   </div>
   <div id="notif-status" style="margin-bottom:14px"></div>
   <button class="btn btnp" onclick="reqNotif()"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>فعال‌سازی اعلان‌ها</button>
@@ -1189,7 +1189,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
       <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--gr);stroke-width:2;fill:none;flex-shrink:0"><path d="M20 6L9 17l-5-5"/></svg>
       <span id="cloud-email-lbl" style="font-size:12.5px;color:var(--gr);font-weight:700"></span>
     </div>
-    <div style="font-size:12.5px;color:var(--t3);line-height:1.7;margin-bottom:10px">بکاپ خودکار فعال است — هر بار برنامه را باز یا بسته می‌کنید یک نسخه در ابر ذخیره می‌شود. نیازی به عمل دستی نیست.</div>
+    <div style="font-size:12.5px;color:var(--t3);line-height:1.7;margin-bottom:10px">پشتیبان Firebase دستی است. ورود یا بستن برنامه، نسخه ابری را تغییر نمی‌دهد. برای ذخیره نسخه این دستگاه، دکمه پشتیبان را بزنید.</div>
     <div id="cloud-lastbk" style="font-size:12.5px;color:var(--t3);margin-bottom:12px"></div>
     <button class="btn btns" id="cloud-restore-btn" onclick="cloudRestore()">📥 بازیابی از ابر</button>
     <button class="btn btnd" onclick="cloudSignOut()">خروج از حساب</button>
@@ -1376,7 +1376,8 @@ function openDB(){
     req.onupgradeneeded=e=>{
       e.target.result.createObjectStore(STORE);
     };
-    req.onsuccess=e=>{db=e.target.result;res(db);};
+    req.onsuccess=e=>{db=e.target.result;db.onversionchange=()=>db.close();res(db);};
+    req.onblocked=()=>rej(new Error('Storage upgrade blocked'));
     req.onerror=()=>rej(req.error);
   });
 }
@@ -1390,25 +1391,67 @@ function dbGet(key){
 }
 function dbSet(key,val){
   return new Promise((res,rej)=>{
+    if(!db)return rej(new Error('IndexedDB unavailable'));
     const tx=db.transaction(STORE,'readwrite');
-    const req=tx.objectStore(STORE).put(val,key);
-    req.onsuccess=()=>res();
-    req.onerror=()=>rej(req.error);
+    tx.oncomplete=()=>res();
+    tx.onabort=tx.onerror=()=>rej(tx.error||new Error('Storage transaction aborted'));
+    tx.objectStore(STORE).put(val,key);
   });
 }
 function dbDel(key){
   return new Promise((res,rej)=>{
+    if(!db)return rej(new Error('IndexedDB unavailable'));
     const tx=db.transaction(STORE,'readwrite');
-    const req=tx.objectStore(STORE).delete(key);
-    req.onsuccess=()=>res();
-    req.onerror=()=>rej(req.error);
+    tx.oncomplete=()=>res();
+    tx.onabort=tx.onerror=()=>rej(tx.error||new Error('Storage transaction aborted'));
+    tx.objectStore(STORE).delete(key);
   });
+}
+// A compare-and-swap on the existing state record prevents stale tabs from
+// replacing a newer state. The transaction must commit before callers proceed.
+function dbWriteState(value,expected){
+  return new Promise((res,rej)=>{
+    if(!db)return rej(new Error('IndexedDB unavailable'));
+    const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
+    let conflict=false;
+    tx.oncomplete=()=>res();
+    tx.onabort=tx.onerror=()=>rej(conflict?storageConflict():tx.error||new Error('Storage transaction aborted'));
+    const req=store.get('state');
+    req.onsuccess=()=>{
+      try{const newest=newerState(req.result,readFallback());
+        if(stateRevision(newest)!==expected){conflict=true;tx.abort();return;}
+        store.put(value,'state');
+      }catch(e){tx.abort();}
+    };
+  });
+}
+let savedRevision=null,savedAt=0,saveQueue=Promise.resolve(),storageHealthy=true,recoverySource=null;
+function stateRevision(s){return s&&s._storageRev||null;}
+function newerState(a,b){return !a?b:!b?a:(Number(b._savedAt)||0)>(Number(a._savedAt)||0)?b:a;}
+function readFallback(){let text;try{text=localStorage.getItem('srmy1');}catch(e){return null;}return text?JSON.parse(text):null;}
+function storageConflict(){const e=new Error('نسخه جدیدتری در پنجره دیگری ذخیره شده؛ ابتدا تغییرات این پنجره را خروجی بگیرید و سپس برنامه را دوباره باز کنید.');e.code='STORAGE_CONFLICT';return e;}
+function storageFailure(e){
+  storageHealthy=false;
+  let bar=document.getElementById('storage-error');
+  if(!bar){bar=document.createElement('div');bar.id='storage-error';bar.setAttribute('role','alert');
+    bar.style.cssText='position:fixed;inset:0;z-index:20000;background:var(--bg,#fff);color:var(--t1,#111);padding:40px 24px;overflow:auto;direction:rtl';
+    document.body.appendChild(bar);}
+  bar.replaceChildren();
+  const msg=document.createElement('p');msg.textContent=e.code==='STORAGE_CONFLICT'?e.message:'ذخیره اطلاعات کامل نشد. تغییرات این صفحه ممکن است ذخیره نشده باشند. پیش از بستن برنامه، یک خروجی نجات بگیرید. اطلاعات قبلی خودکار پاک نمی‌شوند.';bar.appendChild(msg);
+  const backup=document.createElement('button');backup.className='btn btnp';backup.textContent='دریافت خروجی نجات';
+  backup.onclick=()=>shareOrDownload(JSON.stringify(recoverySource||ST,null,2),'sarmaye-recovery.json');bar.appendChild(backup);
+  const reload=document.createElement('button');reload.className='btn btns';reload.textContent='بازگشایی پس از گرفتن خروجی';reload.onclick=()=>{if(confirm('تغییرات ذخیره‌نشده ممکن است از دست بروند. خروجی گرفته‌اید؟'))location.reload();};bar.appendChild(reload);
+}
+async function saveSnapshot(key,value){
+  try{await dbSet(key,value);}
+  catch(e){localStorage.setItem('srm_snapshot_'+key,JSON.stringify(value));}
 }
 
 // ============================================================
 // APP STATE
 // ============================================================
 let ST={}, SM=0, SY=1404;
+let stateReplacing=false,stateEpoch=0;
 let txFilter='all';
 let txDateFilter='all';
 let txSearchTerm='';
@@ -1464,46 +1507,55 @@ function def(){
 }
 
 async function loadState(){
-  try{
-    const saved=await dbGet('state');
-    if(saved){
-      // Snapshot the untouched pre-v2 state before any structural migration runs.
-      if((saved.schemaVersion||1)<SCHEMA_VERSION){
-        try{
-          await dbSet('state_v1_backup',{savedAt:Date.now(),version:saved.schemaVersion||1,state:saved});
-          pendingV1BackupOffer=true;
-        }catch(e){}
-      }
-      const merged={...def(),...saved,
-        schemaVersion:saved.schemaVersion||1,
-        cats:{
-          income:saved.cats?.income||def().cats.income,
-          expense:saved.cats?.expense||def().cats.expense
-        }};
-      ST=migrateState(merged);
-    } else {
-      ST=def();
+  let primary=null,fallback=null,primaryError=null,fallbackError=null;
+  try{primary=await dbGet('state');}catch(e){primaryError=e;}
+  try{fallback=readFallback();}catch(e){fallbackError=e;}
+  // An unreadable existing copy needs explicit recovery, never a silent reset.
+  if(fallbackError||(!primary&&!fallback&&primaryError)){
+    let raw=null;try{raw=localStorage.getItem('srmy1');}catch(e){}
+    recoverySource={recoveryBundle:1,primary,rawFallback:raw};throw fallbackError||primaryError;
+  }
+  const saved=newerState(primary,fallback);
+  recoverySource=saved;
+  savedRevision=stateRevision(saved);savedAt=Number(saved&&saved._savedAt)||0;
+  if(saved){
+    validateBackup(saved);
+    if((saved.schemaVersion||1)<SCHEMA_VERSION){
+      await saveSnapshot('state_v1_backup',{savedAt:Date.now(),version:saved.schemaVersion||1,state:saved});
+      pendingV1BackupOffer=true;
     }
-  }catch(e){
-    try{
-      const s=localStorage.getItem('srmy1');
-      ST=s?migrateState(JSON.parse(s)):def();
-    }catch{ST=def();}
-  }
-  SM=today().m-1;
-  SY=today().y;
+    ST=migrateState({...def(),...saved,schemaVersion:saved.schemaVersion||1,
+      cats:{income:saved.cats?.income||def().cats.income,expense:saved.cats?.expense||def().cats.expense}});
+  }else ST=migrateState(def());
+  SM=today().m-1;SY=today().y;recoverySource=null;
 }
-
-async function sv(){
-  ST.sm=SM;
-  ST.sy=SY;
-  try{
-    await dbSet('state',ST);
-  }catch(e){
-    // Fallback
-    try{localStorage.setItem('srmy1',JSON.stringify(ST));}catch{}
-  }
-  if(typeof ghSchedule==='function') ghSchedule();
+function sv(){
+  ST.sm=SM;ST.sy=SY;
+  const snapshot=JSON.parse(JSON.stringify(ST));
+  const task=saveQueue.then(async()=>{
+    if(!storageHealthy)throw new Error('Storage is blocked until reload');
+    const persist=async()=>{
+      snapshot._storageRev=uid();snapshot._savedAt=Math.max(Date.now(),savedAt+1);
+      try{await dbWriteState(snapshot,savedRevision);}
+      catch(e){
+        if(e.code==='STORAGE_CONFLICT')throw e;
+        // Fallback is safe only if both readable copies still have our revision.
+        // If the primary cannot even be read, a newer writer may be hidden
+        // there. Fail closed unless this session was opened from fallback.
+        let primary=null;try{primary=await dbGet('state');}catch(ignore){
+          if(stateRevision(readFallback())!==savedRevision)throw new Error('Primary state cannot be checked');
+        }
+        const newest=newerState(primary,readFallback());
+        if(stateRevision(newest)!==savedRevision)throw storageConflict();
+        localStorage.setItem('srmy1',JSON.stringify(snapshot));
+      }
+      savedRevision=snapshot._storageRev;savedAt=snapshot._savedAt;
+      ST._storageRev=savedRevision;ST._savedAt=savedAt;
+    };
+    if(navigator.locks)await navigator.locks.request('sarmaye-state-write',persist);else await persist();
+    if(typeof ghSchedule==='function')ghSchedule();
+  }).catch(e=>{storageFailure(e);throw e;});
+  saveQueue=task.catch(()=>{});return task;
 }
 
 // ============================================================
@@ -1706,7 +1758,7 @@ function migrateState(s){
   {const seen=new Set();(s.tx||[]).forEach(t=>{if(!t.id||seen.has(t.id))t.id=uid();seen.add(t.id);});}
   // v24.24: one revaluation row per investment account; seed value history (date = last revaluation, else account start)
   if(!s.valV1&&Array.isArray(s.accounts)&&Array.isArray(s.tx)){s.valHist=s.valHist||{};
-    s.accounts.filter(a=>accKind(a)==='invest').forEach(a=>{mergeReval(s,a.id);if(s.valHist[a.id])return;
+    s.accounts.filter(a=>accKind(a)==='invest').forEach(a=>{if(s.valHist[a.id])return;
       const bal=s.tx.reduce((x,t)=>t.accId===a.id?x+(t.tp==='income'?t.a:-t.a):x,0);const rv=s.tx.find(t=>t.accId===a.id&&t.nature==='revaluation'&&!t.sarafi);
       const d=rv?{y:rv.y,m:rv.m,d:rv.day}:(a.initDate?{y:a.initDate.y,m:a.initDate.m,d:a.initDate.d}:null);
       if(d&&bal>0)s.valHist[a.id]=[{d,v:Math.round(bal),at:0}];});
@@ -1714,11 +1766,8 @@ function migrateState(s){
   // v24.23: non-bank texts that slipped into the SMS inbox are removed
   if(Array.isArray(s.smsQueue))s.smsQueue=s.smsQueue.filter(q=>(q.p&&q.p.a>0)||looksLikeSms(q.raw));
   // v24.15: merge the many «به‌روزرسانی ارزش یورو» rows into ONE per account (same total); drop retired rent notifications
-  if(!s.revalV2){const by={};(s.tx||[]).forEach(t=>{if(t.nature==='revaluation'&&t.sarafi){(by[t.accId]=by[t.accId]||[]).push(t);}});
-    Object.entries(by).forEach(([acc,L])=>{if(L.length<2)return;const sum=L.reduce((a,t)=>a+(t.tp==='income'?t.a:-t.a),0);
-      const last=L.slice().sort((a,b)=>jalOrdinal(b.y,b.m,b.day)-jalOrdinal(a.y,a.m,a.day))[0];const ids=new Set(L.map(t=>t.id));
-      s.tx=s.tx.filter(t=>!ids.has(t.id));if(Math.round(sum)!==0)s.tx.push({...last,id:last.id,tp:sum>=0?'income':'expense',a:Math.abs(Math.round(sum))});});
-    s.notifLog=(s.notifLog||[]).filter(n=>!['rent','deposit','renew'].includes(n.type));s.revalV2=1;}
+  if(!s.revalV2){s.notifLog=(s.notifLog||[]).filter(n=>!['rent','deposit','renew'].includes(n.type));s.revalV2=1;}
+
   // v24.8: old per-SMS mismatch flags were computed against TODAY's balance (false alarms); clear once
   if(!s.smsMmV2){Object.values(s.smsSeen||{}).forEach(v=>{if(v&&v.mm)v.mm=0;});s.smsMmV2=1;}
   // v23.3 bank-SMS inbox state
@@ -1894,8 +1943,8 @@ function uid(){let r;try{const a=new Uint32Array(2);crypto.getRandomValues(a);r=
   return Date.now().toString(36)+(__uidN=(__uidN+1)%46656).toString(36).padStart(3,'0')+r;}
 const FA=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
 function pad2(n){return String(n).padStart(2,'0');}
-function fmtDate(d,m0,y){return `${toFa(y)}/${toFa(pad2(m0+1))}/${toFa(pad2(d))}`;}
-function fmtMonthYear(m0,y){return `${toFa(y)}/${toFa(pad2(m0+1))}`;}
+function fmtDate(d,m0,y){return `${esc(toFa(y))}/${esc(toFa(pad2(m0+1)))}/${esc(toFa(pad2(d)))}`;}
+function fmtMonthYear(m0,y){return `${esc(toFa(y))}/${esc(toFa(pad2(m0+1)))}`;}
 const BANK_STYLE={
   'بانک ملی':{c:'#00733E',t:'ملی'},
   'بانک تجارت':{c:'#00529B',t:'تجارت'},
@@ -1913,7 +1962,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.29';
+const APP_VERSION='v24.30';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -1934,10 +1983,9 @@ function nf(n){
   return toFa((r<0?'-':'')+wc);
 }
 function toLn(s){
-  return parseFloat(String(s||0)
-    .replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
-    .replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))
-    .replace(/[,،٬]/g,''))||0;
+  const text=normDigits(String(s??'')).trim().replace(/[,،٬]/g,'').replace(/٫/g,'.');
+  if(!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(text))return 0;
+  const value=Number(text);return Number.isFinite(value)&&Math.abs(value)<=Number.MAX_SAFE_INTEGER?value:0;
 }
 function gToJ(gy,gm,gd){
   const g=[0,31,59,90,120,151,181,212,243,273,304,334];
@@ -2461,7 +2509,7 @@ function sortByDate(txs){
 }
 // Approximate Jalali ordinal day count (ignores leap-year +1 day; fine for week/month quick filters)
 const JAL_MDAYS=[0,31,62,93,124,155,186,216,246,276,306,336];
-function jalOrdinal(y,m0,d){ return y*365+JAL_MDAYS[m0]+(d-1); }
+function jalOrdinal(y,m0,d){let days=y*365+JAL_MDAYS[m0]+(d-1);for(let k=0;k<y;k++)if(isJLeap(k))days++;return days;}
 function setTxDateFilter(f){
   txDateFilter=f;
   ['week','month','all'].forEach(k=>{
@@ -2617,7 +2665,17 @@ async function finishSaveTx(a,cat,dsc,day,m,y,accId){
   const orig=etx?ST.tx.find(t=>t.id===etx):null;
   // v24.9: an edit used to rebuild the record from scratch and silently drop smsHash / stmtN / nature …
   const rec=Object.assign({},orig||{},{id:etx||uid(),tp:txtp,cat,a,dsc,day,m,y,accId});
-  if(orig&&cat!==orig.cat&&['deposit','revaluation'].includes(orig.nature)){rec.nature='operating';delete rec.depositRole;} // re-categorised by hand
+  if(orig&&orig.nature==='deposit'&&orig.contractId){
+    const c=getContract(orig.contractId);
+    if(cat!==orig.cat||txtp!==orig.tp||a!==orig.a){ntf('⚠️ مبلغ و ماهیت ودیعه را از قرارداد اصلاح کنید');return;}
+    if(!accId){ntf('⚠️ حساب ودیعه الزامی است');return;}
+    if(c){if(orig.depositRole==='received'){c.depositReceivedDate={y,m,d:day};c.depositAccId=accId;}
+      else if(orig.depositRole==='returned')c.depositReturnedDate={y,m,d:day};}
+  }
+  if(orig&&!orig.contractId&&cat!==orig.cat&&orig.nature==='deposit'){
+    ntf('⚠️ برای اصلاح ماهیت، ثبت ودیعه را حذف و از مسیر درست دوباره ثبت کنید');return;
+  }
+  if(orig&&cat!==orig.cat&&orig.nature==='revaluation'){ntf('⚠️ ارزش‌گذاری درآمد یا هزینه نیست');return;}
   if(orig&&cat!==orig.cat)rec.userEdited=1; // v24.10: a later statement re-import must not undo this
   if(orig&&orig.isRent){rec.isRent=true;rec.tenantId=orig.tenantId;rec.payKey=orig.payKey;
     rec.contractId=orig.contractId;rec.propertyId=orig.propertyId;rec.rentPeriod=orig.rentPeriod;rec.nature='operating';}
@@ -2638,9 +2696,9 @@ async function finishSaveTx(a,cat,dsc,day,m,y,accId){
      const ac=(ST.accounts||[]).find(x=>x.id===accId);ST.amlakOutbox.push({id:uid(),kind:'rent',dir:'in',a,date:{y,m,d:day},bank:ac?ac.bank:'',acc:accId?getAccName(accId):'',createdAt:Date.now()});
      rec.amlakSent=1;setTimeout(()=>flushAmlakOutbox(),300);}
    else if(orig&&orig.amlakSent&&(orig.a!==a||orig.day!==day||orig.m!==m||orig.y!==y))setTimeout(()=>ntf('ℹ️ این واریز قبلاً به «املاک» رفته؛ آنجا هم اصلاحش کنید'),1600);}
+  await sv();
   cls('txm');ntf('✅ ذخیره شد');
   rDash();rTx();rTen();
-  await sv();
 }
 async function delTx(){
   if(!etx)return;
@@ -2970,7 +3028,7 @@ function rTen(){
       </div>
     </div>`;
   }).join('');
-  alrt.innerHTML=up.length?`<div class="alrt"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>پرداخت نشده این ماه: ${up.join('، ')}</span></div>`:'';
+  alrt.innerHTML=up.length?`<div class="alrt"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>پرداخت نشده این ماه: ${up.map(esc).join('، ')}</span></div>`:'';
   renderDepositNotice();
 }
 // Pre-v2 deposits were a flag only — no cash, no liability. Migration keeps them
@@ -3849,7 +3907,7 @@ function openNotifPanel(){
         <div class="txic" style="background:${cfg.bg}"><svg viewBox="0 0 24 24" style="stroke:${cfg.c};width:21px;height:21px;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${cfg.icon}</svg></div>
         <div class="txin">
           <div class="txt">${cfg.ttl(n)}</div>
-          <div class="txd">${n.date} — برای مشاهده لمس کنید</div>
+          <div class="txd">${esc(n.date)} — برای مشاهده لمس کنید</div>
         </div>
         ${!n.read?`<button onclick="event.stopPropagation();markNotifRead('${n.id}')" style="background:var(--prl);border:none;border-radius:8px;padding:5px 8px;font-size:12px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;flex-shrink:0">خواندم</button>`:''}
       </div>`;
@@ -4252,17 +4310,25 @@ async function ghInboxUpdate(mut,file){
   }
   return false;
 }
+let amlakFlushing=false;
 async function flushAmlakOutbox(){
-  const box=ST.amlakOutbox||[];
+  if(amlakFlushing||!storageHealthy||stateReplacing)return 0;
+  amlakFlushing=true;
+  try{return await sendAmlakOutbox();}finally{amlakFlushing=false;}
+}
+async function sendAmlakOutbox(){
+  await saveQueue;if(!storageHealthy)return 0;
+  const epoch=stateEpoch;const box=(ST.amlakOutbox||[]).slice();
   if(box.length&&ghOn()){
     try{const ok=await ghInboxUpdate(d=>{box.forEach(it=>{d.items[it.id]={id:it.id,kind:it.kind||'rent',dir:it.dir||'in',a:it.a,date:it.date,bank:it.bank||'',acc:it.acc||'',createdAt:it.createdAt};});});
-      if(ok){const n=box.length;ST.amlakOutbox=[];await sv();ntf(`🏠 ${toFa(n)} واریز به «املاک» ارسال شد`);return n;}}catch(e){}
+      if(ok&&epoch===stateEpoch&&!stateReplacing){const n=box.length;const ids=new Set(box.map(x=>x.id));ST.amlakOutbox=ST.amlakOutbox.filter(x=>!ids.has(x.id));await sv();ntf(`🏠 ${toFa(n)} واریز به «املاک» ارسال شد`);return n;}}catch(e){}
     return 0;
   }
   if(!box.length||typeof fbAuth==='undefined'||!fbAuth||!fbAuth.currentUser)return 0;
   let sent=0;
   for(const it of box.slice()){
     try{await fbDb.collection('backups').doc(fbAuth.currentUser.uid).set({amlakInbox:{[it.id]:it}},{merge:true});
+      if(epoch!==stateEpoch||stateReplacing)return sent;
       ST.amlakOutbox=ST.amlakOutbox.filter(x=>x.id!==it.id);sent++;}
     catch(e){break;}
   }
@@ -4484,18 +4550,27 @@ function ghFetch(path,opt){
 }
 function ghErr(r){return r.status===401?'توکن نامعتبر یا منقضی است':r.status===403?'توکن اجازهٔ نوشتن در این ریپو را ندارد':r.status===404?'ریپو پیدا نشد یا توکن به آن دسترسی ندارد':r.status===409?'تداخل همزمانی؛ دوباره تلاش کنید':'خطای GitHub ('+r.status+')';}
 async function ghBackup(silent){
-  if(!ghOn()||ghBusy)return false;
+  if(!ghOn()||ghBusy||!storageHealthy)return false;
   ghBusy=true;const c=ghCfg();
   try{
-    const payload=c.pass?JSON.stringify(await encryptJSON(ST,c.pass)):JSON.stringify(ST);
+    await saveQueue;if(!storageHealthy)return false;
+    const snapshot=JSON.parse(JSON.stringify(ST));
+    const payload=c.pass?JSON.stringify(await encryptJSON(snapshot,c.pass)):JSON.stringify(snapshot);
     let sha;const g=await ghFetch('/contents/'+GH_FILE);
-    if(g.ok)sha=(await g.json()).sha;else if(g.status!==404)throw new Error(ghErr(g));
+    if(g.ok){sha=(await g.json()).sha;
+      if(c.lastSha!==sha){
+        if(silent)throw new Error('نسخه GitHub جدید یا متعلق به دستگاه دیگری است؛ ابتدا بازیابی یا پشتیبان دستی را انتخاب کنید');
+        if(!confirm('یک پشتیبان متفاوت در GitHub وجود دارد. به‌جای بازیابی آن، داده‌های این دستگاه جایگزین شود؟ تاریخچه قبلی حفظ می‌شود.'))return false;
+      }
+    }else if(g.status!==404)throw new Error(ghErr(g));
+    if(silent&&!snapshot.tx.length)return false;
     const t=today();const hm=new Date().toTimeString().slice(0,5);
     const p=await ghFetch('/contents/'+GH_FILE,{method:'PUT',body:JSON.stringify({message:`پشتیبان ${t.y}/${t.m}/${t.d} ${hm} — ${APP_VERSION}`,content:ghB64(payload),sha})});
     if(!p.ok)throw new Error(ghErr(p));
+    const result=await p.json();c.lastSha=result.content.sha;localStorage.setItem(GH_KEY,JSON.stringify(c));
     localStorage.setItem(GH_LAST,String(Date.now()));ghStatus();rBackupCard();
     if(!silent)ntf('✅ پشتیبان در GitHub ذخیره شد');return true;
-  }catch(e){if(!silent)ntf('⚠️ پشتیبان GitHub: '+(e.message||'اتصال برقرار نشد'));return false;}
+  }catch(e){const el=document.getElementById('gh-status');if(el)el.textContent='⚠️ پشتیبان GitHub انجام نشد: '+(e.message||'اتصال برقرار نشد');if(!silent)ntf('⚠️ پشتیبان GitHub: '+(e.message||'اتصال برقرار نشد'));return false;}
   finally{ghBusy=false;}
 }
 function ghSchedule(){if(!ghOn())return;clearTimeout(ghTimer);ghTimer=setTimeout(()=>ghBackup(true),15000);}
@@ -4512,8 +4587,6 @@ async function ghRestore(sha){
     if(p.srmEnc===1){const pass=ghCfg().pass||prompt('رمز رمزنگاری پشتیبان را وارد کنید:');if(!pass)return;
       try{p=await decryptJSON(p,pass);}catch(e){ntf('⚠️ رمز اشتباه است');return;}}
     if(!(p.tx&&p.cats)){ntf('⚠️ این نسخه فایل معتبر سرمایه نیست');return;}
-    if(!confirm('داده‌های فعلی این دستگاه با این نسخهٔ پشتیبان جایگزین شود؟'))return;
-    try{localStorage.setItem('srm_before_gh_restore',JSON.stringify(ST));}catch(e){}
     await applyBackupObject(p);cls('ghm');cls('setm');
   }catch(e){ntf('⚠️ بازیابی GitHub: '+(e.message||'اتصال برقرار نشد'));}
 }
@@ -4537,6 +4610,7 @@ async function saveGhCfg(){
   const c={owner:document.getElementById('gh-owner').value.trim(),repo:document.getElementById('gh-repo').value.trim(),
     token:document.getElementById('gh-token').value.trim(),pass:document.getElementById('gh-pass').value};
   if(!c.owner||!c.repo||!c.token){ntf('⚠️ نام کاربری، ریپو و توکن را وارد کنید');return;}
+  const old=ghCfg();if(['owner','repo','token','pass'].every(k=>old[k]===c[k]))c.lastSha=old.lastSha;
   localStorage.setItem(GH_KEY,JSON.stringify(c));ghStatus();
   ntf('⏳ آزمایش اتصال و اولین پشتیبان…');
   if(await ghBackup(false)){document.getElementById('gh-off').style.display='';}
@@ -4763,7 +4837,6 @@ async function saveVal(){
   if(!(v>0))return E('⚠️ ارزش امروز را وارد کنید');
   const cur=calcAccBalance(id);if(cur>0&&Math.abs(v-cur)/cur>0.2&&!confirm(`ارزش جدید ${nf(v)} با ارزش فعلی ${nf(cur)} بیش از ۲۰٪ فرق دارد (شاید صفر کم یا زیاد شده). درست است؟`))return;
   const before=JSON.stringify(ST);const t=today();
-  ST.tx=ST.tx.filter(x=>!(x.accId===id&&x.nature==='revaluation'&&!x.sarafi));
   const diff=Math.round(v-calcAccBalance(id));
   if(diff)ST.tx.push({id:uid(),tp:diff>0?'income':'expense',cat:'revaluation',a:Math.abs(diff),dsc:'به‌روزرسانی ارزش (پرتفوی)',day:t.d,m:t.m-1,y:t.y,accId:id,nature:'revaluation',valManual:1});
   if(!ST.valHist)ST.valHist={};const h=ST.valHist[id]||(ST.valHist[id]=[]);const d={y:t.y,m:t.m-1,d:t.d};
@@ -4874,18 +4947,27 @@ function sarafiAcc(create){
   if(!a&&create){a={id:uid(),bank:'ارز',name:'',accno:'',cardno:'',last4:'',exp:'',iban:'',color:'#B08D3E',initDate:(()=>{const t=today();return{y:t.y,m:t.m-1,d:t.d};})(),initBalance:0,openTxId:null};ST.accounts.push(a);}
   return a;
 }
+let sarafiFlushing=false;
 async function flushSarafiOutbox(){
-  const box=ST.sarafiOutbox||[];if(!box.length||!ghOn())return 0;
+  if(sarafiFlushing||!storageHealthy||stateReplacing)return 0;
+  sarafiFlushing=true;
+  try{return await sendSarafiOutbox();}finally{sarafiFlushing=false;}
+}
+async function sendSarafiOutbox(){
+  await saveQueue;if(!storageHealthy)return 0;
+  const epoch=stateEpoch;const box=(ST.sarafiOutbox||[]).slice();if(!box.length||!ghOn())return 0;
   try{const ok=await ghInboxUpdate(d=>{box.forEach(it=>{d.items[it.id]=it;});},'sarafi-inbox.json');
-    if(ok){const n=box.length;ST.sarafiOutbox=[];await sv();ntf(`💶 ${toFa(n)} مورد به «صرافی» ارسال شد`);return n;}}catch(e){}
+    if(ok&&epoch===stateEpoch&&!stateReplacing){const n=box.length;const ids=new Set(box.map(x=>x.id));ST.sarafiOutbox=ST.sarafiOutbox.filter(x=>!ids.has(x.id));await sv();ntf(`💶 ${toFa(n)} مورد به «صرافی» ارسال شد`);return n;}}catch(e){}
   return 0;
 }
 // v24.27: «املاک» publishes amlak-status.json = deposits held under its contracts. Sarmaye does NOT overwrite
 // its own number (it comes from the deposit records); it only shows a mismatch to review.
 async function amlakDepSync(){
-  if(!ghOn())return false;
+  if(!ghOn()||stateReplacing||!storageHealthy)return false;
+  const epoch=stateEpoch;
   try{const g=await ghFetch('/contents/amlak-status.json');if(!g.ok)return false;const j=await g.json();
     const st=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));
+    if(epoch!==stateEpoch||stateReplacing)return false;
     if(!st||typeof st.deposits!=='number'||!(st.at>((ST.amlakDep||{}).at||0)))return false;
     ST.amlakDep={at:st.at,total:st.deposits,list:Array.isArray(st.list)?st.list.slice(0,80):[]};await sv();rDash();return true;
   }catch(e){return false;}
@@ -4923,13 +5005,14 @@ function sarafiSpends(list,eu){
     else Object.assign(t,{a:Math.round(x.toman),dsc,day:x.date.d,m:x.date.m,y:x.date.y,accId:eu.id});});
 }
 async function sarafiSync(){
-  if(!ghOn())return false;
+  if(!ghOn()||stateReplacing||!storageHealthy)return false;
+  const epoch=stateEpoch;
   try{const g=await ghFetch('/contents/sarafi-status.json');if(!g.ok)return false;const j=await g.json();
     const st=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));
+    if(epoch!==stateEpoch||stateReplacing)return false;
     if(!st||typeof st.target!=='number'||!(st.at>(ST.sarafiAt||0)))return false;
     const eu=sarafiAcc(true);
     if(Array.isArray(st.spends))sarafiSpends(st.spends,eu);   // v24.28: currency spent abroad = a real expense (before the revaluation)
-    ST.tx=ST.tx.filter(t=>!(t.accId===eu.id&&t.nature==='revaluation'&&t.sarafi));   // v24.15: replace, don't accumulate
     const diff=Math.round(st.target-calcAccBalance(eu.id));
     if(Math.abs(diff)>=1){const t=today();ST.tx.push({id:uid(),tp:diff>0?'income':'expense',cat:'revaluation',a:Math.abs(diff),dsc:`به‌روزرسانی ارزش ارز (صرافی: ${sarafiParts(st)})`,day:t.d,m:t.m-1,y:t.y,accId:eu.id,nature:'revaluation',sarafi:1});}
     ST.sarafiAt=st.at;await sv();rDash();return true;
@@ -4959,7 +5042,7 @@ function txSrcInfo(t){
 }
 function similarTx(t){const o=jalOrdinal(t.y,t.m,t.day);
   return ST.tx.filter(x=>x.id!==t.id&&!(t.transferId&&x.transferId===t.transferId)&&!x.isOpening&&x.nature!=='revaluation'&&x.accId===t.accId&&x.tp===t.tp&&Math.abs(x.a-t.a)<=1&&Math.abs(jalOrdinal(x.y,x.m,x.day)-o)<=2);}
-function srcLine(i){return `منبع: <b>${i.label}</b>${i.created?' · ثبت در '+new Date(i.created).toLocaleString('fa-IR'):''}`;}
+function srcLine(i){return `منبع: <b>${esc(i.label)}</b>${i.created?' · ثبت در '+new Date(i.created).toLocaleString('fa-IR'):''}`;}
 function srcHtml(t){
   const i=txSrcInfo(t),sim=similarTx(t);
   return `<div class="srcbox"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${srcLine(i)}</span>
@@ -4985,6 +5068,8 @@ function pullStatus(txt,kind){const e=document.getElementById('smspull-st'),b=do
 async function smsInboxPull(verbose){
   const say=(t,k)=>{if(verbose){pullStatus(t,k);ntf(t);}};
   if(!ghOn()){say('⚠️ پشتیبان GitHub فعال نیست (تنظیمات ← پشتیبان GitHub).','err');return 0;}
+  if(stateReplacing||!storageHealthy)return 0;
+  const epoch=stateEpoch;
   if(smsPulling){say('⏳ در حال بررسی…','busy');return 0;}
   if(verbose)pullStatus('⏳ در حال بررسی پوشهٔ پیامک‌ها در GitHub…','busy');
   smsPulling=true;let added=0,files=0,skipped=0;
@@ -4995,7 +5080,7 @@ async function smsInboxPull(verbose){
     const L=(await r.json()).filter(f=>f&&f.type==='file').slice(0,40);
     for(const f of L){
       const g=await ghFetch('/contents/sms/'+encodeURIComponent(f.name),{accept:'application/vnd.github.raw+json'});
-      if(!g.ok)continue;const res=smsImport(await g.text());added+=res.added;files++;skipped+=res.skipped||0;
+      if(!g.ok)continue;const text=await g.text();if(epoch!==stateEpoch||stateReplacing)return added;const res=smsImport(text);added+=res.added;files++;skipped+=res.skipped||0;
       await sv();   // saved locally BEFORE the file is removed from GitHub
       await ghFetch('/contents/sms/'+encodeURIComponent(f.name),{method:'DELETE',body:JSON.stringify({message:'پیامک خوانده شد',sha:f.sha})}).catch(()=>{});
     }
@@ -5050,7 +5135,7 @@ async function encryptJSON(obj,pass){
   const enc=new TextEncoder();
   const salt=crypto.getRandomValues(new Uint8Array(16));
   const iv=crypto.getRandomValues(new Uint8Array(12));
-  const iterations=50000; // lowered from 150000 — this app's data isn't sensitive enough to justify the extra wait
+  const iterations=150000; // Envelope stores the cost for backward-compatible decryption.
   const keyMat=await crypto.subtle.importKey('raw',enc.encode(pass),{name:'PBKDF2'},false,['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations,hash:'SHA-256'},keyMat,{name:'AES-GCM',length:256},false,['encrypt']);
   const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj)));
@@ -5072,9 +5157,9 @@ async function shareOrDownload(text,fname){
     if(navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({files:[file],title:fname});
       ntf('✅ فایل برای اشتراک‌گذاری آماده شد');
-      return;
+      return 'shared';
     }
-  }catch(e){ if(e && e.name==='AbortError') return; /* user cancelled share sheet */ }
+  }catch(e){ if(e && e.name==='AbortError') return 'cancelled'; }
   const blob=new Blob([text],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -5082,7 +5167,8 @@ async function shareOrDownload(text,fname){
   document.body.appendChild(a);a.click();
   document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),1000);
-  ntf('📥 فایل در «دانلودها» ذخیره شد');
+  ntf('📥 دانلود آغاز شد؛ ذخیره فایل را در دانلودها بررسی کنید');
+  return 'download-started';
 }
 // ============================================================
 // PRE-UPGRADE SNAPSHOT (schema v1)
@@ -5090,7 +5176,12 @@ async function shareOrDownload(text,fname){
 // It is never deleted automatically — the rollback stays available until
 // the user removes it.
 // ============================================================
-async function getV1Backup(){ try{ return await dbGet('state_v1_backup'); }catch(e){ return null; } }
+async function readSnapshot(key){
+  let a=null,b=null;try{a=await dbGet(key);}catch(e){}
+  try{b=JSON.parse(localStorage.getItem('srm_snapshot_'+key)||'null');}catch(e){}
+  return !a?b:!b?a:(b.savedAt||0)>(a.savedAt||0)?b:a;
+}
+async function getV1Backup(){return readSnapshot('state_v1_backup');}
 async function refreshV1Row(){
   const row=document.getElementById('v1-row');
   if(!row) return;
@@ -5122,19 +5213,11 @@ async function downloadV1Backup(){
   await shareOrDownload(JSON.stringify(b.state,null,1),`sarmaye-backup-v1-${t.y}${pad2(t.m)}${pad2(t.d)}.json`);
 }
 async function rollbackToV1(){
-  const b=await getV1Backup();
-  if(!b){ntf('⚠️ نسخه‌ای یافت نشد');return;}
-  if(!confirm('بازگردانی کامل به نسخهٔ v1؟ تمام تغییرات پس از ارتقا از بین می‌رود.')) return;
-  if(!confirm('این عملیات برگشت‌ناپذیر است. مطمئن هستید؟')) return;
-  try{
-    // Keep the current (v2) state as its own snapshot so the rollback is itself reversible.
-    await dbSet('state_v2_before_rollback',{savedAt:Date.now(),state:ST});
-    await dbSet('state',b.state);
-    ntf('↩️ بازگردانی شد — در حال بارگذاری مجدد');
-    setTimeout(()=>location.reload(),900);
-  }catch(e){ ntf('⚠️ بازگردانی ناموفق بود'); }
+  const b=await getV1Backup();if(!b){ntf('⚠️ نسخه‌ای یافت نشد');return;}
+  try{if(await applyBackupObject(b.state))cls('v1m');}catch(e){ntf('⚠️ بازگردانی انجام نشد: '+e.message);}
 }
 function openBackupModal(){
+  let undo=document.getElementById('undo-restore');if(!undo){undo=document.createElement('button');undo.id='undo-restore';undo.className='btn btns';undo.textContent='بازگشت از بازیابی قبلی';undo.onclick=undoRestore;document.getElementById('bkpassm').querySelector('.mdl').appendChild(undo);}
   document.getElementById('bkpass').value='';
   document.getElementById('bkpassm').classList.add('on');
 }
@@ -5149,8 +5232,8 @@ async function doBackup(){
     payload=JSON.stringify(ST,null,2);
   }
   cls('bkpassm');
-  await shareOrDownload(payload,fname);
-  setLastBackupTs();
+  const result=await shareOrDownload(payload,fname);
+  if(result==='shared'||(result==='download-started'&&confirm('فایل پشتیبان را در دانلودها دریافت و بررسی کردید؟')))setLastBackupTs();
 }
 async function restore(inp){
   const f=inp.files[0];if(!f)return;
@@ -5175,22 +5258,61 @@ async function restore(inp){
       }
     }catch(err){
       console.error('Restore error:',err);
-      ntf('⚠️ خطا در خواندن فایل');
+      ntf('⚠️ بازیابی انجام نشد: '+err.message);
     }
     inp.value='';
   };
   r.readAsText(f);
 }
+function validateBackup(p){
+  const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+  if(!obj(p)||!Array.isArray(p.tx)||!obj(p.cats))throw new Error('ساختار فایل سرمایه معتبر نیست');
+  if(p._savedAt!==undefined&&(!Number.isSafeInteger(p._savedAt)||p._savedAt<0))throw new Error('زمان ذخیره نامعتبر است');
+  if(p.schemaVersion!==undefined&&(!Number.isInteger(p.schemaVersion)||p.schemaVersion<1||p.schemaVersion>SCHEMA_VERSION))throw new Error('نسخه این فایل پشتیبانی نمی‌شود');
+  for(const k of ['income','expense'])if(!Array.isArray(p.cats[k]))throw new Error('دسته‌بندی‌های فایل معتبر نیست');
+  for(const k of ['accounts','ten','properties','tenants','rentalContracts','rentPayments','loans','fx','recurring','smsQueue','notifLog','smsLog','amlakOutbox','sarafiOutbox']){
+    if(p[k]!==undefined&&(!Array.isArray(p[k])||p[k].some(x=>!obj(x))))throw new Error('رکورد نامعتبر: '+k);
+  }
+  const safeId=v=>typeof v==='string'&&v.length>0&&v.length<250&&!/[<>&"'`\\\s]/.test(v);
+  const scan=v=>{if(!v||typeof v!=='object')return;for(const [k,x] of Object.entries(v)){
+    if(['__proto__','constructor','prototype'].includes(k))throw new Error('کلید نامعتبر در فایل');
+    if((k==='id'||/Id$/.test(k))&&x!=null&&x!==''&&!safeId(x))throw new Error('شناسه نامعتبر در فایل');
+    if((k==='color'||k==='c')&&typeof x==='string'&&x&&!/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(x))throw new Error('رنگ نامعتبر در فایل');
+    scan(x);
+  }};scan(p);
+  for(const t of p.tx){
+    if(!obj(t)||!safeId(t.id)||!['income','expense'].includes(t.tp)||typeof t.a!=='number'||!Number.isFinite(t.a)||t.a<0||t.a>Number.MAX_SAFE_INTEGER)throw new Error('تراکنش نامعتبر در فایل');
+    if(!Number.isInteger(t.m)||t.m<0||t.m>11||!Number.isInteger(t.day)||t.day<1||t.day>jMaxDay(t.m,t.y||1404)||t.y!==undefined&&(!Number.isInteger(t.y)||t.y<1380||t.y>=1500))throw new Error('تاریخ تراکنش نامعتبر در فایل');
+  }
+  for(const k of ['income','expense'])for(const c of p.cats[k])if(!obj(c)||!safeId(c.id)||typeof c.n!=='string')throw new Error('دسته‌بندی نامعتبر در فایل');
+  return p;
+}
 async function applyBackupObject(p){
-        ST=migrateState({...def(),...p,
-          schemaVersion:p.schemaVersion||1,
-          cats:{
-            income:p.cats?.income||def().cats.income,
-            expense:p.cats?.expense||def().cats.expense
-          }});
-        await sv();
-        rDash();rTx();rSett();
-        ntf('✅ بازیابی و به‌روزرسانی فرمت انجام شد');
+  validateBackup(p);
+  const candidate=migrateState({...def(),...JSON.parse(JSON.stringify(p)),schemaVersion:p.schemaVersion||1,
+    cats:{income:p.cats.income,expense:p.cats.expense}});
+  validateBackup(candidate);
+  const ids=new Set(candidate.accounts.map(a=>a.id));
+  if(candidate.tx.some(t=>t.accId&&!ids.has(t.accId)))throw new Error('بعضی تراکنش‌ها به حساب ناموجود اشاره می‌کنند');
+  if(!confirm(`بازیابی ${nf(candidate.tx.length)} تراکنش و ${nf(candidate.accounts.length)} حساب، جایگزین اطلاعات فعلی می‌شود. یک نسخه بازگشت نگهداری خواهد شد. ادامه می‌دهید؟`))return false;
+  if(stateReplacing)return false;
+  stateReplacing=true;stateEpoch++;
+  const busy=document.createElement('div');busy.style.cssText='position:fixed;inset:0;z-index:15000;background:var(--bg,#fff);padding:40px;direction:rtl';busy.textContent='در حال نگهداری نسخه قبلی و بازیابی اطلاعات…';document.body.appendChild(busy);
+  try{
+    await saveQueue;if(!storageHealthy)throw new Error('ابتدا مشکل ذخیره را برطرف کنید');
+    const previous=JSON.parse(JSON.stringify(ST));
+    await saveSnapshot('before_restore',{savedAt:Date.now(),state:previous});
+    ST=candidate;
+    try{await sv();}catch(e){ST=previous;throw e;}
+    rDash();rTx();rSett();
+    ntf('✅ بازیابی انجام شد؛ نسخه قبلی در «بازگشت از بازیابی» نگهداری شد');
+    return true;
+  }finally{stateReplacing=false;busy.remove();}
+}
+async function undoRestore(){
+  const snapshot=await readSnapshot('before_restore');
+  if(!snapshot||!snapshot.state){ntf('⚠️ نسخه بازگشت موجود نیست');return;}
+  try{await applyBackupObject(snapshot.state);}catch(e){ntf('⚠️ '+e.message);}
 }
 
 // ============================================================
@@ -5240,14 +5362,8 @@ if('serviceWorker' in navigator){
       });
     }).catch(()=>{});
   });
-  // When a new service worker takes control (i.e. an update just installed and
-  // activated), the page already in memory is running stale code — reload once
-  // so the user automatically gets the new version without clearing cache by hand.
-  let swRefreshed=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(swRefreshed) return;
-    swRefreshed=true;
-    window.location.reload();
+    ntf('نسخه آفلاین آماده است؛ تغییرات فرم با بارگذاری خودکار از بین نمی‌روند');
   });
 }
 
@@ -6343,6 +6459,7 @@ function openCloudModal(){
   document.getElementById('cloud-email').value='';
   document.getElementById('cloud-pass').value='';
   renderCloudPanel();
+  let button=document.getElementById('cloud-backup-manual');if(!button){button=document.createElement('button');button.id='cloud-backup-manual';button.className='btn btnp';button.textContent='ذخیره پشتیبان ابری این دستگاه';button.onclick=cloudBackupManual;document.getElementById('cloud-loggedin').appendChild(button);const prev=document.createElement('button');prev.className='btn btns';prev.textContent='بازیابی نسخه ابری قبلی';prev.onclick=()=>cloudRestore(true);document.getElementById('cloud-loggedin').appendChild(prev);}
   document.getElementById('cloudm').classList.add('on');
 }
 function renderCloudPanel(){
@@ -6353,7 +6470,7 @@ function renderCloudPanel(){
   if(u){
     out.style.display='none';inn.style.display='block';
     document.getElementById('cloud-email-lbl').textContent=u.email||u.uid;
-    if(lbl) lbl.textContent='فعال — بکاپ خودکار ('+(u.email||'')+')';
+    if(lbl) lbl.textContent='پشتیبان ابری دستی ('+(u.email||'')+')';
     fbDb.collection('backups').doc(u.uid).get().then(doc=>{
       const el=document.getElementById('cloud-lastbk');
       if(!el) return;
@@ -6366,7 +6483,7 @@ function renderCloudPanel(){
     }).catch(()=>{});
   } else {
     out.style.display='block';inn.style.display='none';
-    if(lbl) lbl.textContent='غیرفعال — وارد شوید تا خودکار فعال شود';
+    if(lbl) lbl.textContent='غیرفعال — برای پشتیبان دستی وارد شوید';
   }
 }
 let openBackupFired=false,cloudListenerOn=false;
@@ -6411,58 +6528,49 @@ function setBtnBusy(id,busyText){
   b.disabled=true;b.style.opacity='0.6';b.style.cursor='wait';b.textContent=busyText;
   return ()=>{ b.disabled=false;b.style.opacity='';b.style.cursor='';b.textContent=orig; };
 }
-async function cloudRestore(){
+async function cloudRestore(previous=false){
   if(!fbAuth.currentUser){ntf('⚠️ ابتدا وارد حساب شوید');return;}
   const done=setBtnBusy('cloud-restore-btn','⏳ در حال دریافت...');
   try{
     const doc=await fbDb.collection('backups').doc(fbAuth.currentUser.uid).get();
     if(!doc.exists){ntf('⚠️ هیچ بکاپ ابری یافت نشد');return;}
-    const p=doc.data();
-    let obj;
-    if(p.srmEnc===1){
-      done();
-      const pass=prompt('رمز عبور بکاپ ابری را وارد کنید:');
-      if(!pass) return;
-      const done2=setBtnBusy('cloud-restore-btn','⏳ در حال رمزگشایی...');
-      try{ obj=await decryptJSON(p,pass); }
-      catch(e){ ntf('⚠️ رمز عبور نادرست است');done2();return; }
-      done2();
-    } else {
-      obj=JSON.parse(p.data);
-    }
-    if(!confirm('بازیابی از ابر، داده‌های فعلی روی این گوشی را جایگزین می‌کند. ادامه می‌دهید؟')) return;
-    const done3=setBtnBusy('cloud-restore-btn','⏳ در حال بازیابی...');
-    ST=migrateState({...def(),...obj,cats:{
-      income:obj.cats?.income||def().cats.income,
-      expense:obj.cats?.expense||def().cats.expense
-    }});
-    await sv();
-    done3();
-    cls('cloudm');
-    rDash();rTx();rSett();
-    ntf('✅ بازیابی از ابر انجام شد');
-  }catch(e){ console.error(e); ntf('⚠️ خطا در بازیابی ابری: '+(e.message||'')); }
-  finally{ done(); }
+    const p=previous===true?doc.data().sarmayePrevious:doc.data();if(!p){ntf('⚠️ نسخه ابری قبلی موجود نیست');return;}let obj;
+    if(p.srmEnc===1){const pass=prompt('رمز عبور بکاپ ابری را وارد کنید:');if(!pass)return;obj=await decryptJSON(p,pass);}
+    else obj=JSON.parse(p.data);
+    if(await applyBackupObject(obj))cls('cloudm');
+  }catch(e){ntf('⚠️ بازیابی انجام نشد: '+e.message);}finally{done();}
 }
-// Best-effort silent cloud copy, used by the weekly local-backup reminder when the user is already signed in
-async function cloudAutoBackupIfSignedIn(){
-  if(!fbReady||!fbAuth||!fbAuth.currentUser) return;
+// Firebase is deliberately manual: signing in or hiding an empty/stale device
+// must never overwrite the recovery copy. GitHub remains the automatic option.
+async function cloudAutoBackupIfSignedIn(){return false;}
+async function cloudBackupManual(){
+  if(!fbReady||!fbAuth||!fbAuth.currentUser||!storageHealthy)return false;
+  await saveQueue;if(!storageHealthy)return false;
+  const pass=prompt('رمز بکاپ ابری را وارد کنید (خالی = بدون رمزگذاری؛ انصراف = لغو):');
+  if(pass===null)return false;
+  const snapshot=JSON.parse(JSON.stringify(ST));
   try{
-    // merge:true — the same doc may also hold the «املاک» app's backup (field `amlak`);
-    // a plain set() would silently erase it.
-    await fbDb.collection('backups').doc(fbAuth.currentUser.uid).set({
-      srmEnc:0, data:JSON.stringify(ST),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    },{merge:true});
-  }catch(e){ console.error('Cloud auto-backup failed:',e); }
+    const ref=fbDb.collection('backups').doc(fbAuth.currentUser.uid);
+    const before=await ref.get();const old=before.exists?before.data():{};
+    if(!confirm(`پشتیبان ابری با ${nf(snapshot.tx.length)} تراکنش این دستگاه جایگزین شود؟ نسخه قبلی نیز نگهداری می‌شود.`))return false;
+    const payload=pass?await encryptJSON(snapshot,pass):{srmEnc:0,data:JSON.stringify(snapshot)};
+    const fingerprint=v=>JSON.stringify([v.srmEnc,v.data,v.iv,v.salt]);
+    await fbDb.runTransaction(async tx=>{
+      const latest=await tx.get(ref);const current=latest.exists?latest.data():{};
+      if(fingerprint(current)!==fingerprint(old))throw new Error('بکاپ ابری در دستگاه دیگری تغییر کرده؛ دوباره بررسی کنید');
+      const previous=old.data?Object.fromEntries(['srmEnc','data','iter','salt','iv'].filter(k=>old[k]!==undefined).map(k=>[k,old[k]])):null;
+      tx.set(ref,{...payload,sarmayePrevious:previous,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    });
+    ntf('✅ پشتیبان ابری ذخیره شد');renderCloudPanel();return true;
+  }catch(e){ntf('⚠️ پشتیبان ابری ذخیره نشد: '+e.message);return false;}
 }
 
 async function autoBackup(){
   try{
     const t=today();
     const fname=`sarmaye_auto_${t.y}-${String(t.m).padStart(2,'0')}-${String(t.d).padStart(2,'0')}.json`;
-    await shareOrDownload(JSON.stringify(ST,null,2),fname);
-    setLastBackupTs();
+    const result=await shareOrDownload(JSON.stringify(ST,null,2),fname);
+    if(result==='shared'||(result==='download-started'&&confirm('فایل پشتیبان را در دانلودها دریافت و بررسی کردید؟')))setLastBackupTs();
     cloudAutoBackupIfSignedIn();
   }catch(e){
     console.error('Auto-backup failed:',e);
@@ -6491,7 +6599,7 @@ function showBackupReminder(){
         style="background:#B5600A;border:none;border-radius:10px;padding:7px 11px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif;white-space:nowrap">
         💾 ذخیره
       </button>
-      <button onclick="setLastBackupTs();document.getElementById('backup-reminder-bar').remove()"
+      <button onclick="document.getElementById('backup-reminder-bar').remove()"
         style="background:rgba(181,96,10,.12);border:none;border-radius:10px;padding:7px 9px;color:#B5600A;font-size:12px;font-weight:600;cursor:pointer;font-family:'Vazirmatn',sans-serif;white-space:nowrap">
         بعداً
       </button>
@@ -6584,8 +6692,8 @@ function confirmForgotPin(){
 }
 
 async function init(){
-  await openDB();
-  await loadState();
+  try{try{await openDB();}catch(e){db=null;}await loadState();}
+  catch(e){storageFailure(e);return;}
   if(ST.security&&ST.security.enabled&&ST.security.pinHash){
     await lockApp();
   }
@@ -6599,7 +6707,7 @@ async function init(){
   });
   // Check if weekly LOCAL-FILE backup reminder is needed — skipped for users who
   // already have automatic cloud backup running, to avoid two competing prompts
-  setTimeout(()=>{ if(!(fbReady&&fbAuth&&fbAuth.currentUser)) chkAutoBackup(); }, 1500);
+  setTimeout(chkAutoBackup,1500);
   applyTheme();
   // First launch after the v2 upgrade: offer the untouched v1 file immediately.
   if(pendingV1BackupOffer){

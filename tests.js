@@ -6,7 +6,7 @@
 // ============================================================
 const fs=require('fs'),vm=require('vm');
 
-const html=fs.readFileSync(__dirname+'/build/index.html','utf8');
+const html=fs.readFileSync(__dirname+'/index.html','utf8');
 const blocks=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
 let code=blocks.join('\n;\n');   // both inline blocks, in document order
 code=code.replace(/\ninit\(\);\s*$/,'\n');           // don't boot the app

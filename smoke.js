@@ -1,7 +1,7 @@
 // Render smoke test: run the screen renderers against a stub DOM and make sure
 // none of them throw with realistic v2 data.
 const fs=require('fs'),vm=require('vm');
-const html=fs.readFileSync(__dirname+'/build/index.html','utf8');
+const html=fs.readFileSync(__dirname+'/index.html','utf8');
 let code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n;\n')
   .replace(/\ninit\(\);\s*$/,'\n');
 const mk=()=>({style:{},classList:{add(){},remove(){},toggle(){},contains:()=>false},
@@ -42,7 +42,7 @@ vm.runInContext('ST=migrateState(__in);SM=3;SY=1405;',sb);
 let fail=0;
 for(const fn of ['rDash','rTx','rTen','rRep','rPropTable','rBudgets','rSavingsAndTrend',
                  'openPay','openLoanList','openAccList','openTM','openLoanForm',
-                 'openDepDateModal','renderDepositNotice','chkDue','chkNotifBadge','exportCSV','updateLoanCount']){
+                 'openDepDateModal','renderDepositNotice','chkNotifBadge','exportCSV','updateLoanCount']){
   try{
     if(fn==='openPay') vm.runInContext(`openPay('ten1')`,sb);
     else if(fn==='openTM') vm.runInContext(`openTM('ten1')`,sb);
