@@ -621,3 +621,107 @@ test('returning from background refreshes dues after a date change without clear
   Object.defineProperty(f.w.document,'visibilityState',{value:'visible',configurable:true});f.w.document.dispatchEvent(new f.w.Event('visibilitychange'));await f.run('saveQueue');
   assert.match(f.w.document.getElementById('dashTodo').textContent,/قسط نیازمند پرداخت/);assert.equal(f.w.document.getElementById('loanpay-amt').value,'45');assert.equal(f.run('ST.notifLog.filter(n=>n.type===\'loan\').length'),1);
 });
+
+// Synthetic loans only: no real user names, amounts or contract data.
+async function simpleLoan(t,values={},factory=new IDBFactory(),storage=new Map()){
+  const f=setup(t,factory,storage);await f.run('init()');f.run(dailyBase+`ST.loans=[];ST.notifLog=[];today=()=>({y:1405,m:2,d:20,wd:'آزمایشی'});SM=1;SY=1405;upsertOpeningTx(ST.accounts[0],2000);openLoanForm();`);
+  const fields={'loan-n':'وام آزمایشی','loan-left-count':'2','loan-paid-count':'3','loan-total-count':'5','loan-simple-amount':'100','loan-simple-day':'10','loan-simple-year':'1405',...values};
+  for(const [id,value] of Object.entries(fields))f.w.document.getElementById(id).value=value;
+  f.run("fillMon('loan-simple-mon',1);loanKindChanged()");await f.run('saveLoan()');
+  if(f.run('ST.loans.length'))f.run("ST.tx.forEach(t=>{if(t.loanId===ST.loans[0].id)t.loanId='l'});ST.loans[0].id='l'");
+  return f;
+}
+test('existing-loan count entry builds numbered monthly dues without posting past payments or inventing principal',async t=>{
+  const f=await simpleLoan(t);
+  assert.equal(f.run('ST.loans.length'),1);assert.equal(f.run('ST.loans[0].trackingMode'),'simple');
+  assert.deepEqual(copy(f.run('ST.loans[0].schedule.map(s=>s.number)')),[4,5]);
+  assert.equal(f.run("calcAccBalance('a')"),2000);assert.equal(f.run('ST.tx.filter(t=>t.loanId).length'),0);assert.equal(f.run('loansDebt()'),0);
+  f.run('NW_SHOW=true;rDash();openLoanList()');assert.match(f.w.document.getElementById('home-assets-total').textContent,/نامشخص/);assert.equal(f.run('activeLoans().length'),1);
+  assert.match(f.w.document.getElementById('loan-list').textContent,/۲ قسط باقی/);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+});
+test('unknown historical total remains unknown; supplying total alone safely derives already-paid count',async t=>{
+  const f=await simpleLoan(t,{'loan-total-count':'','loan-paid-count':''});assert.equal(f.run('ST.loans[0].totalInstallments'),null);assert.equal(f.run('ST.loans[0].paidBefore'),null);assert.equal(f.run('ST.loans[0].schedule[0].number'),undefined);
+  const g=await simpleLoan(t,{'loan-total-count':'5','loan-paid-count':''});assert.equal(g.run('ST.loans[0].paidBefore'),3);
+});
+test('inconsistent counts, fractions, unsafe totals and invalid Jalali dates never mutate state',async t=>{
+  const f=await simpleLoan(t,{'loan-total-count':'6'});assert.equal(f.run('ST.loans.length'),0);
+  for(const value of ['1.5','-2','0','601','9007199254740992','abc']){
+    f.w.document.getElementById('loan-left-count').value=value;await f.run('saveLoan()');assert.equal(f.run('ST.loans.length'),0,value);
+  }
+  f.run("document.getElementById('loan-left-count').value='2';document.getElementById('loan-total-count').value='5';fillMon('loan-simple-mon',11);document.getElementById('loan-simple-day').value='31'");await f.run('saveLoan()');assert.equal(f.run('ST.loans.length'),0);
+  f.run("fillMon('loan-simple-mon',1);document.getElementById('loan-simple-day').value='10';document.getElementById('loan-simple-amount').value='9007199254740991'");await f.run('saveLoan()');assert.equal(f.run('ST.loans.length'),0);
+});
+test('Persian and Arabic digits work for counts, money and Jalali date fields',async t=>{
+  const f=await simpleLoan(t,{'loan-left-count':'۲','loan-paid-count':'٣','loan-total-count':'۵','loan-simple-amount':'۱۰۰','loan-simple-day':'۱۰','loan-simple-year':'۱۴۰۵'});
+  assert.equal(f.run('ST.loans[0].schedule[0].a'),100);assert.equal(f.run('ST.loans[0].paidBefore'),3);
+});
+test('late entry settles selected due, clears its reminder and reports unknown split separately on actual payment date',async t=>{
+  const f=await simpleLoan(t);await f.run('chkLoansDue()');assert.equal(f.run('loanNoticeActive(ST.notifLog[0])'),true);
+  await payLoan(f,100,0,0,25);
+  assert.equal(f.run('loanDueItems(ST.loans[0])[0].status'),'paid');assert.equal(f.run('loanNoticeActive(ST.notifLog[0])'),false);
+  assert.equal(f.run("calcAccBalance('a')"),1900);assert.equal(f.run('loansDebt()'),0);assert.equal(f.run('totals(ST.tx).e'),0);
+  assert.equal(f.run("loanInstallments('l')[0].unsplit"),100);assert.equal(f.run("ST.tx.find(t=>t.loanId).nature"),'loanUnsplit');
+  f.run('SM=0;rRep();openUnsplitLoanRows()');assert.match(f.w.document.getElementById('ys').textContent,/اقساط بدون تفکیک/);assert.match(f.w.document.getElementById('home-month-net').textContent,/مازاد درآمد/);assert.match(f.w.document.getElementById('report-overview').textContent,/۱۰۰ تومان/);assert.match(f.w.document.getElementById('ledger-summary').textContent,/۱۰۰ تومان/);
+  assert.equal(f.run("ledgerEntries({mode:'loanUnsplit',m:0,y:1405}).length"),1);
+  f.run("openTxDetails(ST.tx.find(t=>t.loanId).id)");assert.match(f.w.document.getElementById('txdetail-body').textContent,/اصل و سود مشخص نیست/);
+});
+test('partial and multi-due simple payments, correction, deletion and undo affect only chosen dues and cash',async t=>{
+  const f=await simpleLoan(t);await payLoan(f,40);assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),60);
+  f.run("editInstallment('l',loanInstallments('l')[0].id);document.getElementById('loanpay-amt').value='25'");await f.run('saveInstallmentEdit()');assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),75);assert.equal(f.run("calcAccBalance('a')"),1975);
+  await f.run("removeInstallment('l',loanInstallments('l')[0].id)");assert.equal(f.run("calcAccBalance('a')"),2000);await f.run('doUndo()');assert.equal(f.run("calcAccBalance('a')"),1975);
+  await payLoan(f,175,0,1,5,false);assert.equal(f.run("calcAccBalance('a')"),1975);
+  await payLoan(f,175,0,1,5,true);assert.equal(f.run("calcAccBalance('a')"),1800);assert.equal(f.run('activeLoans().length'),0);assert.equal(f.run('hasUnknownLoanDebt()'),false);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+});
+test('attaching an ordinary debit to a simple installment never withdraws twice, and detach restores original classification',async t=>{
+  const f=await simpleLoan(t);f.run("ST.tx.push({id:'debit-simple',tp:'expense',cat:'e7',nature:'operating',a:100,accId:'a',day:25,m:0,y:1405});payInstallment('l');document.getElementById('loanpay-existing').value='debit-simple';chooseLoanExisting()");await f.run('confirmPayInstallment()');
+  assert.equal(f.run("calcAccBalance('a')"),1900);assert.equal(f.run('totals(ST.tx).e'),0);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+  await f.run("removeInstallment('l',loanInstallments('l')[0].id)");assert.equal(f.run("calcAccBalance('a')"),1900);assert.equal(f.run('totals(ST.tx).e'),100);assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),100);
+});
+test('new loan requires receipt information, records optional dated deposit once and does not count it as income',async t=>{
+  const f=await simpleLoan(t,{'loan-kind':'new','loan-total-count':'2','loan-received-amount':'150','loan-received-day':'1','loan-received-year':'1405','loan-received-acc':'a'});
+  assert.equal(f.run('ST.loans.length'),1);assert.equal(f.run('ST.loans[0].entryKind'),'new');assert.equal(f.run('ST.loans[0].paidBefore'),0);assert.equal(f.run("calcAccBalance('a')"),2150);assert.equal(f.run('totals(ST.tx).i'),0);
+  assert.equal(f.run('ST.tx.find(t=>t.loanId).day'),1);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+  f.run("openLoanForm('l');document.getElementById('loan-n').value='نام اصلاح‌شده'");await f.run('saveLoan()');assert.equal(f.run("calcAccBalance('a')"),2150);assert.equal(f.run('ST.tx.filter(t=>t.loanId).length'),1);
+  await f.run("eLoanId='l';delLoan()");assert.equal(f.run("calcAccBalance('a')"),2000);
+});
+test('new-loan receipt already reflected in balances creates no duplicate deposit; invalid/missing receipt blocks creation',async t=>{
+  const f=await simpleLoan(t,{'loan-kind':'new','loan-total-count':'2','loan-received-amount':'150','loan-received-day':'1','loan-received-year':'1405'});assert.equal(f.run("calcAccBalance('a')"),2000);assert.equal(f.run('ST.tx.filter(t=>t.loanId).length'),0);
+  const g=await simpleLoan(t,{'loan-kind':'new','loan-total-count':'2','loan-received-amount':''});assert.equal(g.run('ST.loans.length'),0);
+  g.run("document.getElementById('loan-received-amount').value='300'");await g.run('saveLoan()');assert.equal(g.run('ST.loans.length'),0);
+  g.run("document.getElementById('loan-received-amount').value='150';document.getElementById('loan-received-day').value='21'");await g.run('saveLoan()');assert.equal(g.run('ST.loans.length'),0);
+});
+test('simple form exposes standard relevant fields, keeps optional details optional and prevents accidental schedule replacement',async t=>{
+  const f=await simpleLoan(t);f.run("openLoanForm('l')");assert.equal(f.w.document.getElementById('loan-simple-fields').hidden,false);assert.equal(f.w.document.getElementById('loan-advanced-fields').hidden,true);
+  assert.equal(f.w.document.getElementById('loan-simple-amount').disabled,true);assert.equal(f.w.document.getElementById('loan-new-receipt').hidden,true);
+  const plan=copy(f.run('ST.loans[0].schedule'));f.run("document.getElementById('loan-left-count').value='99';document.getElementById('loan-n').value='نام تازه'");await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST.loans[0].schedule')),plan);
+  f.run('openLoanForm()');assert.equal(f.w.document.getElementById('loan-left-count').disabled,false);f.run("document.getElementById('loan-kind').value='new';loanKindChanged()");assert.equal(f.w.document.getElementById('loan-old-counts').hidden,true);assert.equal(f.w.document.getElementById('loan-new-receipt').hidden,false);
+});
+test('explicit conversion archives legacy schedule without changing receipts, cash or their known split; cancellation is inert',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase);await configureLoan(f);await payLoan(f,100);const receipts=copy(f.run('ST.tx')),balance=f.run("calcAccBalance('a')");
+  f.run("openLoanForm('l');startSimpleLoanConversion();document.getElementById('loan-left-count').value='2';document.getElementById('loan-total-count').value='5';document.getElementById('loan-paid-count').value='3';document.getElementById('loan-simple-amount').value='100';document.getElementById('loan-simple-day').value='10';fillMon('loan-simple-mon',2)");
+  f.w.confirm=()=>false;await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST.tx')),receipts);assert.equal(f.run('ST.loans[0].trackingMode'),undefined);
+  f.w.confirm=()=>true;await f.run('saveLoan()');assert.equal(f.run('ST.loans[0].trackingMode'),'simple');assert.equal(f.run("calcAccBalance('a')"),balance);assert.equal(f.run('ST.loans[0].previousTracking.schedule.length'),10);assert.equal(f.run('ST.tx.find(t=>t.loanId).priorDueAllocations.length'),1);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+  f.run("editInstallment('l',loanInstallments('l')[0].id)");assert.equal(f.w.document.getElementById('loanpay-interest-wrap').hidden,false);await f.run('saveInstallmentEdit()');assert.equal(f.run('ST.tx.find(t=>t.loanId).nature'),'loanPrincipal');assert.equal(f.run('ST.tx.find(t=>t.loanId).priorDueAllocations.length'),1);assert.equal(f.run("calcAccBalance('a')"),balance);
+});
+test('simple schedule survives persistence, restore and malformed count rejection',async t=>{
+  const factory=new IDBFactory(),storage=new Map(),f=await simpleLoan(t,{},factory,storage);await payLoan(f,100);const reopened=setup(t,factory,storage);await reopened.run('init()');assert.equal(reopened.run('loanDueItems(ST.loans[0])[0].status'),'paid');const g=setup(t,new IDBFactory(),new Map());await g.run('init()');g.w.__simpleBackup=copy(f.run('ST'));await g.run('applyBackupObject(__simpleBackup)');
+  assert.equal(g.run('loanDueItems(ST.loans[0])[0].status'),'paid');assert.equal(g.run("calcAccBalance('a')"),1900);assert.equal(g.run("loanInstallments('l')[0].unsplit"),100);
+  assert.throws(()=>g.run('validateBackup({...ST,loans:ST.loans.map(l=>({...l,installmentCount:20}))})'));
+  assert.throws(()=>g.run('validateBackup({...ST,loans:ST.loans.map(l=>({...l,paidBefore:99}))})'));
+});
+test('SMS acknowledges existing simple payment and posts new unsplit installment without requiring invented interest',async t=>{
+  const f=await simpleLoan(t);f.run("ST.smsKeys={'bank-key':'a'}");await payLoan(f,100,0,1,5);
+  f.run("ST.smsQueue=[{id:'simple-q',hash:'simple-h',raw:'پیام آزمایشی',p:{keys:['bank-key'],a:100,tp:'expense',d:{y:1405,m:1,d:5}}}];smsqIdx=0;openSmsQueue();smsqSetTp('loan');document.getElementById('smsq-loan-existing').value='payment:'+loanInstallments('l')[0].id");await f.run('smsqSave()');assert.equal(f.run("calcAccBalance('a')"),1900);assert.equal(f.run("loanInstallments('l').length"),1);
+  f.run("ST.smsQueue=[{id:'simple-q2',hash:'simple-h2',raw:'پیام آزمایشی',p:{keys:['bank-key'],a:100,tp:'expense',d:{y:1405,m:2,d:5}}}];smsqIdx=0;openSmsQueue();smsqSetTp('loan');document.getElementById('smsq-int').value=''");await f.run('smsqSave()');assert.equal(f.run("calcAccBalance('a')"),1800);assert.equal(f.run('activeLoans().length'),0);assert.equal(f.run('totals(ST.tx).e'),0);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+});
+test('new simple loan creation is single-flight, cancellation is inert and unsupported storage never creates data',async t=>{
+  const f=await simpleLoan(t);f.run("openLoanForm();document.getElementById('loan-n').value='وام آزمایشی دوم';document.getElementById('loan-left-count').value='2';document.getElementById('loan-simple-amount').value='100';document.getElementById('loan-simple-day').value='10'");
+  f.w.confirm=()=>false;await f.run('saveLoan()');assert.equal(f.run('ST.loans.length'),1);f.w.confirm=()=>true;
+  f.run('storageHealthy=false');await f.run('saveLoan()');assert.equal(f.run('ST.loans.length'),1);f.run('storageHealthy=true');
+  let release;f.w.__hold=()=>new Promise(resolve=>release=resolve);f.run('const realSimpleSave=sv;sv=__hold');const first=f.run('saveLoan()');await f.run('saveLoan()');assert.equal(f.run('ST.loans.length'),2);release();await first;f.run('sv=realSimpleSave');await f.run('sv()');
+});
+test('count-based monthly schedule clamps short months and amount edits retain count, numbering and previous cash entries',async t=>{
+  const f=await simpleLoan(t);f.run("openLoanForm();document.getElementById('loan-n').value='وام ماهانه آزمایشی';document.getElementById('loan-left-count').value='8';document.getElementById('loan-paid-count').value='2';document.getElementById('loan-total-count').value='10';document.getElementById('loan-simple-amount').value='100';document.getElementById('loan-simple-day').value='31';fillMon('loan-simple-mon',5)");await f.run('saveLoan()');
+  assert.equal(f.run('ST.loans[1].schedule[1].day'),30);assert.equal(f.run('ST.loans[1].schedule[6].day'),f.run('jMaxDay(11,1405)'));assert.equal(f.run('ST.loans[1].schedule[7].day'),31);
+  const before=copy(f.run('ST.tx'));f.run("openLoanSchedule(ST.loans[1].id);editScheduleItem(ST.loans[1].schedule[7].id);document.getElementById('due-edit-amount').value='120'");await f.run('saveScheduleItem()');assert.equal(f.run('ST.loans[1].schedule[7].a'),120);assert.equal(f.run('ST.loans[1].schedule[7].number'),10);assert.deepEqual(copy(f.run('ST.tx')),before);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+});
