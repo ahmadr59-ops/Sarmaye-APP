@@ -495,3 +495,129 @@ test('double tap on discard removes only the displayed SMS while storage is pend
   release();await first;f.run('sv=originalSave');await f.run('sv()');
   await f.run('doUndo()');assert.equal(f.run('ST.smsQueue.length'),2);
 });
+
+const scheduledLoanBase=dailyBase+`today=()=>({y:1405,m:2,d:20,wd:'آزمایشی'});SM=1;SY=1405;ST.notifLog=[];ST.smsAuditDone=true;ST.loans=[{id:'l',n:'وام نمونه',remaining:1000,principalTotal:1000,total:1000,inst:100,day:10,defaultInterest:0,active:true}];upsertOpeningTx(ST.accounts[0],2000);`;
+async function configureLoan(f,month=1,day=10,year=1405){
+  f.run(`openLoanSchedule('l');document.getElementById('loan-start-year').value='${year}';fillMon('loan-start-mon',${month});document.getElementById('loan-start-day').value='${day}'`);
+  await f.run('saveLoanSchedule()');assert.ok(f.run('Array.isArray(ST.loans[0].schedule)'));
+}
+async function payLoan(f,amount,interest=0,month=1,day=5,multi=false,index=0){
+  f.run(`payInstallment('l',false,'',ST.loans[0].schedule[${index}].id);document.getElementById('loanpay-amt').value='${amount}';document.getElementById('loanpay-int').value='${interest}';document.getElementById('loanpay-acc').value='a';fillMon('loanpay-mon',${month});document.getElementById('loanpay-day').value='${day}';document.getElementById('loanpay-yr').value='1405';document.getElementById('loanpay-multi').checked=${multi}`);
+  await f.run('confirmPayInstallment()');
+}
+test('legacy loan requests explicit tracking start; configuring a schedule never changes cash or existing debt',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`rDash()`);
+  assert.match(f.w.document.getElementById('dashTodo').textContent,/تعیین اولین قسط/);
+  const before=copy(f.run('[ST.tx,ST.loans[0].remaining]'));await configureLoan(f);
+  assert.deepEqual(copy(f.run('[ST.tx,ST.loans[0].remaining]')),before);
+  assert.equal(f.run('ST.loans[0].schedule.length'),10);assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),100);
+});
+test('late entry with a previous-month payment settles the selected current-month due and posts interest on actual date',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.loans[0].defaultInterest=20`);await configureLoan(f);
+  await payLoan(f,100,20,0,25);
+  assert.equal(f.run('loanDueItems(ST.loans[0])[0].status'),'paid');assert.equal(f.run('loanDueItems(ST.loans[0]).filter(s=>s.isDue).length'),0);
+  assert.equal(f.run(`calcAccBalance('a')`),1900);assert.equal(f.run('ST.loans[0].remaining'),920);
+  assert.equal(f.run('totals(getTx(0,1405)).e'),20);assert.equal(f.run('totals(getTx(1,1405)).e'),0);
+  assert.equal(f.run("loanInstallments('l')[0].m"),0);assert.equal(f.run("loanGroupAllocations(loanInstallments('l')[0])[0].dueId"),f.run('ST.loans[0].schedule[0].id'));
+});
+test('partial payments retain reminder until total is covered; old notification becomes resolved and never duplicates daily',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase);await configureLoan(f);await f.run('chkLoansDue()');
+  assert.equal(f.run('ST.notifLog.length'),1);await payLoan(f,25);
+  assert.equal(f.run('loanDueItems(ST.loans[0])[0].status'),'partial');assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),75);
+  assert.equal(f.run('loanNoticeActive(ST.notifLog[0])'),true);assert.match(f.w.document.getElementById('dashTodo').textContent,/قسط نیازمند پرداخت/);
+  await payLoan(f,75);assert.equal(f.run('loanDueItems(ST.loans[0])[0].status'),'paid');assert.equal(f.run('ST.loans[0].remaining'),900);
+  assert.equal(f.run('loanNoticeActive(ST.notifLog[0])'),false);f.run('openNotifPanel()');assert.match(f.w.document.getElementById('notif-panel-list').textContent,/پرداخت‌شده/);
+  f.run(`today=()=>({y:1405,m:2,d:21,wd:'آزمایشی'})`);await f.run('chkLoansDue()');assert.equal(f.run('ST.notifLog.length'),1);
+});
+test('one payment can cover multiple dues only with explicit multi-period selection',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase);await configureLoan(f);
+  await payLoan(f,250,0,1,5,false);assert.equal(f.run('ST.loans[0].remaining'),1000);
+  await payLoan(f,250,0,1,5,true);assert.deepEqual(copy(f.run('loanDueItems(ST.loans[0]).slice(0,3).map(s=>s.left)')),[0,0,50]);
+  assert.equal(f.run('ST.loans[0].remaining'),750);assert.equal(f.run("loanGroupAllocations(loanInstallments('l')[0]).length"),3);
+});
+test('payment correction and deletion reopen only their allocated dues, update notices and support undo',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase);await configureLoan(f);await f.run('chkLoansDue()');await payLoan(f,100);
+  f.run(`editInstallment('l',loanInstallments('l')[0].id);document.getElementById('loanpay-amt').value='40'`);await f.run('saveInstallmentEdit()');
+  assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),60);assert.equal(f.run('ST.loans[0].remaining'),960);assert.equal(f.run('loanNoticeActive(ST.notifLog[0])'),true);
+  await f.run(`removeInstallment('l',loanInstallments('l')[0].id)`);assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),100);assert.equal(f.run(`calcAccBalance('a')`),2000);
+  await f.run('doUndo()');assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),60);assert.equal(f.run('ST.loans[0].remaining'),960);
+});
+test('an already-recorded debit is reclassified as principal and interest without debiting cash twice; detach restores it',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.loans[0].defaultInterest=20;ST.tx.push({id:'bank',tp:'expense',cat:'e7',a:100,accId:'a',day:25,m:0,y:1405,nature:'operating',smsHash:'bankhash',src:{k:'sms',raw:'آزمایشی'}})`);await configureLoan(f);
+  f.run(`payInstallment('l');document.getElementById('loanpay-existing').value='bank';chooseLoanExisting();document.getElementById('loanpay-int').value='20'`);await f.run('confirmPayInstallment()');
+  assert.equal(f.run(`calcAccBalance('a')`),1900);assert.equal(f.run('ST.loans[0].remaining'),920);assert.equal(f.run('totals(ST.tx).e'),20);
+  assert.equal(f.run(`ST.tx.find(t=>t.id==='bank').smsHash`),'bankhash');assert.equal(f.run('ST.tx.filter(t=>t.loanOriginalTx).length'),1);
+  await f.run(`removeInstallment('l',loanInstallments('l')[0].id)`);assert.equal(f.run(`calcAccBalance('a')`),1900);assert.equal(f.run('ST.loans[0].remaining'),1000);assert.equal(f.run('totals(ST.tx).e'),100);
+  await f.run('doUndo()');assert.equal(f.run('ST.loans[0].remaining'),920);assert.equal(f.run('totals(ST.tx).e'),20);
+});
+test('setup can explicitly allocate previous receipts without reposting cash or reducing principal again',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.loans[0].remaining=900;ST.tx.push({id:'oldpayment',tp:'expense',cat:'loan',nature:'loanPrincipal',loanId:'l',installmentId:'oldgroup',a:100,accId:'a',day:25,m:0,y:1405});openLoanSchedule('l');fillMon('loan-start-mon',1);document.getElementById('loan-start-day').value='10';document.getElementById('loan-start-year').value='1405'`);
+  const cash=f.run(`calcAccBalance('a')`);f.w.document.querySelector('[name="loan-include-payment"]').checked=true;await f.run('saveLoanSchedule()');
+  assert.equal(f.run('ST.loans[0].remaining'),900);assert.equal(f.run(`calcAccBalance('a')`),cash);assert.equal(f.run('ST.loans[0].schedule.length'),10);assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),0);
+});
+test('SMS loan payment uses selected due and can attach an exact existing debit without duplication',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.tx.push({id:'bank',tp:'expense',cat:'e7',a:50,accId:'a',day:2,m:0,y:1405,nature:'operating'});ST.smsKeys={'bank-key':'a'};`);await configureLoan(f);
+  f.run(reviewQueue+`smsqSetTp('loan');document.getElementById('smsq-int').value='0';document.getElementById('smsq-loan-existing').value='bank'`);await f.run('smsqSave()');
+  assert.equal(f.run('ST.smsQueue.length'),0);assert.equal(f.run(`calcAccBalance('a')`),1950);assert.equal(f.run('ST.loans[0].remaining'),950);assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),50);assert.equal(f.run('totals(ST.tx).e'),0);
+});
+test('schedule clamps month lengths, validates edits, and never changes receipts when a due date moves',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase);await configureLoan(f,5,31);
+  assert.equal(f.run('ST.loans[0].schedule[1].day'),30);assert.equal(f.run('ST.loans[0].schedule[6].day'),f.run('jMaxDay(11,1405)'));
+  await payLoan(f,100,0,5,20);const rows=copy(f.run('ST.tx'));
+  f.run(`openLoanSchedule('l');editScheduleItem(ST.loans[0].schedule[0].id);document.getElementById('due-edit-amount').value='50'`);await f.run('saveScheduleItem()');assert.equal(f.run('ST.loans[0].schedule[0].a'),100);
+  f.run(`document.getElementById('due-edit-amount').value='100';document.getElementById('due-edit-day').value='29'`);await f.run('saveScheduleItem()');assert.deepEqual(copy(f.run('ST.tx')),rows);assert.equal(f.run('ST.loans[0].schedule[0].day'),29);
+});
+test('interest-only receipt can settle a fee due without changing principal, including edit to a split receipt',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.loans[0].schedule=[{id:'fee',y:1405,m:1,day:10,a:20,interest:20}];ST.loans[0].remaining=0;ST.loans[0].active=false;`);
+  await payLoan(f,20,20);assert.equal(f.run('ST.loans[0].remaining'),0);assert.equal(f.run('loanDueItems(ST.loans[0])[0].status'),'paid');assert.equal(f.run('totals(ST.tx).e'),20);
+  f.run(`ST.loans[0].remaining=10;editInstallment('l',loanInstallments('l')[0].id);document.getElementById('loanpay-int').value='10'`);await f.run('saveInstallmentEdit()');assert.equal(f.run('new Set(ST.tx.map(t=>t.id)).size'),f.run('ST.tx.length'));
+});
+test('schedule and allocations survive reopen and backup, rejecting malformed or overallocated input',async t=>{
+  const factory=new IDBFactory(),storage=new Map(),f=setup(t,factory,storage);await f.run('init()');f.run(scheduledLoanBase);await configureLoan(f);await payLoan(f,100);
+  assert.doesNotThrow(()=>f.run('validateBackup(ST)'));const g=setup(t,factory,storage);await g.run('init()');assert.equal(g.run('loanDueItems(ST.loans[0])[0].status'),'paid');
+  const backup=copy(f.run('ST'));f.w.__loanbackup=backup;await f.run('applyBackupObject(__loanbackup)');assert.equal(f.run('loanDueItems(ST.loans[0])[0].status'),'paid');
+  assert.throws(()=>f.run(`validateBackup({...ST,loans:ST.loans.map(l=>({...l,schedule:[{id:'x',y:1405,m:11,day:31,a:100,interest:0}]}))})`));
+  assert.throws(()=>f.run(`validateBackup({...ST,tx:ST.tx.map(t=>t.dueAllocations?{...t,dueAllocations:[{dueId:ST.loans[0].schedule[0].id,a:200}]}:t)})`));
+});
+test('rapid repeated manual payment cannot consume the next installment while save is pending',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase);await configureLoan(f);f.run(`payInstallment('l');document.getElementById('loanpay-amt').value='100';document.getElementById('loanpay-int').value='0'`);
+  let release;f.w.__hold=()=>new Promise(resolve=>release=resolve);f.run('const loanRealSave=sv;sv=__hold');const first=f.run('confirmPayInstallment()');await f.run('confirmPayInstallment()');assert.equal(f.run('ST.loans[0].remaining'),900);release();await first;f.run('sv=loanRealSave');await f.run('sv()');assert.equal(f.run("loanInstallments('l').length"),1);
+});
+test('a second partial payment requires actual interest rather than charging the full default interest again',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.loans[0].defaultInterest=20`);await configureLoan(f);await payLoan(f,25,20);
+  f.run(`payInstallment('l')`);assert.equal(f.w.document.getElementById('loanpay-int').value,'');const before=f.run('ST.loans[0].remaining');await f.run('confirmPayInstallment()');assert.equal(f.run('ST.loans[0].remaining'),before);
+  f.run(`document.getElementById('loanpay-int').value='0'`);await f.run('confirmPayInstallment()');assert.equal(f.run('ST.loans[0].remaining'),920);assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),0);
+});
+test('SMS loan submit is single-flight and cannot post the next queued SMS while storage is pending',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.smsKeys={'bank-key':'a'};`);await configureLoan(f);
+  f.run(reviewQueue+`ST.smsQueue.push({...ST.smsQueue[0],id:'next',hash:'next-hash'});smsqSetTp('loan');document.getElementById('smsq-int').value='0'`);
+  let release;f.w.__hold=()=>new Promise(resolve=>release=resolve);f.run('const smsLoanSave=sv;sv=__hold');const first=f.run('smsqSave()');await f.run('smsqSave()');assert.equal(f.run('ST.loans[0].remaining'),950);assert.equal(f.run('ST.smsQueue.length'),1);release();await first;f.run('sv=smsLoanSave');await f.run('sv()');
+});
+test('linked receipt backup validates and retains the original account and category for safe detach',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.tx.push({id:'debit',tp:'expense',cat:'e7',a:100,accId:'a',day:2,m:0,y:1405,nature:'operating'})`);await configureLoan(f);
+  f.run(`payInstallment('l');document.getElementById('loanpay-existing').value='debit';chooseLoanExisting();document.getElementById('loanpay-int').value='0'`);await f.run('confirmPayInstallment()');
+  assert.doesNotThrow(()=>f.run('validateBackup(ST)'));assert.equal(f.run(`categoryInUse('expense','e7')`),true);
+  const backup=copy(f.run('ST'));f.w.__linkedBackup=backup;await f.run('applyBackupObject(__linkedBackup)');await f.run(`removeInstallment('l',loanInstallments('l')[0].id)`);assert.equal(f.run(`ST.tx.find(t=>t.id==='debit').cat`),'e7');assert.equal(f.run('ST.loans[0].remaining'),1000);
+});
+test('statement re-import matches a loan receipt as one bank debit without rewriting principal or interest',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.loans[0].defaultInterest=20`);await configureLoan(f);await payLoan(f,100,20);
+  f.run(`STI={mainId:'a',choice:{},keepOrphan:{},fix:true,pkg:{bank:'آزمایشی',acctNo:'test',period:{from:{y:1405,m:1,d:1},to:{y:1405,m:1,d:30}},opening:{y:1405,m:0,d:1,a:2000},closing:1900,accounts:{},rows:[{n:1,dir:'out',a:100,date:{y:1405,m:1,d:5},nature:'operating',tp:'expense',cat:'متفرقه'}]}}`);
+  const receipt=copy(f.run('ST.tx.filter(t=>t.loanId)')),result=f.run('stmtBuild()');assert.equal(result.err,undefined);assert.equal(result.st.diff,0);assert.equal(result.st.created,0);
+  assert.deepEqual(copy(result.S.tx.filter(t=>t.loanId).map(t=>({a:t.a,nature:t.nature}))),receipt.map(t=>({a:t.a,nature:t.nature})));
+  f.w.__statementState=copy(result.S);f.run('ST=__statementState');assert.equal(f.run('totals(ST.tx).e'),20);assert.equal(f.run('ST.loans[0].remaining'),920);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+  f.run('STI.pkg.rows[0].a=101');const mismatch=f.run('stmtBuild()');assert.ok(mismatch.err);assert.equal(mismatch.S,null);
+});
+test('SMS can acknowledge an already-recorded loan receipt without paying the next due or withdrawing twice',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`ST.smsKeys={'bank-key':'a'};`);await configureLoan(f);await payLoan(f,100);
+  f.run(`ST.smsQueue=[{id:'bank-q',hash:'bank-h',raw:'پیام آزمایشی قسط',p:{keys:['bank-key'],a:100,tp:'expense',d:{y:1405,m:1,d:5}}}];smsqIdx=0;openSmsQueue();smsqSetTp('loan');document.getElementById('smsq-loan-existing').value='payment:'+loanInstallments('l')[0].id`);
+  const before=copy(f.run('[calcAccBalance(\'a\'),ST.loans[0].remaining,loanDueItems(ST.loans[0]).map(s=>s.left)]'));await f.run('smsqSave()');
+  assert.deepEqual(copy(f.run('[calcAccBalance(\'a\'),ST.loans[0].remaining,loanDueItems(ST.loans[0]).map(s=>s.left)]')),before);assert.equal(f.run('ST.smsSeen[\'bank-h\'].act'),'loan-linked');assert.equal(f.run("loanInstallments('l').length"),1);
+});
+test('loan with financial payment history cannot be deleted and orphan its principal or linked source',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase);await configureLoan(f);await payLoan(f,100);const before=copy(f.run('ST'));f.run(`eLoanId='l'`);await f.run('delLoan()');assert.deepEqual(copy(f.run('ST')),before);
+});
+test('returning from background refreshes dues after a date change without clearing a payment form',async t=>{
+  const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+`today=()=>({y:1405,m:2,d:5,wd:'آزمایشی'})`);await configureLoan(f);f.run(`payInstallment('l');document.getElementById('loanpay-amt').value='45';today=()=>({y:1405,m:2,d:20,wd:'آزمایشی'})`);
+  Object.defineProperty(f.w.document,'visibilityState',{value:'visible',configurable:true});f.w.document.dispatchEvent(new f.w.Event('visibilitychange'));await f.run('saveQueue');
+  assert.match(f.w.document.getElementById('dashTodo').textContent,/قسط نیازمند پرداخت/);assert.equal(f.w.document.getElementById('loanpay-amt').value,'45');assert.equal(f.run('ST.notifLog.filter(n=>n.type===\'loan\').length'),1);
+});

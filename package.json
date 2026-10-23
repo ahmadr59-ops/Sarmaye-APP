@@ -1,6 +1,6 @@
 {
   "name": "sarmaye-app",
-  "version": "24.33.0",
+  "version": "24.34.0",
   "private": true,
   "scripts": {
     "test": "node tests.js && node smoke.js && node --test reliability.test.cjs"

@@ -801,8 +801,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     از آن به بعد، هر بار سرمایه را باز کنید پیامک‌های تازه در صندوق‌اند.</div>
     <button class="btn btns" id="smspull-btn" style="margin-top:6px;font-size:12.5px" onclick="smsInboxPull(true)">🔄 بررسی پیامک‌های رسیده از Shortcut</button>
     <div id="smspull-st" style="display:none;font-size:13px;font-weight:600;line-height:1.9;border-radius:10px;padding:8px 10px;margin-top:6px"></div></details>
-  
-  
+
+
   <button class="btn btns" style="margin-top:10px" onclick="cls('smsm')">انصراف</button>
 </div>
 </div>
@@ -1219,10 +1219,11 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <div class="mh"></div>
   <h2 id="loanfmt">وام جدید</h2>
   <div class="fg"><label>عنوان وام</label><input type="text" id="loan-n" placeholder="مثلاً وام مسکن"></div>
-  <div class="fg"><label>مانده بدهی — مجموع اقساط باقی‌مانده (تومان)</label><input type="text" inputmode="numeric" id="loan-rem" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+  <div class="fg"><label>مانده اصل وام طبق ثبت‌های فعلی (بدون سود آینده، تومان)</label><input type="text" inputmode="numeric" id="loan-rem" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
   <div class="fg"><label>مبلغ هر قسط (تومان)</label><input type="text" inputmode="numeric" id="loan-inst" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
   <div class="fg"><label>روز سررسید در ماه</label><input type="number" id="loan-day" min="1" max="31" placeholder="مثلاً ۵"></div>
   <div class="fg"><label>سهم سود/کارمزد در هر قسط (تومان) — پیش‌فرض ۰</label><input type="text" inputmode="numeric" id="loan-int" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
+  <p id="loan-plan-lock-note" class="ux-note"></p>
   <div id="loan-disb-wrap" class="fg"><label>واریز مبلغ وام به حساب — اختیاری</label><select id="loan-disb-acc"></select></div>
   <div style="font-size:12px;color:var(--t3);line-height:1.85;margin-bottom:12px">
     <b>هر قسط دو بخش دارد:</b> بازپرداخت <b>اصل</b> (کاهش بدهی — هزینه نیست و در سود و زیان نمی‌آید) و <b>سود/کارمزد</b> (هزینهٔ مالی و بخشی از هزینه‌های ماه).<br>
@@ -1239,8 +1240,11 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="mdl">
   <div class="mh"></div>
   <h2 id="loanpay-title">پرداخت قسط</h2>
+  <div id="loanpay-due-wrap"><div class="fg"><label for="loanpay-due">بابت کدام قسط / سررسید؟</label><select id="loanpay-due" onchange="paymentDueChanged()"></select></div><label class="ux-row"><span>اگر مبلغ بیشتر است، اقساط بعدی نیز پوشش داده شوند</span><input id="loanpay-multi" type="checkbox"></label></div>
+  <details id="loanpay-link-wrap" class="ux-more"><summary>برداشت قبلاً در تراکنش‌ها ثبت شده است؟</summary><p class="ux-note">انتخاب برداشت موجود، آن را به اصل و سود قسط تبدیل می‌کند؛ موجودی دوباره کم نمی‌شود. هنگام حذف اتصال، برداشت اصلی برمی‌گردد.</p><div class="fg"><label for="loanpay-existing">برداشت جدید یا ثبت‌شده (۱۵۰ مورد اخیر)</label><select id="loanpay-existing" onchange="chooseLoanExisting()"></select></div></details>
+  <p class="ux-note">تاریخ زیر، تاریخ واقعی پرداخت است؛ انتخاب ماه قبل، قسط انتخاب‌شده بالا را تغییر نمی‌دهد. اگر پرداخت قبلاً در مانده و موجودی شروع لحاظ شده، دوباره برداشت ثبت نکنید.</p>
   <div class="fg"><label>مبلغ کل قسط (تومان)</label><input type="text" inputmode="numeric" id="loanpay-amt" oninput="this.value=this.value?nf(toLn(this.value)):'';loanSplitPreview()"></div>
-  <div class="fg"><label>از این مبلغ، سود/کارمزد (تومان)</label><input type="text" inputmode="numeric" id="loanpay-int" oninput="this.value=this.value?nf(toLn(this.value)):'';loanSplitPreview()"></div>
+  <div class="fg"><label>سود/کارمزد واقعی این پرداخت طبق بانک (تومان؛ بدون سود = ۰)</label><input type="text" inputmode="numeric" id="loanpay-int" oninput="this.value=this.value?nf(toLn(this.value)):'';loanSplitPreview()"></div>
   <div id="loanpay-split" style="font-size:12.5px;line-height:1.9;background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:12px;color:var(--t2)"></div>
   <div class="dategrid">
     <div class="fg"><label>روز</label><input type="number" id="loanpay-day" inputmode="numeric"></div>
@@ -1342,6 +1346,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="fg"><label for="smsrule-cat">دسته پیشنهادی</label><select id="smsrule-cat"></select></div>
 <p id="smsrule-msg" class="ux-note" aria-live="polite"></p><button class="btn btnp" id="smsrule-save" onclick="saveSmsRule()">افزودن قاعده</button><button class="btn btns" onclick="resetSmsRuleEditor()">فرم قاعده جدید</button>
 <div id="smsrule-list"></div><button class="btn btns" onclick="closeSmsRules()">بستن</button></div></div>
+
+<div class="ov" id="loanschedulem" role="dialog" aria-modal="true" aria-labelledby="loan-schedule-title"><div class="mdl"><div class="mh"></div><h2 id="loan-schedule-title">برنامه اقساط</h2><div id="loan-schedule-body"></div><button class="btn btns" onclick="cls('loanschedulem');openLoanList()">بازگشت به وام‌ها</button></div></div>
 
 <script>
 // ============================================================
@@ -1970,7 +1976,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.33';
+const APP_VERSION='v24.34';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2737,7 +2743,7 @@ function detectBankName(raw){
 }
 
 // ---- Transaction type detection ----
-// Returns 'expense' | 'income' | '' 
+// Returns 'expense' | 'income' | ''
 function detectTxType(txt){
   const expWords=/برداشت|خريد|خرید|کسر|كسر|پرداخت|debited|debit|انتقال\s*از|واريز\s*از|کارمزد|بدهکار|انتقال/i;
   const incWords=/واريز|واریز|شارژ|افزایش|اعتبار|credit|credited|دريافت|دریافت|بستانکار|واريز\s*به|انتقال\s*به/i;
@@ -3840,7 +3846,7 @@ function testNotif(){
 
 
 function chkNotifBadge(){
-  const unread=(ST.notifLog||[]).filter(n=>!n.read).length;
+  const unread=(ST.notifLog||[]).filter(n=>!n.read&&(n.type!=='loan'||loanNoticeActive(n))).length;
   const badge=document.getElementById('nb0');
   if(badge){
     badge.style.display=unread>0?'flex':'none';
@@ -3856,7 +3862,7 @@ function openNotifPanel(){
     const CFG={
       rent:  {bg:'var(--aml)',c:'var(--am)',ttl:n=>'یادآور اجاره: '+esc(n.tenName),act:n=>`gotoTenant('${n.tenId}','${n.id}')`,icon:'<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>'},
       deposit:{bg:'var(--ppl)',c:'var(--pp)',ttl:n=>'یادآور ودیعه: '+esc(n.tenName)+(n.depAmount?' — '+nf(n.depAmount)+' ت':''),act:n=>`gotoTenant('${n.tenId}','${n.id}')`,icon:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>'},
-      loan:  {bg:'var(--rdl)',c:'var(--rd)',ttl:n=>'قسط سررسیدشده: '+esc(n.tenName),act:n=>`gotoLoan('${n.id}')`,icon:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/>'},
+      loan:  {bg:'var(--rdl)',c:'var(--rd)',ttl:n=>esc(loanNoticeState(n))+': '+esc(n.tenName),act:n=>`gotoLoan('${n.id}')`,icon:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/>'},
       renew: {bg:'var(--grl)',c:'var(--gr)',ttl:n=>'تمدید قرارداد: '+esc(n.tenName),act:n=>`gotoRenew('${n.tenId}','${n.id}')`,icon:'<path d="M21 12a9 9 0 11-2.6-6.3M21 4v5h-5"/>'}
     };
     const hdr=`<div style="display:flex;gap:8px;margin-bottom:10px">
@@ -3865,13 +3871,13 @@ function openNotifPanel(){
     </div>`;
     list.innerHTML=hdr+logs.map(n=>{
       const cfg=CFG[n.type]||CFG.rent;
-      return `<div class="txi" style="${n.read?'opacity:.55':''};cursor:pointer" onclick="${cfg.act(n)}">
+      return `<div class="txi" style="${n.read||n.type==='loan'&&!loanNoticeActive(n)?'opacity:.55':''};cursor:pointer" onclick="${cfg.act(n)}">
         <div class="txic" style="background:${cfg.bg}"><svg viewBox="0 0 24 24" style="stroke:${cfg.c};width:21px;height:21px;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${cfg.icon}</svg></div>
         <div class="txin">
           <div class="txt">${cfg.ttl(n)}</div>
           <div class="txd">${esc(n.date)} — برای مشاهده لمس کنید</div>
         </div>
-        ${!n.read?`<button onclick="event.stopPropagation();markNotifRead('${n.id}')" style="background:var(--prl);border:none;border-radius:8px;padding:5px 8px;font-size:12px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;flex-shrink:0">خواندم</button>`:''}
+        ${!n.read&&(n.type!=='loan'||loanNoticeActive(n))?`<button onclick="event.stopPropagation();markNotifRead('${n.id}')" style="background:var(--prl);border:none;border-radius:8px;padding:5px 8px;font-size:12px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;flex-shrink:0">خواندم</button>`:''}
       </div>`;
     }).join('');
   }
@@ -4095,7 +4101,10 @@ function renderSmsQueue(){
   <div id="smsq-other" class="fg" style="display:none"><label id="smsq-other-lbl"></label><select id="smsq-acc2" onchange="smsqFlow()">${opt(smsSuggestOther(p,acc.id))}</select>
     <div id="smsq-flow" style="font-size:13px;font-weight:800;color:var(--pr);margin-top:8px;text-align:center"></div></div>
   <div id="smsq-loanw" style="display:none">
-    <div class="fg"><label>وام</label><select id="smsq-loan">${activeLoans().map(l=>`<option value="${l.id}"${l.inst===p.a?' selected':''}>${esc(l.n)} — قسط ${nf(l.inst)}، مانده ${nf(l.remaining)}</option>`).join('')}</select></div>
+    <div class="fg"><label>وام</label><select id="smsq-loan" onchange="refreshSmsLoanPlan()">${activeLoans().map(l=>`<option value="${l.id}"${l.inst===p.a?' selected':''}>${esc(l.n)} — قسط ${nf(l.inst)}، مانده ${nf(l.remaining)}</option>`).join('')}</select></div>
+    <div class="fg"><label for="smsq-loan-due">بابت سررسید</label><select id="smsq-loan-due"></select></div><p id="smsq-loan-plan-note" class="ux-note"></p><button class="qchip" onclick="configureSmsLoan()">برنامه اقساط / تعیین شروع</button>
+    <label class="ux-row"><span>پوشش اقساط بعدی با مازاد مبلغ</span><input id="smsq-loan-multi" type="checkbox"></label>
+    <div class="fg"><label for="smsq-loan-existing">برداشت مشابه قبلاً ثبت شده است؟</label><select id="smsq-loan-existing"></select></div>
     <div class="fg"><label>سود/کارمزدِ این قسط (تومان)</label><input id="smsq-int" inputmode="numeric" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
     <div style="font-size:12.5px;color:var(--t3);margin:-4px 2px 10px;line-height:1.7">اصل قسط از بدهی کم می‌شود؛ فقط سود به‌عنوان هزینه ثبت می‌شود.</div>
   </div>
@@ -4119,7 +4128,7 @@ function renderSmsQueue(){
   fillMon('smsq-mon',p.d.m);document.getElementById('smsq-day').value=String(p.d.d);document.getElementById('smsq-yr').value=String(p.d.y);smsqSetTp(smsqTp);
 }
 function smsqSetTp(k){
-  smsqTp=k;
+  smsqTp=k;if(k==='loan')refreshSmsLoanPlan();
   document.querySelectorAll('#smsq-tp .tb').forEach(b=>{const on=b.dataset.k===k;b.className='tb'+(on&&k==='income'?' ti':on&&k==='expense'?' te':'');b.style.background=on&&(k==='transfer'||k==='ignore')?'var(--prl)':'';b.style.color=on&&(k==='transfer'||k==='ignore')?'var(--pr)':'';});
   const isPL=k==='income'||k==='expense';
   document.getElementById('smsq-catw').style.display=isPL?'':'none';
@@ -4170,7 +4179,7 @@ function smsqFlow(){
   const from=out?a:b,to=out?b:a;el.innerHTML=`${nf(q.p.a)} تومان از ${n(from)} به ${n(to)}`;
 }
 function smsqMove(step){const n=(ST.smsQueue||[]).length;if(!n)return;smsqIdx=(smsqIdx+step+n)%n;renderSmsQueue();}
-async function smsqSave(){
+async function smsqSaveImpl(){
   const q=ST.smsQueue[smsqIdx];if(!q)return;
   if(!ST.smsSeen)ST.smsSeen={};if(!ST.smsKeys)ST.smsKeys={};if(!ST.smsCatHint)ST.smsCatHint={};
   const acc=document.getElementById('smsq-acc').value;
@@ -4222,14 +4231,22 @@ async function smsqSave(){
   if(smsqTp==='loan'){
     const l=(ST.loans||[]).find(x=>x.id===document.getElementById('smsq-loan').value);
     if(!l){ntf('⚠️ وام را انتخاب کنید');return;}
-    const intr=toLn(document.getElementById('smsq-int').value)||0;
-    if(intr<0||(intr>=a&&intr!==0)){ntf('⚠️ سهم سود باید کمتر از کل قسط باشد');hiErr('smsq-int');return;}
-    const principal=a-intr;
-    if(principal>l.remaining){ntf(`⚠️ اصل قسط (${nf(principal)}) از مانده بدهی (${nf(l.remaining)}) بیشتر است`);return;}
-    ensureLoanCat();const insId=uid();let first=null;
-    if(principal>0){first={id:uid(),tp:'expense',cat:'loan',a:principal,dsc:'اصل قسط '+l.n,day,m,y,accId:acc,nature:'loanPrincipal',loanId:l.id,installmentId:insId,smsHash:q.hash};ST.tx.push(first);}
-    if(intr>0){const r={id:uid(),tp:'expense',cat:'e8',a:intr,dsc:'سود قسط '+l.n,day,m,y,accId:acc,nature:'operating',loanId:l.id,installmentId:insId};if(!first){r.smsHash=q.hash;first=r;}ST.tx.push(r);budgetWarn('e8',m,y);}
-    l.remaining=Math.max(0,l.remaining-principal);if(l.remaining<=0){l.active=false;setTimeout(()=>ntf(`🎉 وام «${l.n}» تسویه شد!`),900);}
+    const selectedExisting=document.getElementById('smsq-loan-existing').value;
+    if(selectedExisting.startsWith('payment:')){
+      const group=loanInstallments(l.id).find(g=>g.id===selectedExisting.slice(8));
+      if(!group||group.principal+group.interest!==a||group.accId!==acc||group.day!==day||group.m!==m||group.y!==y){ntf('پرداخت قبلی با مبلغ، حساب و تاریخ پیامک تطبیق ندارد');return;}
+      const first=group.rows.find(t=>t.dueAllocations)||group.rows[0];if(!first.smsHash)first.smsHash=q.hash;
+      ntf('پیامک به پرداخت قبلی متصل شد؛ برداشت جدید ثبت نشد');return done({act:'loan-linked',txId:first.id});
+    }
+    if(!Array.isArray(l.schedule)){ntf('ابتدا شروع پیگیری و برنامه اقساط را مشخص کنید');return;}
+    if(!document.getElementById('smsq-int').value.trim()){ntf('سود واقعی قسط را وارد کنید؛ بدون سود = ۰');return;}
+    const intr=toLn(document.getElementById('smsq-int').value)||0;if(intr<0||intr>a||a-intr>l.remaining){ntf('مبلغ اصل یا سود قسط معتبر نیست');return;}
+    let allocations,first;try{
+      allocations=loanAllocation(l,a,document.getElementById('smsq-loan-due').value,document.getElementById('smsq-loan-multi').checked);
+      const existingId=document.getElementById('smsq-loan-existing').value;
+      if(!existingId&&(ST.tx.some(t=>t.tp==='expense'&&t.accId===acc&&t.a===a&&t.day===day&&t.m===m&&t.y===y)||loanInstallments(l.id).some(g=>g.accId===acc&&g.day===day&&g.m===m&&g.y===y&&g.principal+g.interest===a))&&!confirm('برداشت مشابه وجود دارد. بهتر است آن را از فهرست برداشت ثبت‌شده متصل کنید. برداشت جدید ثبت شود؟'))return;
+      first=postLoanPayment(l,a,intr,{y,m,d:day},acc,allocations,{smsHash:q.hash},existingId);syncLoanNoticeFlags();
+    }catch(e){ntf(e.message);return;}
     ntf('✅ قسط ثبت شد');return done({act:'loan',txId:first.id});
   }
   const cat=document.getElementById('smsq-cat').value;
@@ -4477,7 +4494,7 @@ function undoable(name,label){
 // ============================================================
 const GH_KEY='srm_gh_cfg',GH_LAST='srm_gh_last',GH_FILE='sarmaye-backup.json';
 let ghTimer=null,ghBusy=false;
-function activeLoans(){return (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0);}
+function activeLoans(){return (ST.loans||[]).filter(l=>Array.isArray(l.schedule)?loanDueItems(l).some(s=>s.left>0):l.active!==false&&l.remaining>0);}
 function ghCfg(){try{return JSON.parse(localStorage.getItem(GH_KEY)||'{}')||{};}catch(e){return{};}}
 function ghOn(){const c=ghCfg();return !!(c.owner&&c.repo&&c.token);}
 function ghB64(str){const b=new TextEncoder().encode(str);let s='';for(let i=0;i<b.length;i+=32768)s+=String.fromCharCode.apply(null,b.subarray(i,i+32768));return btoa(s);}
@@ -4637,10 +4654,18 @@ function stmtBuild(){
     }
     if(!ex)S.tx.push(t);return t;
   };
+  const loanGroups=new Map();pool.filter(t=>t.loanId&&t.installmentId).forEach(t=>{const key=JSON.stringify([t.loanId,t.installmentId]);if(!loanGroups.has(key))loanGroups.set(key,[]);loanGroups.get(key).push(t);});
   for(const r of p.rows){
+    const exact=[...loanGroups.values()].filter(g=>g.some(t=>t.stmt===tag&&t.stmtN===r.n));
+    const candidates=exact.length?exact:[...loanGroups.values()].filter(g=>!g.some(t=>used.has(t.id))&&r.dir==='out'&&g.reduce((n,t)=>n+t.a,0)===r.a&&g.every(t=>t.y===r.date.y&&t.m===r.date.m&&t.day===r.date.d));
+    if(candidates.length){
+      if(candidates.length!==1)return {S:null,st,err:'چند پرداخت وام با این ردیف بانکی تطبیق دارند؛ ابتدا سابقه قسط را بررسی کنید'};
+      const group=candidates[0];if(group.some(t=>used.has(t.id))||r.dir!=='out'||group.reduce((n,t)=>n+t.a,0)!==r.a||group.some(t=>t.y!==r.date.y||t.m!==r.date.m||t.day!==r.date.d))return {S:null,st,err:'مبلغ یا تاریخ پرداخت وام با ردیف بانک متفاوت است؛ اصلاح را از سابقه وام انجام دهید'};
+      group.forEach(t=>used.add(t.id));group[0].stmt=tag;group[0].stmtN=r.n;st.matched++;continue;
+    }
     const e=stmtEff(r);const tp=r.dir==='in'?'income':'expense';const ord=stmtOrd(r.date);
     let best=null,bd=99;
-    for(const t of pool){if(used.has(t.id)||t.tp!==tp||Math.abs(t.a-r.a)>1)continue;const dd=Math.abs(jalOrdinal(t.y,t.m,t.day)-ord);if(dd<=3&&dd<bd){best=t;bd=dd;}}
+    for(const t of pool){if(t.loanId&&t.installmentId||used.has(t.id)||t.tp!==tp||Math.abs(t.a-r.a)>1)continue;const dd=Math.abs(jalOrdinal(t.y,t.m,t.day)-ord);if(dd<=3&&dd<bd){best=t;bd=dd;}}
     if(e.nature==='ignore'){if(best){used.add(best.id);S.tx=S.tx.filter(t=>t.id!==best.id);st.deleted++;}st.ignored++;continue;}
     if(best){used.add(best.id);st.matched++;
       const same=(e.nature==='operating'&&natureOf(best)==='operating')||(e.nature==='transfer'&&best.isTransfer)||(e.nature==='deposit'&&best.nature==='deposit');
@@ -4650,6 +4675,7 @@ function stmtBuild(){
       }else{best.a=r.a;best.stmt=tag;best.stmtN=r.n;}
     }else{mk(r,e,null);st.created++;}
   }
+  if(pool.some(t=>t.loanId&&t.installmentId&&!used.has(t.id)))return {S:null,st,err:'یک پرداخت وام ثبت‌شده با صورتحساب تطبیق نشد؛ برای حفظ اصل، سود و مانده، ابتدا سابقه وام را بررسی کنید'};
   // 4) existing records the bank never saw
   for(const t of pool){if(used.has(t.id))continue;
     st.orphans.push({id:t.id,a:t.a,tp:t.tp,day:t.day,m:t.m,y:t.y,dsc:t.dsc||''});
@@ -4786,10 +4812,7 @@ function rTodo(){
   const bi=balIssues().length;if(bi)R('⚖️',`موجودی ${toFa(bi)} حساب با آخرین پیامک بانک یکی نیست`,'openBalIssues()','بررسی','var(--am)');
   manualInv().forEach(a=>{const ag=valAge(a.id);if(ag===null||ag>7)R('📈',`ارزش «${esc(a.bank)}» ${ag===null?'تاریخ ندارد':toFa(ag)+' روز است به‌روز نشده'}`,`openVal('${a.id}')`,'به‌روزرسانی','var(--am)');});
   {const dm=depMismatch();if(dm)R('🏠',`ودیعهٔ مستأجران: املاک ${nf(dm.amlak)} ولی سرمایه ${nf(dm.sarmaye)} تومان`,'openDepCompare()','مقایسه','var(--am)');}
-  const mk=`_${t.y}_${t.m-1}`;
-  (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0).forEach(l=>{
-    if(t.d<l.day||ST.tx.some(x=>x.loanId===l.id&&x.installmentId&&x.m===t.m-1&&x.y===t.y)||(ST.dismissed||{})[`loan_${l.id}${mk}`])return;
-    R('🏦',`قسط «${esc(l.n)}» — ${nf(Math.min(l.inst,l.remaining))} ت`,`payInstallment('${l.id}')`,'ثبت قسط');});
+  loanHomeTasks(R);
   const gh=ghOn()?(+localStorage.getItem(GH_LAST)||0):0;const last=Math.max(gh,getLastBackupTs());const days=last?Math.floor((Date.now()-last)/864e5):null;
   if(ghOn()?(!gh||Date.now()-gh>=3*864e5):(!last||Date.now()-last>=7*864e5))
     R('🛡️',days===null?'هنوز پشتیبانی گرفته نشده':`آخرین پشتیبان ${toFa(days)} روز پیش`,'openProtection()','پشتیبان');
@@ -5213,7 +5236,7 @@ function validateBackup(p){
     if(!Number.isInteger(t.m)||t.m<0||t.m>11||!Number.isInteger(t.day)||t.day<1||t.day>jMaxDay(t.m,t.y||1404)||t.y!==undefined&&(!Number.isInteger(t.y)||t.y<1380||t.y>=1500))throw new Error('تاریخ تراکنش نامعتبر در فایل');
   }
   for(const k of ['income','expense'])for(const c of p.cats[k])if(!obj(c)||!safeId(c.id)||typeof c.n!=='string')throw new Error('دسته‌بندی نامعتبر در فایل');
-  return p;
+  validateLoanSchedules(p);return p;
 }
 async function applyBackupObject(p){
   validateBackup(p);
@@ -5479,36 +5502,12 @@ function ensureLoanCat(){
   }
 }
 function openLoanList(){
-  const box=document.getElementById('loan-list');
-  const loans=ST.loans||[];
-  if(!loans.length){
-    box.innerHTML='<div style="text-align:center;padding:18px;color:var(--t3);font-size:13px">وامی ثبت نشده است</div>';
-  } else {
-    box.innerHTML=loans.map(l=>{
-      const done=l.remaining<=0||l.active===false;const payments=loanInstallments(l.id),lastPayment=payments[0];const now=today(),dueDay=Math.min(l.day,jMaxDay(now.m-1,now.y));
-      const base=l.principalTotal||l.total||0;
-      const paid=Math.max(0,base-(l.remaining||0));
-      const pct=base>0?Math.max(0,Math.min(100,Math.round((paid/base)*100))):0;
-      return `<div style="background:var(--bg);border-radius:14px;border:1px solid var(--border);padding:12px 14px;margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:13.5px;font-weight:800;color:var(--t1)">${esc(l.n)}</span>
-          <span style="font-size:12px;font-weight:700;color:${done?'var(--gr)':'var(--rd)'}">${done?'تسویه شد ✓':'مانده: '+nf(l.remaining)+' ت'}</span>
-        </div>
-        <p class="ux-note">${lastPayment?'آخرین پرداخت: '+fmtDate(lastPayment.day,lastPayment.m,lastPayment.y)+' · '+money(lastPayment.principal+lastPayment.interest):'هنوز پرداخت تفکیک‌شده‌ای ثبت نشده'}${done?'':'<br>سررسید برنامه این ماه: '+fmtDate(dueDay,now.m-1,now.y)}</p><div style="height:6px;border-radius:4px;background:var(--prl);overflow:hidden;margin-bottom:7px">
-          <div style="height:100%;width:${pct}%;background:var(--gr);border-radius:4px"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;color:var(--t3)">قسط ${nf(l.inst)} ت${l.defaultInterest>0?` (سود ${nf(l.defaultInterest)})`:''} · سررسید روز ${toFa(l.day)}</span>
-          <div style="display:flex;gap:6px">
-            <button class="qchip" data-id="${esc(l.id)}" onclick="openLoanHistory(this.dataset.id)">سابقه پرداخت</button>${done?'':`<button onclick="payInstallment('${l.id}')" style="padding:6px 12px;border-radius:11px;border:none;background:var(--grl);color:var(--gr);font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ثبت قسط</button>`}
-            <button onclick="openLoanForm('${l.id}')" style="padding:6px 12px;border-radius:11px;border:none;background:var(--prl);color:var(--pr);font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif">ویرایش</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-  document.getElementById('loanm').classList.add('on');
+  const box=document.getElementById('loan-list');box.innerHTML=(ST.loans||[]).length?ST.loans.map(l=>{
+    const payments=loanInstallments(l.id),last=payments[0],outstanding=loanDueItems(l).some(s=>s.left>0),done=l.remaining<=0&&!outstanding;
+    return `<div class="ux-section">${uxRow(l.n,done?'تسویه‌شده':'مانده اصل: '+money(l.remaining))}<p class="ux-note">${esc(loanScheduleCaption(l))}</p>${last?uxRow('آخرین پرداخت واقعی',fmtDate(last.day,last.m,last.y)+' · '+money(last.principal+last.interest)):''}<div class="ux-actions"><button class="btn btnp" data-id="${esc(l.id)}" onclick="openLoanSchedule(this.dataset.id)">${Array.isArray(l.schedule)?'برنامه و پرداخت اقساط':'تعیین شروع پیگیری'}</button><button class="btn btns" data-id="${esc(l.id)}" onclick="openLoanHistory(this.dataset.id)">سابقه پرداخت</button><button class="btn btns" data-id="${esc(l.id)}" onclick="openLoanForm(this.dataset.id)">ویرایش وام</button></div></div>`;
+  }).join(''):'<p class="ux-note">وامی ثبت نشده است.</p>';document.getElementById('loanm').classList.add('on');
 }
+
 function openLoanForm(id){
   eLoanId=id||null;
   const l=id?(ST.loans||[]).find(x=>x.id===id):null;
@@ -5518,6 +5517,7 @@ function openLoanForm(id){
   document.getElementById('loan-inst').value=l?nf(l.inst):'';
   document.getElementById('loan-day').value=l?l.day:'';
   document.getElementById('loan-int').value=l?(l.defaultInterest?nf(l.defaultInterest):''):'';
+  const locked=!!(l&&Array.isArray(l.schedule));['loan-rem','loan-inst','loan-day','loan-int'].forEach(id=>document.getElementById(id).disabled=locked);document.getElementById('loan-plan-lock-note').textContent=locked?'مانده اصل از پرداخت‌های واقعی محاسبه می‌شود. تاریخ و مبلغ سررسیدها را از برنامه اقساط و پرداخت اشتباه را از سابقه اصلاح کنید.':'';
   // Disbursement is only offered for a brand-new loan — retro-posting cash into
   // an old loan would restate months that are already reconciled.
   const dw=document.getElementById('loan-disb-wrap');
@@ -5539,8 +5539,8 @@ async function saveLoan(){
   const intr=toLn(document.getElementById('loan-int').value)||0;
   const day=parseInt(document.getElementById('loan-day').value);
   if(!n){ntf('⚠️ عنوان وام الزامی است');hiErr('loan-n');return;}
-  if(rem<=0){ntf('⚠️ مانده بدهی باید بزرگتر از صفر باشد');hiErr('loan-rem');return;}
-  if(inst<=0||inst>rem){ntf('⚠️ مبلغ قسط نامعتبر است');hiErr('loan-inst');return;}
+  if(rem<0||!eLoanId&&rem===0){ntf('⚠️ مانده اصل وام معتبر نیست');hiErr('loan-rem');return;}
+  if(inst<=0||!Number.isSafeInteger(inst)||!Number.isSafeInteger(rem)){ntf('⚠️ مبلغ قسط نامعتبر است');hiErr('loan-inst');return;}
   if(intr<0||intr>=inst){ntf('⚠️ سهم سود باید کمتر از مبلغ قسط باشد');hiErr('loan-int');return;}
   if(!day||day<1||day>31){ntf('⚠️ روز سررسید باید بین ۱ تا ۳۱ باشد');hiErr('loan-day');return;}
   if(!ST.loans) ST.loans=[];
@@ -5548,6 +5548,7 @@ async function saveLoan(){
     const idx=ST.loans.findIndex(l=>l.id===eLoanId);
     if(idx>=0){
       const prev=ST.loans[idx];
+      if(Array.isArray(prev.schedule)&&[rem,inst,day,intr].some((v,i)=>v!==[prev.remaining,prev.inst,prev.day,prev.defaultInterest||0][i])){ntf('مانده را از اصلاح پرداخت و سررسیدها را از برنامه اقساط تغییر دهید');return;}
       // principalTotal must follow an upward correction, otherwise the progress
       // bar reads >100% (or negative) for the rest of the loan's life.
       const paidSoFar=Math.max(0,(prev.principalTotal||prev.total||0)-(prev.remaining||0));
@@ -5570,11 +5571,12 @@ async function saveLoan(){
   }
   ensureLoanCat();
   await sv();cls('loanfm');ntf('✅ وام ذخیره شد');
-  updateLoanCount();rDash();rTx();openLoanList();
+  updateLoanCount();rDash();rTx();const saved=eLoanId?ST.loans.find(l=>l.id===eLoanId):ST.loans[ST.loans.length-1];if(saved&&!Array.isArray(saved.schedule))openLoanSchedule(saved.id);else openLoanList();
 }
 async function delLoan(){
   if(!eLoanId) return;
   const l=(ST.loans||[]).find(x=>x.id===eLoanId);
+  if(ST.tx.some(t=>t.loanId===eLoanId&&t.id!==l?.disbursementTxId)){ntf('وام دارای سابقه مالی حذف نمی‌شود؛ پرداخت اشتباه را از سابقه اصلاح کنید. وام تسویه‌شده در سوابق می‌ماند');return;}
   if(!confirm('این وام حذف شود؟ اقساط پرداخت‌شدهٔ قبلی در تراکنش‌ها باقی می‌مانند.')) return;
   // The disbursement leg must go with it, otherwise cash stays inflated with no
   // matching liability and net worth silently rises.
@@ -5586,24 +5588,20 @@ async function delLoan(){
 // Pay one installment: MUST debit a real account, otherwise net worth would
 // wrongly rise (debt falls while cash stays). Opens a small pay sheet.
 let payLoanId=null;
-function payInstallment(id,allowSettled=false,previousAccount=''){
-  editingInstallment=null;
-  const l=(ST.loans||[]).find(x=>x.id===id);
-  if(!l||l.remaining<=0&&!allowSettled) return;
-  payLoanId=id;
-  const sel=document.getElementById('loanpay-acc');
-  const accs=activeAccounts().filter(a=>a.id!==SAVINGS_ACC_ID);
+function payInstallment(id,allowSettled=false,previousAccount='',dueId=''){
+  editingInstallment=null;const l=(ST.loans||[]).find(l=>l.id===id);if(!l)return;
+  if(!allowSettled&&!Array.isArray(l.schedule)){openLoanSchedule(id);return;}
+  if(!allowSettled&&!loanDueItems(l).some(s=>s.left>0)){ntf('قسط پرداخت‌نشده‌ای در برنامه نیست');return;}
+  payLoanId=id;const accs=activeAccounts().filter(a=>a.id!==SAVINGS_ACC_ID);
   if(allowSettled&&previousAccount&&!accs.some(a=>a.id===previousAccount)){const a=ST.accounts.find(a=>a.id===previousAccount);if(a)accs.push(a);}
-  if(!accs.length){ntf('⚠️ ابتدا یک حساب بانکی ثبت کنید');return;}
-  sel.innerHTML=accs.map(a=>`<option value="${a.id}">${esc(a.bank)}${a.name?' - '+esc(a.name):''} (${nf(calcAccBalance(a.id))} ت)</option>`).join('');
-  document.getElementById('loanpay-title').textContent='قسط «'+l.n+'»';
-  const amt=Math.min(l.inst,l.remaining+(l.defaultInterest||0));
-  document.getElementById('loanpay-amt').value=nf(amt);
-  document.getElementById('loanpay-int').value=(l.defaultInterest>0)?nf(l.defaultInterest):'';
-  loanSplitPreview();
-  {const t=today();document.getElementById('loanpay-day').value=t.d;fillMon('loanpay-mon',t.m-1);document.getElementById('loanpay-yr').value=t.y;}
-  cls('loanm');document.getElementById('loanpaym').classList.add('on');
+  if(!accs.length){ntf('ابتدا یک حساب برای پرداخت ثبت کنید');return;}
+  document.getElementById('loanpay-acc').innerHTML=accs.map(a=>`<option value="${esc(a.id)}">${esc(getAccName(a.id))}</option>`).join('');
+  document.getElementById('loanpay-title').textContent='پرداخت قسط «'+l.n+'»';renderPaymentDues(l,dueId);renderLoanLinkOptions();document.getElementById('loanpay-link-wrap').hidden=allowSettled;
+  document.getElementById('loanpay-amt').value=nf(Math.min(l.inst,l.remaining+(l.defaultInterest||0)));document.getElementById('loanpay-int').value=nf(l.defaultInterest||0);paymentDueChanged();
+  const now=today();document.getElementById('loanpay-day').value=now.d;fillMon('loanpay-mon',now.m-1);document.getElementById('loanpay-yr').value=now.y;loanSplitPreview();
+  cls('loanm');cls('loanhistorym');cls('loanschedulem');document.getElementById('loanpaym').classList.add('on');
 }
+
 // Live breakdown so the split is never a surprise after the fact.
 function loanSplitPreview(){
   const box=document.getElementById('loanpay-split');
@@ -5621,37 +5619,17 @@ function loanSplitPreview(){
 //   principal → nature 'loanPrincipal', outside P&L, reduces the liability
 //   interest  → nature 'operating', category e8, a real financing expense
 async function confirmPayInstallment(){
-  if(editingInstallment)return saveInstallmentEdit();
-  const l=(ST.loans||[]).find(x=>x.id===payLoanId);
-  if(!l) return;
-  const amt=toLn(document.getElementById('loanpay-amt').value)||0;
-  const intr=toLn(document.getElementById('loanpay-int').value)||0;
-  const accId=document.getElementById('loanpay-acc').value;
-  if(amt<=0){ntf('⚠️ مبلغ قسط نامعتبر است');hiErr('loanpay-amt');return;}
-  if(intr<0||intr>=amt&&intr!==0){ntf('⚠️ سهم سود باید کمتر از کل قسط باشد');hiErr('loanpay-int');return;}
-  const principal=amt-intr;
-  if(principal>l.remaining){ntf(`⚠️ اصل قسط (${nf(principal)}) از مانده بدهی (${nf(l.remaining)}) بیشتر است`);hiErr('loanpay-amt');return;}
-  if(!accId){ntf('⚠️ حساب پرداخت را انتخاب کنید');return;}
-  if(calcAccBalance(accId)<amt&&!confirm('موجودی حساب کمتر از مبلغ قسط است. ادامه می‌دهید؟')) return;
-  const pd=parseInt(document.getElementById('loanpay-day').value),pm=parseInt(document.getElementById('loanpay-mon').value),py=parseInt(document.getElementById('loanpay-yr').value);
-  if(!(py>1380&&py<1500)||!(pd>=1&&pd<=jMaxDay(pm,py))){ntf(dateMsg(pd,pm,py));hiErr('loanpay-day');return;}
-  ensureLoanCat();
-  const insId=uid();
-  if(principal>0){
-    ST.tx.push({id:uid(),tp:'expense',cat:'loan',a:principal,dsc:'اصل قسط '+l.n,
-      day:pd,m:pm,y:py,accId,nature:'loanPrincipal',loanId:l.id,installmentId:insId});
-  }
-  if(intr>0){
-    ST.tx.push({id:uid(),tp:'expense',cat:'e8',a:intr,dsc:'سود قسط '+l.n,
-      day:pd,m:pm,y:py,accId,nature:'operating',loanId:l.id,installmentId:insId});
-  }
-  l.remaining=Math.max(0,l.remaining-principal);
-  if(l.remaining<=0){l.active=false;setTimeout(()=>ntf(`🎉 وام «${l.n}» تسویه شد!`),900);}
-  if(intr>0) budgetWarn('e8',pm,py);
-  await sv();cls('loanpaym');
-  ntf(intr>0?`✅ قسط ثبت شد — اصل ${nf(principal)} · سود ${nf(intr)}`:'✅ قسط ثبت شد');
-  updateLoanCount();rDash();rTx();
+  if(editingInstallment)return saveInstallmentEdit();if(loanBusy||!storageHealthy||stateReplacing)return;loanBusy=true;
+  try{
+    const l=ST.loans.find(l=>l.id===payLoanId);if(!l)return;if(!document.getElementById('loanpay-int').value.trim())throw Error('سود واقعی این پرداخت را وارد کنید؛ اگر سود ندارد، ۰ بزنید');const amount=toLn(document.getElementById('loanpay-amt').value),interest=toLn(document.getElementById('loanpay-int').value),accId=document.getElementById('loanpay-acc').value,date={d:+document.getElementById('loanpay-day').value,m:+document.getElementById('loanpay-mon').value,y:+document.getElementById('loanpay-yr').value};
+    if(!Number.isSafeInteger(amount)||amount<=0||!Number.isSafeInteger(interest)||interest<0||interest>amount||amount-interest>l.remaining||!ST.accounts.some(a=>a.id===accId)||!validLoanDate(date.y,date.m,date.d))throw Error('مبلغ، سود، حساب یا تاریخ پرداخت معتبر نیست؛ اصل نباید از مانده وام بیشتر باشد');
+    const allocations=loanAllocation(l,amount,document.getElementById('loanpay-due').value,document.getElementById('loanpay-multi').checked),existingId=document.getElementById('loanpay-existing').value;
+    if(!existingId&&(ST.tx.some(t=>t.tp==='expense'&&t.a===amount&&t.accId===accId&&t.day===date.d&&t.m===date.m&&t.y===date.y)||loanInstallments(l.id).some(g=>g.accId===accId&&g.day===date.d&&g.m===date.m&&g.y===date.y&&g.principal+g.interest===amount))&&!confirm('برداشت مشابه قبلاً ثبت شده است. برای جلوگیری از تکرار، انصراف بزنید و آن را از «برداشت ثبت‌شده» متصل کنید. برداشت جدید ثبت شود؟'))return;
+    if(!existingId&&calcAccBalance(accId)<amount&&!confirm('موجودی ثبت‌شده حساب از مبلغ کمتر است؛ پرداخت با برداشت جدید ثبت شود؟'))return;
+    const before=JSON.stringify(ST);postLoanPayment(l,amount,interest,date,accId,allocations,null,existingId);syncLoanNoticeFlags();await sv();cls('loanpaym');rDash();rTx();updateLoanCount();openLoanSchedule(l.id);__undoSnap=before;showUndo('پرداخت قسط ثبت شد');
+  }catch(e){ntf(e.message);}finally{loanBusy=false;}
 }
+
 function updateLoanCount(){
   const el=document.getElementById('loan-count');
   if(el){
@@ -5671,26 +5649,10 @@ function updateFxCount(){
   }
 }
 // Loan installment due reminder (same cadence as recurring reminders)
-function chkLoansDue(){
-  const loans=(ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0);
-  if(!loans.length) return;
-  const t=today();
-  const due=loans.filter(l=>{
-    if(t.d<l.day) return false;
-    // already paid this month?
-    return !ST.tx.some(tx=>tx.loanId===l.id&&tx.installmentId&&tx.m===t.m-1&&tx.y===t.y);
-  });
-  if(due.length){
-    if(!ST.notifLog) ST.notifLog=[];
-    const dstr=`${t.y}/${t.m}/${t.d}`;
-    let added=false;
-    due.forEach(l=>{
-      const exists=ST.notifLog.find(n=>n.type==='loan'&&n.loanId===l.id&&n.date===dstr);
-      if(!exists){ST.notifLog.unshift({id:uid(),loanId:l.id,tenName:l.n,type:'loan',date:dstr,month:pad2(t.m),year:t.y,read:false});added=true;}
-    });
-    if(added){ST.notifLog=ST.notifLog.slice(0,30);sv();chkNotifBadge();}
-    ntf(`🔔 قسط سررسیدشده: ${due.map(l=>l.n).join('، ')}`);
-  }
+async function chkLoansDue(){
+  if(!storageHealthy||stateReplacing)return;syncLoanNoticeFlags();let added=false;
+  (ST.loans||[]).forEach(l=>loanDueItems(l).filter(s=>s.isDue).forEach(s=>{if(!(ST.notifLog||[]).some(n=>n.type==='loan'&&n.loanId===l.id&&n.dueId===s.id)){ST.notifLog=ST.notifLog||[];ST.notifLog.unshift({id:uid(),type:'loan',loanId:l.id,dueId:s.id,tenName:l.n,date:fmtDate(s.day,s.m,s.y),read:false,resolved:false});added=true;}}));
+  if(added){ST.notifLog=ST.notifLog.slice(0,100);await sv();}chkNotifBadge();
 }
 
 // ============================================================
@@ -6078,7 +6040,7 @@ async function saveAcc(){
 // Accounts that may be chosen for NEW records. Archived accounts stay in every
 // calculation (they still hold money) but disappear from the pickers.
 function activeAccounts(){return (ST.accounts||[]).filter(a=>!a.archived);}
-function accTxCount(id){return (ST.tx||[]).filter(t=>t.accId===id).length;}
+function accTxCount(id){return (ST.tx||[]).filter(t=>t.accId===id||t.loanOriginalTx?.accId===id).length;}
 // v24.26 — MERGE an account into another, then delete it (net worth and income/expense unchanged)
 function mergePlan(src,dst){
   const own=ST.tx.filter(t=>t.accId===src);const drop=new Set();let moved=0;
@@ -6104,7 +6066,7 @@ async function doMerge(){
   const sA=ST.accounts.find(a=>a.id===src),dA=ST.accounts.find(a=>a.id===dst);if(!sA||!dA)return;
   const before=JSON.stringify(ST),nw0=netWorth(),pl0=JSON.stringify(totals(ST.tx));const p=mergePlan(src,dst);
   ST.tx=ST.tx.filter(t=>!p.drop.has(t.id)&&!(sA.openTxId&&t.id===sA.openTxId));
-  ST.tx.forEach(t=>{if(t.accId===src)t.accId=dst;});
+  ST.tx.forEach(t=>{if(t.accId===src)t.accId=dst;if(t.loanOriginalTx?.accId===src)t.loanOriginalTx.accId=dst;});
   dA.initBalance=(dA.initBalance||0)+(sA.initBalance||0);
   if(p.srcOpen)upsertOpeningTx(dA,p.dstOpen+p.srcOpen);
   // other references to the old account (recurring items, loans, SMS hints…) now point to the destination
@@ -6609,6 +6571,7 @@ async function init(){
   // Automatic cloud backup when the app is closed or sent to background (if signed in)
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='hidden') cloudAutoBackupIfSignedIn();
+    else if(storageHealthy&&!stateReplacing){rDash();chkLoansDue().catch(()=>{});}
   });
   // Check if weekly LOCAL-FILE backup reminder is needed — skipped for users who
   // already have automatic cloud backup running, to avoid two competing prompts
@@ -6617,7 +6580,7 @@ async function init(){
   // First launch after the v2 upgrade: offer the untouched v1 file immediately.
   if(pendingV1BackupOffer){
     setTimeout(()=>{
-      if(confirm('داده‌های شما به ساختار جدید (نسخهٔ ۲) ارتقا یافت.\n\nیک نسخهٔ کامل از داده‌های قبلی ذخیره شده است. همین حالا فایل آن را دانلود می‌کنید؟\n\n(هر زمان از تنظیمات ← «نسخهٔ پیش از ارتقا» هم در دسترس است)'))
+      if(confirm('داده‌های شما به ساختار جدید (نسخهٔ ۲) ارتقا یافت.\n\nیک نسخهٔ کامل از داده‌های قبلی ذخیره شده است. همین حالا فایل آن را دانلود می‌کنید؟\n\n(هر زمان از بیشتر ← حفاظت اطلاعات ← گزینه‌های پیشرفته هم در دسترس است)'))
         downloadV1Backup();
     },1200);
   }
@@ -6843,51 +6806,41 @@ function openProtection(){
   document.getElementById('protectionm').classList.add('on');refreshV1Row();
 }
 function loanInstallments(id){
-  const groups=new Map();ST.tx.filter(t=>t.loanId===id&&t.installmentId).forEach(t=>{
-    let g=groups.get(t.installmentId);if(!g){g={id:t.installmentId,principal:0,interest:0,rows:[],day:t.day,m:t.m,y:t.y,accId:t.accId};groups.set(g.id,g);}
-    g.rows.push(t);if(natureOf(t)==='loanPrincipal')g.principal+=t.a;else if(isPnL(t)&&t.tp==='expense')g.interest+=t.a;
-  });return [...groups.values()].sort((a,b)=>dateToInt(b.y,b.m,b.day)-dateToInt(a.y,a.m,a.day));
+  const groups=new Map();ST.tx.filter(t=>t.loanId===id&&t.installmentId).forEach(t=>{let g=groups.get(t.installmentId);if(!g){g={id:t.installmentId,principal:0,interest:0,rows:[],day:t.day,m:t.m,y:t.y,accId:t.accId};groups.set(g.id,g);}g.rows.push(t);if(natureOf(t)==='loanPrincipal')g.principal+=t.a;else if(isPnL(t)&&t.tp==='expense')g.interest+=t.a;});
+  return [...groups.values()].sort((a,b)=>dateToInt(b.y,b.m,b.day)-dateToInt(a.y,a.m,a.day));
 }
+
 function openLoanHistory(id){
-  const l=(ST.loans||[]).find(x=>x.id===id);if(!l){ntf('وام دیگر در فهرست نیست؛ ثبت تاریخی حفظ شده است');return;}
-  const groups=loanInstallments(id);document.getElementById('loanhistory-title').textContent='پرداخت‌های '+l.n;
-  document.getElementById('loanhistory-body').innerHTML=uxRow('مانده اصل بدهی',money(l.remaining))+
-    (groups.length?groups.map(g=>`<div class="ux-section">${uxRow(fmtDate(g.day,g.m,g.y),money(g.principal+g.interest))}${uxRow('اصل / سود',money(g.principal)+' / '+money(g.interest))}${uxRow('حساب',getAccName(g.accId))}
-      <div class="ux-actions"><button class="btn btns" data-loan="${esc(id)}" data-payment="${esc(g.id)}" onclick="editInstallment(this.dataset.loan,this.dataset.payment)">اصلاح پرداخت</button><button class="btn btns" data-loan="${esc(id)}" data-payment="${esc(g.id)}" onclick="removeInstallment(this.dataset.loan,this.dataset.payment)">حذف این پرداخت</button></div></div>`).join(''):'<p class="ux-note">پرداخت تفکیک‌شده‌ای ثبت نشده است.</p>')+
-    (ST.tx.some(t=>t.loanId===id&&!t.installmentId&&t.legacyInstallment)?'<p class="ux-note">اقساط قدیمی بدون تفکیک اصل و سود، در تراکنش‌ها باقی هستند؛ این بخش تاریخچه آن‌ها را حدس نمی‌زند.</p>':'');
-  cls('loanm');document.getElementById('loanhistorym').classList.add('on');
+  const l=ST.loans.find(l=>l.id===id);if(!l){ntf('وام در فهرست نیست؛ سوابق مالی حفظ شده‌اند');return;}
+  document.getElementById('loanhistory-title').textContent='پرداخت‌های '+l.n;document.getElementById('loanhistory-body').innerHTML=uxRow('مانده اصل بدهی',money(l.remaining))+loanInstallments(id).map(g=>`<div class="ux-section">${uxRow('تاریخ واقعی پرداخت',fmtDate(g.day,g.m,g.y))}${uxRow('مبلغ / اصل / سود',money(g.principal+g.interest)+' / '+money(g.principal)+' / '+money(g.interest))}${uxRow('حساب',getAccName(g.accId))}${uxRow('بابت سررسید',loanAllocationsText(l,g))}<div class="ux-actions"><button class="btn btns" data-loan="${esc(id)}" data-payment="${esc(g.id)}" onclick="editInstallment(this.dataset.loan,this.dataset.payment)">اصلاح پرداخت</button><button class="btn btns" data-loan="${esc(id)}" data-payment="${esc(g.id)}" onclick="removeInstallment(this.dataset.loan,this.dataset.payment)">حذف اتصال/پرداخت</button></div></div>`).join('')+
+    '<p class="ux-note">پرداخت‌های قدیمی بدون تخصیص سررسید حفظ شده‌اند. آن‌ها خودکار به اقساط جدید نسبت داده نمی‌شوند.</p>';
+  cls('loanm');cls('loanschedulem');document.getElementById('loanhistorym').classList.add('on');
 }
+
 function editInstallment(id,groupId){
-  const g=loanInstallments(id).find(x=>x.id===groupId);if(!g)return;
-  payInstallment(id,true,g.accId);editingInstallment={loanId:id,id:groupId};
-  const sel=document.getElementById('loanpay-acc');
-  if(![...sel.options].some(o=>o.value===g.accId)){const a=ST.accounts.find(a=>a.id===g.accId);if(a){const o=document.createElement('option');o.value=a.id;o.textContent=getAccName(a.id)+' (حساب قبلی)';sel.appendChild(o);}}
-  sel.value=g.accId;document.getElementById('loanpay-title').textContent='اصلاح پرداخت قسط';
-  document.getElementById('loanpay-amt').value=nf(g.principal+g.interest);document.getElementById('loanpay-int').value=nf(g.interest);
-  document.getElementById('loanpay-day').value=g.day;fillMon('loanpay-mon',g.m);document.getElementById('loanpay-yr').value=g.y;
-  cls('loanhistorym');loanSplitPreview();
+  const l=ST.loans.find(l=>l.id===id),g=loanInstallments(id).find(g=>g.id===groupId);if(!l||!g)return;payInstallment(id,true,g.accId);editingInstallment={loanId:id,id:groupId};
+  document.getElementById('loanpay-title').textContent='اصلاح پرداخت واقعی';const allocations=loanGroupAllocations(g);renderPaymentDues(l,allocations[0]?.dueId||'',g.id);document.getElementById('loanpay-multi').checked=allocations.length>1;
+  if(!allocations.length)document.getElementById('loanpay-due-wrap').hidden=true;
+  document.getElementById('loanpay-acc').value=g.accId;document.getElementById('loanpay-amt').value=nf(g.principal+g.interest);document.getElementById('loanpay-int').value=nf(g.interest);document.getElementById('loanpay-day').value=g.day;fillMon('loanpay-mon',g.m);document.getElementById('loanpay-yr').value=g.y;loanSplitPreview();
 }
+
 async function saveInstallmentEdit(){
-  const ref=editingInstallment,l=ST.loans.find(x=>x.id===ref?.loanId),g=l&&loanInstallments(l.id).find(x=>x.id===ref.id);if(!g)return;
-  const amt=toLn(document.getElementById('loanpay-amt').value),intr=toLn(document.getElementById('loanpay-int').value),principal=amt-intr;
-  const accId=document.getElementById('loanpay-acc').value,d=+document.getElementById('loanpay-day').value,m=+document.getElementById('loanpay-mon').value,y=+document.getElementById('loanpay-yr').value;
-  if(!(amt>0)||intr<0||intr>=amt||principal>l.remaining+g.principal||!ST.accounts.some(a=>a.id===accId)||![y,m,d].every(Number.isInteger)||y<1380||y>=1500||m<0||m>11||d<1||d>jMaxDay(m,y)){ntf('مبلغ، سهم سود، حساب یا تاریخ معتبر نیست؛ اصل قسط نباید از بدهی بیشتر شود');return;}
-  if(!confirm(`پرداخت به ${money(amt)} اصلاح شود؟ اصل ${money(principal)}، سود ${money(intr)} و مانده بدهی ${money(l.remaining+g.principal-principal)} خواهد شد.`))return;
-  const before=JSON.stringify(ST),ids=new Set(g.rows.map(t=>t.id));ST.tx=ST.tx.filter(t=>!ids.has(t.id));
-  const source=g.rows.find(t=>t.smsHash)||g.rows[0];
-  const oldPrincipal=g.rows.find(t=>natureOf(t)==='loanPrincipal'),oldInterest=g.rows.find(t=>isPnL(t));
-  ST.tx.push({...source,id:oldPrincipal?.id||uid(),tp:'expense',cat:'loan',a:principal,dsc:'اصل قسط '+l.n,day:d,m,y,accId,nature:'loanPrincipal',loanId:l.id,installmentId:g.id});
-  if(intr>0){const row={...oldInterest,id:oldInterest?.id||uid(),tp:'expense',cat:'e8',a:intr,dsc:'سود قسط '+l.n,day:d,m,y,accId,nature:'operating',loanId:l.id,installmentId:g.id};delete row.smsHash;ST.tx.push(row);}
-  l.remaining=l.remaining+g.principal-principal;l.active=l.remaining>0;
-  [g.accId,accId].forEach(id=>{if(ST.bankBal?.[id])ST.bankBal[id].ok=false;});
-  await sv();editingInstallment=null;cls('loanpaym');openLoanHistory(l.id);rDash();rTx();__undoSnap=before;showUndo('پرداخت قسط اصلاح شد');
+  if(loanBusy||!storageHealthy||stateReplacing)return;const ref=editingInstallment,l=ST.loans.find(l=>l.id===ref?.loanId),g=l&&loanInstallments(l.id).find(g=>g.id===ref.id);if(!g)return;loanBusy=true;
+  try{
+    const amount=toLn(document.getElementById('loanpay-amt').value),interest=toLn(document.getElementById('loanpay-int').value),accId=document.getElementById('loanpay-acc').value,date={d:+document.getElementById('loanpay-day').value,m:+document.getElementById('loanpay-mon').value,y:+document.getElementById('loanpay-yr').value};
+    if(!Number.isSafeInteger(amount)||amount<=0||!Number.isSafeInteger(interest)||interest<0||interest>amount||amount-interest>l.remaining+g.principal||!ST.accounts.some(a=>a.id===accId)||!validLoanDate(date.y,date.m,date.d))throw Error('مبلغ، سود، حساب یا تاریخ معتبر نیست؛ اصل نباید از مانده بیشتر باشد');
+    const allocations=loanGroupAllocations(g).length?loanAllocation(l,amount,document.getElementById('loanpay-due').value,document.getElementById('loanpay-multi').checked,g.id):[];
+    if(!confirm(`پرداخت به ${money(amount)} اصلاح شود؟ مانده اصل ${money(l.remaining+g.principal-(amount-interest))} خواهد شد.`))return;
+    const before=JSON.stringify(ST),source=g.rows.find(t=>t.dueAllocations||t.smsHash)||g.rows[0],oldInterest=g.rows.find(t=>isPnL(t)),ids=new Set(g.rows.map(t=>t.id));ST.tx=ST.tx.filter(t=>!ids.has(t.id));l.remaining+=g.principal;
+    const first=postLoanPayment(l,amount,interest,date,accId,allocations,source),newId=first.installmentId;ST.tx.filter(t=>t.installmentId===newId).forEach(t=>t.installmentId=g.id);first.id=source.id;if(oldInterest&&oldInterest.id!==source.id&&interest>0&&first.tp==='expense'&&first.nature==='loanPrincipal'){const row=ST.tx.find(t=>t.installmentId===g.id&&isPnL(t));if(row)row.id=oldInterest.id;}
+    if(ST.bankBal?.[g.accId])ST.bankBal[g.accId].ok=false;syncLoanNoticeFlags();await sv();editingInstallment=null;cls('loanpaym');openLoanHistory(l.id);rDash();rTx();__undoSnap=before;showUndo('پرداخت قسط اصلاح شد');
+  }catch(e){ntf(e.message);}finally{loanBusy=false;}
 }
+
 async function removeInstallment(id,groupId){
-  const l=ST.loans.find(x=>x.id===id),g=loanInstallments(id).find(x=>x.id===groupId);if(!l||!g)return;
-  if(!confirm(`پرداخت ${money(g.principal+g.interest)} حذف شود؟ ${money(g.principal)} به مانده بدهی برمی‌گردد و برداشت حساب حذف می‌شود.`))return;
-  const before=JSON.stringify(ST),ids=new Set(g.rows.map(t=>t.id));ST.tx=ST.tx.filter(t=>!ids.has(t.id));l.remaining+=g.principal;l.active=l.remaining>0;
-  if(ST.bankBal?.[g.accId])ST.bankBal[g.accId].ok=false;
-  await sv();openLoanHistory(id);rDash();rTx();__undoSnap=before;showUndo('پرداخت قسط حذف شد');
+  if(loanBusy||!storageHealthy||stateReplacing)return;const l=ST.loans.find(l=>l.id===id),g=loanInstallments(id).find(g=>g.id===groupId);if(!l||!g)return;const original=g.rows.find(t=>t.loanOriginalTx)?.loanOriginalTx;
+  if(!confirm(original?'اتصال این برداشت به وام حذف شود؟ برداشت اصلی در تراکنش‌ها باقی می‌ماند و اصل به بدهی برمی‌گردد.':`پرداخت ${money(g.principal+g.interest)} حذف شود؟ برداشت حذف و اصل به بدهی برمی‌گردد.`))return;loanBusy=true;
+  try{const before=JSON.stringify(ST),ids=new Set(g.rows.map(t=>t.id));ST.tx=ST.tx.filter(t=>!ids.has(t.id));if(original)ST.tx.push(JSON.parse(JSON.stringify(original)));l.remaining+=g.principal;l.active=l.remaining>0;if(ST.bankBal?.[g.accId])ST.bankBal[g.accId].ok=false;syncLoanNoticeFlags();await sv();openLoanHistory(id);rDash();rTx();__undoSnap=before;showUndo('پرداخت/اتصال وام حذف شد');}finally{loanBusy=false;}
 }
 
 // v24.33 — explicit SMS dismissal, stable category names and suggestion-only rules.
@@ -6899,7 +6852,7 @@ function categoryRole(c,role){
   return role==='rent'?['s2','s3'].includes(c.id)||/اجاره/.test(c.n||''):/سود/.test(c.n||'');
 }
 function categoryInUse(tp,id){
-  return ST.tx.some(t=>t.tp===tp&&t.cat===id)||(ST.recurring||[]).some(r=>r.tp===tp&&r.cat===id)||
+  return ST.tx.some(t=>t.tp===tp&&t.cat===id||t.loanOriginalTx?.tp===tp&&t.loanOriginalTx.cat===id)||(ST.recurring||[]).some(r=>r.tp===tp&&r.cat===id)||
     (ST.smsRules||[]).some(r=>r.tp===tp&&r.cat===id)||tp==='expense'&&
     ((ST.budgets||{})[id]>0||Object.values(ST.budgetMonths||{}).some(p=>p[id]>0));
 }
@@ -6986,6 +6939,154 @@ async function saveSmsRule(){
 async function toggleSmsRule(id){if(!storageHealthy||stateReplacing)return;const r=(ST.smsRules||[]).find(r=>r.id===id);if(!r)return;r.enabled=r.enabled===false;await sv();renderSmsRules();}
 async function deleteSmsRule(id){if(!storageHealthy||stateReplacing||!confirm('این قاعده حذف شود؟ تراکنش‌های قبلی تغییر نمی‌کنند.'))return;ST.smsRules=(ST.smsRules||[]).filter(r=>r.id!==id);await sv();if(editingSmsRule===id)resetSmsRuleEditor();renderSmsRules();}
 function closeSmsRules(){cls('smsrulesm');if(document.getElementById('smsqm').classList.contains('on')&&!document.getElementById('smsq-cat')?.value)applySmsCategorySuggestion();}
+
+// v24.34: a scheduled obligation and a dated cash receipt are separate records.
+let scheduleLoanId=null,scheduleEditingDueId=null,loanBusy=false;
+function validLoanDate(y,m,d){return [y,m,d].every(Number.isInteger)&&y>1380&&y<1500&&m>=0&&m<12&&d>=1&&d<=jMaxDay(m,y);}
+function loanPlan(l){return Array.isArray(l?.schedule)?l.schedule:[];}
+function loanGroupAllocations(g){return g.rows.find(t=>Array.isArray(t.dueAllocations))?.dueAllocations||[];}
+function loanDueItems(l,excludeGroup=null){
+  const paid={};loanInstallments(l.id).filter(g=>g.id!==excludeGroup).forEach(g=>loanGroupAllocations(g).forEach(a=>paid[a.dueId]=(paid[a.dueId]||0)+a.a));
+  const now=today(),ord=jalOrdinal(now.y,now.m-1,now.d);
+  return loanPlan(l).map(s=>{const p=paid[s.id]||0,left=Math.max(0,s.a-p),date=jalOrdinal(s.y,s.m,s.day);
+    return {...s,paid:p,left,status:!left?'paid':p>0?'partial':date<ord?'overdue':date===ord?'due':'future',isDue:left>0&&date<=ord};
+  }).sort((a,b)=>dateToInt(a.y,a.m,a.day)-dateToInt(b.y,b.m,b.day));
+}
+const LOAN_STATUS={paid:'پرداخت‌شده',partial:'پرداخت ناقص',overdue:'معوق',due:'سررسید امروز',future:'آینده'};
+function loanAllocation(l,amount,dueId,multiple=false,excludeGroup=null){
+  const list=loanDueItems(l,excludeGroup),index=list.findIndex(s=>s.id===dueId);if(index<0)throw Error('قسط مربوط به این پرداخت را انتخاب کنید');
+  let left=amount;const allocations=[];
+  for(const s of list.slice(index)){if(left<=0)break;if(s.left>0){const a=Math.min(left,s.left);allocations.push({dueId:s.id,a});left-=a;}if(!multiple)break;}
+  if(left>0)throw Error(multiple?'مبلغ از باقی‌مانده اقساط انتخابی بیشتر است؛ ابتدا برنامه را با بانک تطبیق دهید':'مبلغ از مانده این قسط بیشتر است؛ پوشش اقساط بعدی را انتخاب کنید یا برنامه را اصلاح کنید');
+  return allocations;
+}
+function loanAllocationsText(l,g){
+  const allocations=loanGroupAllocations(g);return allocations.length?allocations.map(a=>{const s=loanPlan(l).find(s=>s.id===a.dueId);return (s?fmtDate(s.day,s.m,s.y):'سررسید ناموجود')+' · '+money(a.a);}).join('، '):'پرداخت قدیمی؛ بابت قسط مشخص نشده است';
+}
+function loanNoticeState(n){
+  const l=(ST.loans||[]).find(l=>l.id===n.loanId),s=l&&loanDueItems(l).find(s=>s.id===n.dueId);
+  return !l?'وام حذف‌شده':!s?'یادآور قدیمی؛ نیازمند تعیین سررسید':LOAN_STATUS[s.status];
+}
+function loanNoticeActive(n){const l=(ST.loans||[]).find(l=>l.id===n.loanId);return !!(l&&loanDueItems(l).some(s=>s.id===n.dueId&&s.isDue));}
+function loanHomeTasks(add){
+  (ST.loans||[]).forEach(l=>{
+    if(!Array.isArray(l.schedule)){if(l.remaining>0)add('🏦','تعیین اولین قسط قابل پیگیری «'+esc(l.n)+'»',`openLoanSchedule('${l.id}')`,'تنظیم برنامه');return;}
+    const items=loanDueItems(l),due=items.filter(s=>s.isDue);if(!items.some(s=>s.left>0)&&l.remaining>0)add('⚖️','اقساط برنامه «'+esc(l.n)+'» پوشش داده شده ولی اصل وام مانده دارد؛ با بانک تطبیق دهید',`openLoanSchedule('${l.id}')`,'تطبیق برنامه');if(due.length)add('🏦',`«${esc(l.n)}»: ${toFa(due.length)} قسط نیازمند پرداخت · ${money(due.reduce((n,s)=>n+s.left,0))}`,`openLoanSchedule('${l.id}')`,'بررسی اقساط');
+  });
+}
+function loanScheduleCaption(l){
+  if(!Array.isArray(l.schedule))return l.remaining>0?'شروع پیگیری تعیین نشده است؛ اقساط گذشته حدس زده نمی‌شوند.':'وام قدیمی؛ تاریخچه پرداخت حفظ شده است.';
+  const list=loanDueItems(l),due=list.filter(s=>s.isDue),next=list.find(s=>s.left>0);
+  return due.length?toFa(due.length)+' قسط سررسیدشده/ناقص · باقی‌مانده '+money(due.reduce((n,s)=>n+s.left,0)):
+    next?'قسط بعدی: '+fmtDate(next.day,next.m,next.y)+' · '+money(next.left):l.remaining>0?'همه اقساط برنامه پوشش داده شده‌اند ولی مانده اصل نیازمند تطبیق با بانک است':'همه اقساط برنامه پرداخت شده‌اند';
+}
+function openLoanSchedule(id){
+  const l=(ST.loans||[]).find(l=>l.id===id);if(!l)return;scheduleLoanId=id;scheduleEditingDueId=null;
+  document.getElementById('loan-schedule-title').textContent='برنامه اقساط '+l.n;renderLoanSchedule();cls('loanm');document.getElementById('loanschedulem').classList.add('on');
+}
+function renderLoanSchedule(){
+  const l=(ST.loans||[]).find(l=>l.id===scheduleLoanId);if(!l)return;const box=document.getElementById('loan-schedule-body');
+  if(!Array.isArray(l.schedule)){
+    const now=today(),groups=loanInstallments(l.id);
+    box.innerHTML=uxRow('مانده اصل ثبت‌شده در اپ',money(l.remaining))+'<p class="ux-note">تاریخ اولین قسطی را تعیین کنید که می‌خواهید در برنامه باشد. مانده، اصل بدهی طبق ثبت‌های فعلی اپ است؛ سود آینده را شامل نمی‌شود. سوابق گذشته خودکار به سررسیدها نسبت داده نمی‌شوند.</p>'+
+      `<div class="dategrid"><div class="fg"><label for="loan-start-day">روز اولین سررسید</label><input id="loan-start-day" type="number" min="1" max="31" value="${Math.min(l.day,jMaxDay(now.m-1,now.y))}"></div><div class="fg"><label for="loan-start-mon">ماه</label><select id="loan-start-mon"></select></div><div class="fg"><label for="loan-start-year">سال</label><input id="loan-start-year" type="number" value="${now.y}"></div></div>
+      ${groups.length?'<details class="ux-more"><summary>پرداخت ثبت‌شده‌ای مربوط به ابتدای همین برنامه است؟</summary><p class="ux-note">فقط پرداخت‌هایی را انتخاب کنید که باید سررسیدهای همین برنامه را پوشش دهند. مبلغ آن‌ها دوباره از حساب یا بدهی کم نمی‌شود. بقیه سوابق خارج از برنامه باقی می‌مانند.</p>'+groups.map(g=>`<label class="ux-row"><span>${esc(fmtDate(g.day,g.m,g.y)+' · '+money(g.principal+g.interest))}</span><input type="checkbox" name="loan-include-payment" value="${esc(g.id)}"></label>`).join('')+'</details>':''}
+      <p class="ux-note">پیش‌نمایش بر مبنای قسط ${money(l.inst)} و سود/کارمزد ثابت ${money(l.defaultInterest||0)} است؛ جدول بانک مرجع است. پس از ایجاد، تاریخ و مبلغ هر سررسید قابل اصلاح است.</p><button class="btn btns" onclick="previewLoanSchedule()">پیش‌نمایش برنامه</button><div id="loan-plan-preview"></div><button class="btn btnp" onclick="saveLoanSchedule()">تأیید و شروع پیگیری</button>`;
+    fillMon('loan-start-mon',now.m-1);return;
+  }
+  const list=loanDueItems(l),left=list.reduce((n,s)=>n+s.left,0);
+  box.innerHTML=uxRow('مانده اصل وام',money(l.remaining))+uxRow('جمع پرداخت‌های باقی‌مانده برنامه با سود',money(left))+
+    '<p class="ux-note">جمع برنامه، برآورد بر اساس جدول ثبت‌شده است؛ با بانک تطبیق دهید. تاریخ پرداخت می‌تواند با سررسید متفاوت باشد. ثبت قسط، مبلغ را فقط یک بار از حساب کم می‌کند.</p>'+list.map(s=>`<div class="ux-section">${uxRow('سررسید',fmtDate(s.day,s.m,s.y))}${uxRow('وضعیت',LOAN_STATUS[s.status]+(s.isDue&&s.status==='partial'?' · نیازمند تکمیل':''))}${uxRow('مبلغ / پرداخت‌شده',money(s.a)+' / '+money(s.paid))}${uxRow('باقی‌مانده',money(s.left))}<div class="ux-actions">${s.left>0?`<button class="btn btnp" data-id="${esc(s.id)}" onclick="payScheduleItem(this.dataset.id)">ثبت پرداخت این قسط</button>`:''}<button class="btn btns" data-id="${esc(s.id)}" onclick="editScheduleItem(this.dataset.id)">اصلاح سررسید و مبلغ برنامه</button></div></div>`).join('')+
+    `<button class="btn btns" onclick="cls('loanschedulem');openLoanHistory('${l.id}')">سابقه پرداخت‌های واقعی</button>`;
+}
+function buildLoanScheduleDraft(){
+  const l=ST.loans.find(l=>l.id===scheduleLoanId);if(!l||Array.isArray(l.schedule))throw Error('برنامه قبلاً ساخته شده است');
+  const y=+document.getElementById('loan-start-year').value,m=+document.getElementById('loan-start-mon').value,d=+document.getElementById('loan-start-day').value;
+  if(!validLoanDate(y,m,d))throw Error('تاریخ اولین سررسید معتبر نیست');
+  const ids=new Set([...document.querySelectorAll('[name="loan-include-payment"]:checked')].map(e=>e.value)),groups=loanInstallments(l.id).filter(g=>ids.has(g.id)).sort((a,b)=>dateToInt(a.y,a.m,a.day)-dateToInt(b.y,b.m,b.day));
+  const baseline=l.remaining+groups.reduce((n,g)=>n+g.principal,0),step=l.inst-(l.defaultInterest||0),count=Math.ceil(baseline/step);
+  if(!(baseline>0)||!(step>0)||!Number.isFinite(count)||count>600)throw Error('مبلغ قسط، مانده یا سود نیازمند اصلاح است؛ برنامه حداکثر ۶۰۰ قسط دارد');
+  let remaining=baseline;const schedule=[];for(let i=0;i<count;i++){const period=y*12+m+i,yy=Math.floor(period/12),mm=period%12,day=Math.min(d,jMaxDay(mm,yy)),principal=Math.min(step,remaining);if(yy>=1500)throw Error('برنامه از محدوده تاریخ پشتیبانی‌شده خارج می‌شود');schedule.push({id:'preview'+i,y:yy,m:mm,day,a:principal+(l.defaultInterest||0),interest:l.defaultInterest||0});remaining-=principal;}
+  const used={};const allocations=groups.map(g=>{let amount=g.principal+g.interest;const result=[];for(const s of schedule){const a=Math.min(amount,s.a-(used[s.id]||0));if(a>0){result.push({dueId:s.id,a});used[s.id]=(used[s.id]||0)+a;amount-=a;}if(amount<=0)break;}if(amount>0)throw Error('پرداخت‌های انتخابی از جمع برنامه بیشترند؛ مبالغ و سود را بررسی کنید');return {groupId:g.id,items:result};});
+  return {schedule,allocations,baseline};
+}
+function previewLoanSchedule(){try{const draft=buildLoanScheduleDraft();document.getElementById('loan-plan-preview').innerHTML=uxRow('تعداد اقساط برنامه',toFa(draft.schedule.length))+uxRow('جمع برنامه با سود',money(draft.schedule.reduce((n,s)=>n+s.a,0)))+draft.schedule.map(s=>uxRow(fmtDate(s.day,s.m,s.y),money(s.a))).join('');}catch(e){ntf(e.message);}}
+async function saveLoanSchedule(){
+  if(loanBusy||!storageHealthy||stateReplacing)return;loanBusy=true;try{
+    const draft=buildLoanScheduleDraft(),l=ST.loans.find(l=>l.id===scheduleLoanId);
+    if(!confirm(`برنامه ${toFa(draft.schedule.length)} قسط از ${fmtDate(draft.schedule[0].day,draft.schedule[0].m,draft.schedule[0].y)} ساخته شود؟ پرداخت‌های انتخابی فقط متصل می‌شوند؛ موجودی و مانده اصل تغییر نمی‌کند.`))return;
+    const map={};draft.schedule.forEach(s=>{const old=s.id;s.id=uid();map[old]=s.id;});l.schedule=draft.schedule;l.scheduleBaseline=draft.baseline;
+    draft.allocations.forEach(a=>{const g=loanInstallments(l.id).find(g=>g.id===a.groupId);g.rows[0].dueAllocations=a.items.map(x=>({dueId:map[x.dueId],a:x.a}));});
+    await sv();renderLoanSchedule();rDash();refreshSmsLoanPlan();ntf('برنامه اقساط ثبت شد؛ سوابق و موجودی حفظ شدند');
+  }catch(e){ntf(e.message);}finally{loanBusy=false;}
+}
+function editScheduleItem(id){
+  const l=ST.loans.find(l=>l.id===scheduleLoanId),s=loanPlan(l).find(s=>s.id===id);if(!s)return;scheduleEditingDueId=id;
+  document.getElementById('loan-schedule-body').innerHTML=`<p class="ux-note">این تغییر فقط برنامه سررسید را اصلاح می‌کند. مبلغ و تاریخ پرداخت واقعی از سابقه پرداخت قابل اصلاح است.</p><div class="dategrid"><div class="fg"><label>روز سررسید</label><input id="due-edit-day" type="number" value="${s.day}"></div><div class="fg"><label>ماه</label><select id="due-edit-mon"></select></div><div class="fg"><label>سال</label><input id="due-edit-year" type="number" value="${s.y}"></div></div><div class="fg"><label>مبلغ کل این قسط</label><input id="due-edit-amount" inputmode="numeric" value="${s.a}"></div><div class="fg"><label>سود/کارمزد برنامه این قسط</label><input id="due-edit-interest" inputmode="numeric" value="${s.interest||0}"></div><button class="btn btnp" onclick="saveScheduleItem()">ذخیره اصلاح برنامه</button><button class="btn btns" onclick="renderLoanSchedule()">انصراف</button>`;fillMon('due-edit-mon',s.m);
+}
+async function saveScheduleItem(){
+  if(loanBusy||!storageHealthy||stateReplacing)return;const l=ST.loans.find(l=>l.id===scheduleLoanId),s=loanPlan(l).find(s=>s.id===scheduleEditingDueId);if(!s)return;
+  const y=+document.getElementById('due-edit-year').value,m=+document.getElementById('due-edit-mon').value,day=+document.getElementById('due-edit-day').value,a=toLn(document.getElementById('due-edit-amount').value),interest=toLn(document.getElementById('due-edit-interest').value),paid=loanDueItems(l).find(x=>x.id===s.id).paid;
+  if(!validLoanDate(y,m,day)||!Number.isSafeInteger(a)||a<=0||a<paid||!Number.isSafeInteger(interest)||interest<0||interest>a){ntf('تاریخ یا مبلغ معتبر نیست؛ مبلغ قسط از پرداخت انجام‌شده کمتر نمی‌شود');return;}
+  loanBusy=true;try{Object.assign(s,{y,m,day,a,interest});await sv();renderLoanSchedule();rDash();chkNotifBadge();refreshSmsLoanPlan();}finally{loanBusy=false;}
+}
+function payScheduleItem(id){const loan=scheduleLoanId;cls('loanschedulem');payInstallment(loan,false,'',id);}
+function renderPaymentDues(l,selected='',exclude=null){
+  const sel=document.getElementById('loanpay-due'),list=loanDueItems(l,exclude).filter(s=>s.left>0);document.getElementById('loanpay-due-wrap').hidden=!Array.isArray(l.schedule);
+  sel.innerHTML=list.map(s=>`<option value="${esc(s.id)}">${esc(fmtDate(s.day,s.m,s.y)+' · '+money(s.left)+' · '+LOAN_STATUS[s.status])}</option>`).join('');if(list.some(s=>s.id===selected))sel.value=selected;
+  document.getElementById('loanpay-multi').checked=false;
+}
+function paymentDueChanged(){
+  const l=ST.loans.find(l=>l.id===payLoanId),s=l&&loanDueItems(l,editingInstallment?.id).find(s=>s.id===document.getElementById('loanpay-due').value);if(!s||editingInstallment)return;
+  document.getElementById('loanpay-amt').value=nf(s.left);document.getElementById('loanpay-int').value=s.paid>0?'':nf(Math.min(s.interest||0,s.left));loanSplitPreview();
+}
+function linkableLoanTx(t){return t.tp==='expense'&&isPnL(t)&&!t.loanId&&!t.isRent&&!t.sfSpend&&!t.isTransfer&&!t.contractId&&!t.fxId;}
+function renderLoanLinkOptions(){const el=document.getElementById('loanpay-existing');el.innerHTML='<option value="">برداشت جدید ثبت شود</option>'+sortByDate(ST.tx.filter(linkableLoanTx)).slice(0,150).map(t=>`<option value="${esc(t.id)}">${esc(fmtDate(t.day,t.m,t.y)+' · '+money(t.a)+' · '+getAccName(t.accId))}</option>`).join('');el.value='';}
+function chooseLoanExisting(){const t=ST.tx.find(t=>t.id===document.getElementById('loanpay-existing').value);if(!t||!linkableLoanTx(t))return;const sel=document.getElementById('loanpay-acc');if(![...sel.options].some(o=>o.value===t.accId)){ntf('حساب این برداشت فعال نیست؛ از سابقه حساب بررسی کنید');document.getElementById('loanpay-existing').value='';return;}sel.value=t.accId;document.getElementById('loanpay-amt').value=nf(t.a);document.getElementById('loanpay-day').value=t.day;fillMon('loanpay-mon',t.m);document.getElementById('loanpay-yr').value=t.y;loanSplitPreview();}
+function postLoanPayment(l,amount,interest,date,accId,allocations,source=null,existingId=''){
+  const principal=amount-interest;if(principal<0||principal>l.remaining||!(amount>0))throw Error('اصل پرداخت از مانده بدهی بیشتر است یا مبلغ معتبر نیست');
+  let original=null;if(existingId){const t=ST.tx.find(t=>t.id===existingId);if(!t||!linkableLoanTx(t)||t.a!==amount||t.accId!==accId||t.day!==date.d||t.m!==date.m||t.y!==date.y)throw Error('برداشت انتخابی با مبلغ، حساب و تاریخ پرداخت یکسان نیست');original=JSON.parse(JSON.stringify(t));}
+  ensureLoanCat();const groupId=uid(),base={loanId:l.id,installmentId:groupId,day:date.d,m:date.m,y:date.y,accId},rows=[];
+  if(principal>0)rows.push({...base,id:original?.id||uid(),tp:'expense',cat:'loan',a:principal,dsc:'اصل قسط '+l.n,nature:'loanPrincipal'});
+  if(interest>0)rows.push({...base,id:rows.length?uid():original?.id||uid(),tp:'expense',cat:'e8',a:interest,dsc:'سود قسط '+l.n,nature:'operating'});
+  const first=rows[0];if(!first)throw Error('مبلغ پرداخت معتبر نیست');
+  if(source)for(const key of ['src','smsHash','stmt','stmtN','userEdited','loanOriginalTx'])if(source[key]!==undefined)first[key]=source[key];if(original){for(const key of ['src','smsHash','stmt','stmtN','userEdited'])if(original[key]!==undefined)first[key]=original[key];first.loanOriginalTx=original;ST.tx=ST.tx.filter(t=>t.id!==original.id);}
+  first.dueAllocations=allocations;ST.tx.push(...rows);l.remaining-=principal;l.active=l.remaining>0;if(ST.bankBal?.[accId])ST.bankBal[accId].ok=false;return first;
+}
+function refreshSmsLoanPlan(){
+  const select=document.getElementById('smsq-loan-due');if(!select)return;const l=ST.loans.find(l=>l.id===document.getElementById('smsq-loan').value);
+  select.innerHTML=l?loanDueItems(l).filter(s=>s.left>0).map(s=>`<option value="${esc(s.id)}">${esc(fmtDate(s.day,s.m,s.y)+' · '+money(s.left))}</option>`).join(''):'';
+  const acc=document.getElementById('smsq-acc').value,amount=toLn(document.getElementById('smsq-amt').value),day=+document.getElementById('smsq-day').value,m=+document.getElementById('smsq-mon').value,y=+document.getElementById('smsq-yr').value;
+  document.getElementById('smsq-loan-existing').innerHTML='<option value="">برداشت جدید</option>'+ST.tx.filter(t=>linkableLoanTx(t)&&t.accId===acc&&t.a===amount&&t.day===day&&t.m===m&&t.y===y).map(t=>`<option value="${esc(t.id)}">${esc(fmtDate(t.day,t.m,t.y)+' · '+money(t.a)+' · '+(t.dsc||''))}</option>`).join('');
+  const same=l?loanInstallments(l.id).filter(g=>g.accId===acc&&g.principal+g.interest===amount&&g.day===day&&g.m===m&&g.y===y):[];
+  document.getElementById('smsq-loan-existing').innerHTML+=same.map(g=>`<option value="payment:${esc(g.id)}">${esc('پرداخت قسط قبلاً ثبت‌شده · '+fmtDate(g.day,g.m,g.y)+' · '+money(amount))}</option>`).join('');
+  document.getElementById('smsq-loan-plan-note').textContent=same.length?'پرداخت قسط مشابه قبلاً ثبت شده است؛ آن را از فهرست انتخاب کنید تا دوباره برداشت نشود.':l&&!Array.isArray(l.schedule)?'ابتدا اولین قسط و برنامه را مشخص کنید؛ پرداخت تاریخی حدس زده نمی‌شود.':'';
+}
+function configureSmsLoan(){const id=document.getElementById('smsq-loan').value;if(id)openLoanSchedule(id);}
+
+function syncLoanNoticeFlags(){(ST.notifLog||[]).filter(n=>n.type==='loan'&&n.dueId).forEach(n=>{const active=loanNoticeActive(n);if(active&&n.resolved)n.read=false;n.resolved=!active;});}
+
+function validateLoanSchedules(p){
+  const safeId=v=>typeof v==='string'&&v.length>0&&v.length<250&&!/[<>&"'`\\\s]/.test(v),loans=new Map((p.loans||[]).map(l=>[l.id,l])),dues=new Map(),paid=new Map(),groups=new Map();
+  for(const l of p.loans||[]){
+    if(l.schedule===undefined)continue;
+    if(!Array.isArray(l.schedule)||l.schedule.length<1||l.schedule.length>600)throw Error('برنامه اقساط نامعتبر است');const ids=new Set();
+    for(const s of l.schedule){if(!s||!safeId(s.id)||ids.has(s.id)||!validLoanDate(s.y,s.m,s.day)||!Number.isSafeInteger(s.a)||s.a<=0||!Number.isSafeInteger(s.interest)||s.interest<0||s.interest>s.a)throw Error('سررسید قسط نامعتبر است');ids.add(s.id);dues.set(JSON.stringify([l.id,s.id]),s.a);}
+    if(l.scheduleBaseline!==undefined&&(!Number.isSafeInteger(l.scheduleBaseline)||l.scheduleBaseline<0))throw Error('مانده مبنای برنامه نامعتبر است');
+  }
+  for(const t of p.tx){
+    if(t.loanId&&t.installmentId){const key=JSON.stringify([t.loanId,t.installmentId]),g=groups.get(key)||{loanId:t.loanId,amount:0,allocations:null};g.amount+=t.a;if(t.dueAllocations!==undefined){if(g.allocations!==null||!Array.isArray(t.dueAllocations))throw Error('تخصیص تکراری/نامعتبر قسط');g.allocations=t.dueAllocations;}groups.set(key,g);}
+    else if(t.dueAllocations!==undefined)throw Error('پرداخت بدون وام/شناسه قسط است');
+    if(t.loanOriginalTx){const o=t.loanOriginalTx;if(o.loanOriginalTx||o.loanId||!safeId(o.id)||o.tp!=='expense'||o.isTransfer||o.isOpening||o.fxId||o.contractId||o.sfSpend||!Number.isSafeInteger(o.a)||o.a<=0||!validLoanDate(o.y,o.m,o.day)||!(p.accounts||[]).some(a=>a.id===o.accId))throw Error('برداشت اصلیِ متصل به وام نامعتبر است');}
+  }
+  for(const [key,g] of groups){if(!g.allocations?.length)continue;let sum=0;const unique=new Set(),loanId=g.loanId,l=loans.get(loanId);
+    for(const a of g.allocations){if(!a)throw Error('تخصیص قسط نامعتبر است');const dueKey=JSON.stringify([loanId,a.dueId]);if(!safeId(a.dueId)||unique.has(a.dueId)||!Number.isSafeInteger(a.a)||a.a<=0||l&&!dues.has(dueKey))throw Error('تخصیص پرداخت به سررسید نامعتبر است');unique.add(a.dueId);sum+=a.a;paid.set(dueKey,(paid.get(dueKey)||0)+a.a);}
+    if(sum!==g.amount)throw Error('جمع تخصیص با مبلغ پرداخت برابر نیست');
+  }
+  for(const [key,amount] of paid)if(dues.has(key)&&amount>dues.get(key))throw Error('پرداخت از مبلغ سررسید بیشتر است');
+}
+let smsReviewBusy=false;
+async function smsqSave(){if(smsReviewBusy||!storageHealthy||stateReplacing)return;smsReviewBusy=true;try{return await smsqSaveImpl();}finally{smsReviewBusy=false;}}
 
 init();
 </script>
