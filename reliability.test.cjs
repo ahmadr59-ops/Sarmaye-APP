@@ -362,3 +362,39 @@ test('new screens retain unique DOM identifiers and valid inline action syntax',
   for(const node of f.w.document.querySelectorAll('*'))for(const a of node.attributes){if(a.name.startsWith('on'))assert.doesNotThrow(()=>new vm.Script('(function(event){'+a.value+'})'),a.name+': '+a.value);}
   assert.equal(f.w.document.querySelectorAll('button button').length,0);
 });
+
+test('simplified screens preserve financial data and keep advanced history accessible',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`ST.accounts[0].archived=true;
+    ST.tx=[{id:'p',tp:'income',cat:'s1',a:500,accId:'a',day:2,m:0,y:1405,nature:'operating'}];
+    ST.fx=[{id:'historic',status:'done',eur:2,pfee:0,pays:[]}];ST.loans=[{id:'l',n:'آزمایشی',remaining:50,inst:10,day:1}];`);
+  const before=copy(f.run('ST'));
+  f.run(`rDash();openSetSheet();openProtection()`);await f.run('refreshV1Row()');
+  assert.deepEqual(copy(f.run('ST')),before);
+  assert.equal(f.w.document.getElementById('settings-advanced').open,false);
+  assert.equal(f.w.document.getElementById('settings-reset').open,false);
+  assert.equal(f.w.document.getElementById('protection-advanced').open,false);
+  assert.notEqual(f.w.document.getElementById('set-fx').style.display,'none');
+  f.run(f.w.document.getElementById('set-fx').getAttribute('onclick'));
+  assert.equal(f.w.document.getElementById('setm').classList.contains('on'),false);
+  assert.equal(f.w.document.getElementById('fxm').classList.contains('on'),true);
+  assert.equal(f.run(`calcAccBalance('a')`),500);
+});
+
+test('pre-upgrade snapshot remains discoverable, downloadable and restorable after cleanup',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`ST.schemaVersion=1;ST.appName='قبل از ارتقا';ST.tx=[{id:'old',tp:'income',cat:'s1',a:120,accId:'a',day:2,m:0,y:1405}];`);
+  const old=copy(f.run('ST'));f.w.__old=old;
+  await f.run(`saveSnapshot('state_v1_backup',{savedAt:1,state:__old})`);
+  f.run(`ST=migrateState({...ST,appName:'اکنون'});ST.tx.push({id:'new',tp:'expense',cat:'e7',a:20,accId:'a',day:3,m:0,y:1405,nature:'operating'})`);await f.run('sv()');
+  f.run('openProtection()');await f.run('refreshV1Row()');
+  assert.equal(f.w.document.getElementById('v1-row').style.display,'flex');
+  await f.run(f.w.document.getElementById('v1-row').getAttribute('onclick'));
+  assert.equal(f.w.document.getElementById('protectionm').classList.contains('on'),false);
+  assert.equal(f.w.document.getElementById('v1m').classList.contains('on'),true);
+  let downloaded;f.w.__capture=(text)=>{downloaded=JSON.parse(text);return 'shared'};f.run('shareOrDownload=__capture');
+  await f.run('downloadV1Backup()');assert.deepEqual(downloaded,old);
+  f.w.confirm=()=>false;await f.run('rollbackToV1()');assert.equal(f.run(`calcAccBalance('a')`),100);
+  f.w.confirm=()=>true;await f.run('rollbackToV1()');assert.equal(f.run(`calcAccBalance('a')`),120);
+  assert.equal(f.run('ST.schemaVersion'),2);assert.equal(f.run('ST.appName'),'قبل از ارتقا');
+  assert.deepEqual(copy(await f.run('getV1Backup()')),{savedAt:1,state:old});
+  await f.run('undoRestore()');assert.equal(f.run(`calcAccBalance('a')`),100);
+});

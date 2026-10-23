@@ -151,10 +151,6 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 .nb.on .nb-ic{background:rgba(20,86,168,0.14)}
 .nb svg{width:24px;height:24px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
 
-/* FAB */
-.fab{position:fixed;bottom:calc(96px + var(--sb) + 10px);left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:29px;background:linear-gradient(145deg,rgba(46,131,222,0.92) 0%,rgba(13,77,181,0.94) 100%);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 6px 24px rgba(13,77,181,.45),0 2px 8px rgba(0,0,0,.15);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);z-index:90}
-.fab svg{width:27px;height:27px;stroke:#fff;stroke-width:2.3;fill:none;stroke-linecap:round}
-.fab:active{transform:translateX(-50%) scale(.92)}
 
 /* Cards */
 .card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--rad);box-shadow:var(--sh);padding:16px;margin:14px 14px 0;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
@@ -285,14 +281,12 @@ body{font-family:'Vazirmatn',-apple-system,sans-serif;color:var(--t1);min-height
 .nb-plus .nb-ic{width:46px!important;height:46px!important;border-radius:16px!important;background:var(--grad)!important;margin-top:-18px;box-shadow:0 6px 16px rgba(20,86,168,.35)}
 .nb-plus .nb-ic svg{stroke:#fff!important;width:24px!important;height:24px!important;stroke-width:2.4!important}
 .nb-plus{color:var(--pr)!important;font-weight:700}
-#v1-row{display:none!important}
 .qchip{padding:8px 12px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;font-family:'Vazirmatn',sans-serif}
 .qchip.on{border-color:transparent;background:var(--grad);color:#fff;font-weight:800}
 .dayhdr{display:flex;justify-content:space-between;align-items:center;padding:12px 4px 4px;font-size:12.5px;font-weight:800;color:var(--t3);border-bottom:1px solid var(--border)}
 .sg-lbl{font-size:12.5px;font-weight:800;color:var(--t2);margin:14px 2px 7px}
 .sg-txt{font-size:12px;color:var(--t3);margin:0 2px 2px;line-height:1.7}
 .sg-div{height:1px;background:var(--border);margin:16px 0 2px}
-#dashAudit,#dashSmsQ,#dashBk,#dashLoans,#dashFx{display:none!important}
 .hlp{position:absolute;top:14px;left:14px;width:32px;height:32px;border-radius:50%;border:none;background:var(--prl);color:var(--pr);font-weight:800;font-size:16px;cursor:pointer;font-family:'Vazirmatn',sans-serif;z-index:5}
 /* v24.11 layout guards */
 input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{font-size:16px}
@@ -445,16 +439,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <p id="home-month-net" class="ux-note" style="margin:8px 16px"></p>
   <!-- v24: weekly review hub -->
   <div id="dashTodo"></div>
-  <details class="ux-more" style="margin:0 14px"><summary>خلاصه هفته و جزئیات بیشتر</summary><div id="dashAudit"></div>
-  <div id="dashSmsQ"></div>
-  <div id="dashWeek"></div>
-  <div id="dashBk"></div></details>
-
-  <!-- Needs-action card (loans due) -->
-  <div id="dashLoans"></div>
-
-  <!-- FX remittance (only while a deal is in progress) -->
-  <div id="dashFx"></div>
+  <details class="ux-more" style="margin:0 14px"><summary>خلاصه هفته</summary><div id="dashWeek"></div></details>
 
 <!-- Last 5 transactions -->
   <div style="padding:14px 14px 4px;display:flex;align-items:center;justify-content:space-between;margin-top:4px">
@@ -572,12 +557,12 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <div style="padding:14px 14px 0">
     <button onclick="openSetSheet()" style="width:100%;display:flex;align-items:center;gap:12px;padding:15px 16px;border:none;border-radius:18px;background:var(--card);box-shadow:var(--sh);cursor:pointer;font-family:'Vazirmatn',sans-serif;text-align:right">
       <span style="width:42px;height:42px;border-radius:14px;background:var(--prl);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--pr);stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></span>
-      <span style="flex:1;min-width:0"><b style="display:block;font-size:14px;color:var(--t1)">تنظیمات</b><span style="display:block;font-size:12.5px;color:var(--t2);margin-top:2px">ظاهر، پشتیبان ابری، قفل، دسته‌بندی‌ها و داده‌ها</span></span>
+      <span style="flex:1;min-width:0"><b style="display:block;font-size:14px;color:var(--t1)">تنظیمات</b><span style="display:block;font-size:12.5px;color:var(--t2);margin-top:2px">ظاهر، قفل و دسته‌بندی‌ها</span></span>
       <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--t3);stroke-width:2;fill:none;flex-shrink:0"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
   </div>
   <div class="card"><button class="ux-link ux-row" onclick="openProtection()"><b>حفاظت اطلاعات</b><span>ذخیره، پشتیبان و بازیابی ←</span></button><button class="ux-link ux-row" onclick="openBridgeStatus()"><b>املاک و صرافی</b><span>وضعیت ارسال و موارد نیازمند بررسی ←</span></button></div>
-  <div style="text-align:center;font-size:12px;color:var(--t3);margin-top:22px;line-height:1.9"><span id="app-name-display">سرمایه</span><span id="app-ver-badge" style="display:none"></span><br>Ahmad Rezazadeh</div>
+  <div style="text-align:center;font-size:12px;color:var(--t3);margin-top:22px;line-height:1.9"><span id="app-name-display">سرمایه</span><br>Ahmad Rezazadeh</div>
   <div style="height:20px"></div>
 </div>
 
@@ -600,9 +585,6 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   </button>
 </nav>
 
-<button class="fab" id="fab" onclick="openTx()" aria-label="تراکنش جدید" style="display:none">
-  <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-</button>
 </div>
 
 <!-- MODAL: Transaction -->
@@ -616,14 +598,6 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     <button class="tb" data-k="auto" onclick="setTheme('auto').then(markTheme)">خودکار</button><button class="tb" data-k="light" onclick="setTheme('light').then(markTheme)">روشن</button><button class="tb" data-k="dark" onclick="setTheme('dark').then(markTheme)">تیره</button>
   </div><span id="theme-lbl" style="display:none"></span>
   <div class="sg-div"></div>
-  <div class="sg-lbl">پشتیبان GitHub (بدون VPN)</div>
-  <div class="sg-txt" id="gh-status"></div>
-  <button class="btn btns" onclick="openGhModal()">تنظیم پشتیبان GitHub</button>
-  <div class="sg-div"></div>
-  <details><summary style="font-size:12.5px;font-weight:700;color:var(--t2);cursor:pointer;margin:2px 2px 8px">پیشرفته: پشتیبان Firebase (نیاز به VPN)</summary>
-  <div class="sg-txt" id="cloud-status-lbl"></div>
-  <button class="btn btns" onclick="openCloudModal()">مدیریت پشتیبان Firebase</button></details>
-  <div class="sg-div"></div>
   <div class="sg-lbl">قفل برنامه</div>
   <div class="sg-txt" id="lock-status-lbl"></div>
   <button class="btn btns" onclick="openSecuritySettings()">تنظیم کد عبور</button>
@@ -634,18 +608,16 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     <button class="btn btns" style="margin:0" onclick="openCatMgr('expense')">هزینه‌ها <span id="cat-exp-count" style="font-size:12px;opacity:.75"></span></button>
   </div>
   <div class="sg-div"></div>
-  <div class="sg-lbl">داده‌ها</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-    <button class="btn btns" style="margin:0" onclick="openBackupModal()">پشتیبان فایل</button>
-    <button class="btn btns" style="margin:0" onclick="document.getElementById('imp2').click()">بازیابی از فایل</button>
-    <button class="btn btns" style="margin:0" onclick="exportCSV()">خروجی Excel (CSV)</button>
-    <button class="btn btns" id="set-fx" style="margin:0;display:none" onclick="cls('setm');openFxList()">حواله‌های ارزی قبلی</button>
-  </div>
-  <button class="btn btns" style="margin-top:8px" onclick="cls('setm');openSms()">📋 ورود دستی متن پیامک</button>
-  <label class="btn btns" style="position:relative;display:flex;align-items:center;justify-content:center;margin-top:8px">📄 ورود صورتحساب بانکی<input type="file" accept=".json,application/json" onchange="stmtOpen(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
-  <input type="file" id="imp2" accept=".json" style="display:none" onchange="restore(this)">
-  <div id="v1-row" style="display:none" onclick="openV1Modal()"><span id="v1-lbl"></span></div>
-  <button class="btn" style="margin-top:16px;background:transparent;color:var(--rd);border:1px solid var(--rdl)" onclick="confirmClearData()">پاک کردن همهٔ داده‌ها</button>
+  <details id="settings-advanced" class="ux-more"><summary>ورود داده و ابزارهای پیشرفته</summary>
+    <p class="sg-txt">خروجی CSV در «گزارش» و پشتیبان و بازیابی در «بیشتر ← حفاظت اطلاعات» قرار دارند.</p>
+    <button class="btn btns" onclick="cls('setm');openSms()">ورود دستی متن پیامک</button>
+    <label class="btn btns" style="position:relative;display:flex;align-items:center;justify-content:center">ورود صورتحساب بانکی<input type="file" accept=".json,application/json" onchange="stmtOpen(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
+    <button class="btn btns" id="set-fx" style="display:none" onclick="cls('setm');openFxList()">حواله‌های ارزی قبلی</button>
+  </details>
+  <details id="settings-reset" class="ux-more"><summary>بازنشانی اطلاعات</summary>
+    <p class="sg-txt">پاک‌کردن اطلاعات این دستگاه؛ پیش از ادامه از «حفاظت اطلاعات» پشتیبان بگیرید.</p>
+    <button class="btn" style="background:transparent;color:var(--rd);border:1px solid var(--rdl)" onclick="confirmClearData()">پاک کردن همهٔ داده‌ها</button>
+  </details>
   <button class="btn btns" onclick="cls('setm')">بستن</button>
 </div>
 </div>
@@ -680,6 +652,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="mdl">
   <div class="mh"></div>
   <h2>پشتیبان GitHub</h2>
+  <p id="gh-status" class="ux-note"></p>
   <details style="margin-bottom:12px"><summary style="font-size:12.5px;color:var(--pr);font-weight:700;cursor:pointer">راهنمای یک‌باره (حدود ۳ دقیقه)</summary>
     <ol style="font-size:12px;color:var(--t2);line-height:2;padding-right:18px;margin-top:6px">
       <li>در github.com یک ریپوی <b>Private</b> با نام <code>sarmaye-backup</code> بسازید.</li>
@@ -1194,6 +1167,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="mdl">
   <div class="mh"></div>
   <h2>پشتیبان‌گیری ابری</h2>
+  <p id="cloud-status-lbl" class="ux-note"></p>
   <div id="cloud-loggedout">
     <div style="font-size:12.5px;color:var(--t2);line-height:1.8;margin-bottom:14px">با یک حساب (ایمیل یا گوگل) وارد شوید تا بتوانید یک نسخه پشتیبان در فضای ابری Firebase خودتان ذخیره کنید — این نسخه فقط با همین حساب قابل دسترسی است.</div>
     <div class="fg"><label>ایمیل</label><input type="email" id="cloud-email" placeholder="you@example.com" autocomplete="email"></div>
@@ -1356,7 +1330,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="ov" id="ledgerm" role="dialog" aria-modal="true" aria-labelledby="ledger-title"><div class="mdl"><div class="mh"></div><h2 id="ledger-title"></h2><p id="ledger-summary" class="ux-note"></p><div id="ledger-list"></div><button id="ledger-more" class="btn btns" onclick="ledgerLimit+=80;renderLedger()">نمایش بیشتر</button><button class="btn btns" onclick="cls('ledgerm')">بستن</button></div></div>
 <div class="ov" id="txdetailm" role="dialog" aria-modal="true" aria-labelledby="txdetail-title"><div class="mdl"><div class="mh"></div><h2 id="txdetail-title">جزئیات تراکنش</h2><div id="txdetail-body"></div><div class="ux-actions"><button id="txdetail-edit" class="btn btnp" onclick="editDetailedTx()">ویرایش</button><button id="txdetail-repeat" class="btn btns" onclick="repeatTransaction(detailTxId)">ثبت مشابه با تاریخ امروز</button></div><button class="btn btns" onclick="cls('txdetailm')">بستن</button></div></div>
 <div class="ov" id="bridgem" role="dialog" aria-modal="true" aria-labelledby="bridge-title"><div class="mdl"><div class="mh"></div><h2 id="bridge-title">ارتباط با املاک و صرافی</h2><div id="bridge-body"></div><button class="btn btns" onclick="cls('bridgem')">بستن</button></div></div>
-<div class="ov" id="protectionm" role="dialog" aria-modal="true" aria-labelledby="protection-title"><div class="mdl"><div class="mh"></div><h2 id="protection-title">حفاظت اطلاعات</h2><div id="protection-body"></div><button class="btn btns" onclick="cls('protectionm')">بستن</button></div></div>
+<div class="ov" id="protectionm" role="dialog" aria-modal="true" aria-labelledby="protection-title"><div class="mdl"><div class="mh"></div><h2 id="protection-title">حفاظت اطلاعات</h2><div id="protection-body"></div><input type="file" id="imp2" accept=".json" hidden onchange="restore(this)"><button class="btn btns" onclick="cls('protectionm')">بستن</button></div></div>
 <div class="ov" id="loanhistorym" role="dialog" aria-modal="true" aria-labelledby="loanhistory-title"><div class="mdl"><div class="mh"></div><h2 id="loanhistory-title"></h2><div id="loanhistory-body"></div><button class="btn btns" onclick="cls('loanhistorym');openLoanList()">بازگشت به وام‌ها</button></div></div>
 
 
@@ -1987,7 +1961,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.31';
+const APP_VERSION='v24.32';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2221,7 +2195,6 @@ function nav(idx,btn){
   if(btn)btn.classList.add('on');
   else document.querySelectorAll('.nb')[idx].classList.add('on');
   closePickers();
-  document.getElementById('fab').style.display=(idx===0||idx===1||idx===2||idx===4)?'none':'flex';
   if(idx===0)rDash();
   if(idx===1)rTx();
   if(idx===2)rTen();
@@ -2248,28 +2221,7 @@ function rDash(){
   const t=today();
   document.getElementById('td').textContent=`${t.wd} ${fmtDate(t.d,t.m-1,t.y)}`;
   updateMonthLabel();
-  // FX remittance mini-card on the dashboard
-  rSmsAudit();rSmsCard();rWeek();rBackupCard();rTodo();
-  const dfx=document.getElementById('dashFx');
-  if(dfx){
-    const deals=ST.fx||[];
-    if(!deals.some(d=>d.status!=='done')){dfx.innerHTML='';}
-    else{
-      const pool=fxPoolEur();
-      const pend=deals.filter(d=>d.status!=='done').length;
-      dfx.innerHTML=`<div style="padding:12px 14px 0">
-        <div onclick="openFxList()" style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:12px">
-          <span style="width:40px;height:40px;border-radius:13px;background:var(--ppl);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:800;color:var(--pp)">€</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:700;color:var(--t2)">انباشته یورویی حواله‌ها</div>
-            <div style="font-size:17px;font-weight:800;color:var(--t1)">€ ${nf(pool)}</div>
-          </div>
-          ${pend?`<span style="font-size:12px;font-weight:800;color:var(--am);background:var(--aml);padding:4px 10px;border-radius:10px;flex-shrink:0">${toFa(pend)} در جریان</span>`:''}
-          <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--t3);stroke-width:2;fill:none;flex-shrink:0"><path d="M15 18l-6-6 6-6"/></svg>
-        </div>
-      </div>`;
-    }
-  }
+  rWeek();rTodo();
   const txs=getTx(SM);const{i,e,b}=totals(txs);
   document.getElementById('di').textContent=nf(i);
   document.getElementById('de').textContent=nf(e);
@@ -2285,54 +2237,11 @@ function rDash(){
     if(bd){
       if(ST.accounts&&ST.accounts.length){
         const g=nwGroups();bd.style.display='block';
-        rValRow();bd.textContent=NW_SHOW?`نقد و بانک ${nf(g.cash)}`+(g.inv?` · سرمایه‌گذاری ${nf(g.inv)}`:'')+(g.liab?` · بدهی ${nf(g.liab)}`:''):'برای دیدن دارایی، روی 👁 بزنید';
+        bd.textContent=NW_SHOW?`نقد و بانک ${nf(g.cash)}`+(g.inv?` · سرمایه‌گذاری ${nf(g.inv)}`:'')+(g.liab?` · بدهی ${nf(g.liab)}`:''):'برای دیدن دارایی، روی 👁 بزنید';
       }
       else bd.style.display='none';
     }
     if(nwHint) nwHint.style.display=(ST.accounts&&ST.accounts.length)?'none':'block';
-  }
-  // Due-items alert card: loans / rents / renewals needing action TODAY.
-  // Rows are dismissible; dismissals are keyed by month so unresolved items
-  // return next month. Paid/settled items never appear.
-  const dl=document.getElementById('dashLoans');
-  if(dl){
-    const mk=`_${t.y}_${t.m-1}`;
-    Object.keys(ST.dismissed||{}).forEach(k=>{if(!k.endsWith(mk))delete ST.dismissed[k];});
-    const items=[];
-    (ST.loans||[]).filter(l=>l.active!==false&&l.remaining>0).forEach(l=>{
-      if(t.d<l.day) return;
-      if(ST.tx.some(tx=>tx.loanId===l.id&&tx.installmentId&&tx.m===t.m-1&&tx.y===t.y)) return;
-      const key=`loan_${l.id}${mk}`;
-      if(ST.dismissed[key]) return;
-      items.push({key,icon:'loan',c:'var(--rd)',bg:'var(--rdl)',
-        t:`قسط «${esc(l.n)}» — ${nf(Math.min(l.inst,l.remaining))} ت`,
-        sub:`سررسید ${toFa(l.day)}ام این ماه`,
-        act:`payInstallment('${l.id}')`,actL:'ثبت قسط'});
-    });
-    if(!items.length){dl.innerHTML='';}
-    else{
-      const IC={
-        loan:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/>',
-        home:'<path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
-        renew:'<path d="M21 12a9 9 0 11-2.6-6.3M21 4v5h-5"/>'
-      };
-      dl.innerHTML=`<div style="padding:12px 14px 0">
-        <div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;border-right:3px solid var(--am)">
-          <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:8px">⏰ نیاز به اقدام</div>
-          ${items.map(it=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <span style="width:34px;height:34px;border-radius:11px;background:${it.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <svg viewBox="0 0 24 24" style="width:17px;height:17px;stroke:${it.c};stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round">${IC[it.icon]}</svg>
-            </span>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:700;color:var(--t1)">${it.t}</div>
-              <div style="font-size:12px;color:var(--t3);margin-top:1px">${it.sub}</div>
-            </div>
-            <button onclick="${it.act}" style="padding:6px 11px;border-radius:10px;border:none;background:${it.bg};color:${it.c};font-size:12px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',sans-serif;flex-shrink:0">${it.actL}</button>
-            <button onclick="dismissDue('${it.key}')" title="نمایش نده" style="width:26px;height:26px;border-radius:9px;border:none;background:var(--bg);color:var(--t3);font-size:13px;cursor:pointer;flex-shrink:0">✕</button>
-          </div>`).join('')}
-        </div>
-      </div>`;
-    }
   }
   const rentAlrtEl=document.getElementById('dash-rent-alrt');
   if(rentAlrtEl){
@@ -3800,7 +3709,6 @@ function rSett(){
   fillAccSelects();
   updateAccCountDisplay();
   const andEl=document.getElementById('app-name-display');if(andEl)andEl.textContent=n+' — '+APP_VERSION;
-  const avb=document.getElementById('app-ver-badge');if(avb)avb.textContent=APP_VERSION;
   document.getElementById('cat-inc-count').textContent=`${ST.cats.income.length} دسته`;
   document.getElementById('cat-exp-count').textContent=`${ST.cats.expense.length} دسته`;
   updateNotifStatus();
@@ -4113,13 +4021,6 @@ function smsAuditList(){
     const b=(t.dsc.match(/^(بانک \S+)/)||[])[1];const a=(ST.accounts||[]).find(x=>x.id===t.accId);
     return a&&b&&!(a.bank||'').includes(b.replace('بانک','').trim());});
 }
-function rSmsAudit(){
-  const el=document.getElementById('dashAudit');if(!el)return;
-  const L=ST.smsAuditDone?[]:smsAuditList();
-  el.innerHTML=L.length?`<div style="padding:12px 14px 0"><div onclick="openSmsAudit()" style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;cursor:pointer;border-right:3px solid var(--rd)">
-    <div style="font-size:13.5px;font-weight:800;color:var(--t1)">⚠️ ${toFa(L.length)} پیامک ثبت‌شده احتمالاً در حساب اشتباه است</div>
-    <div style="font-size:12.5px;color:var(--t2);margin-top:3px">برای بررسی و جابه‌جایی لمس کنید</div></div></div>`:'';
-}
 function openSmsAudit(){
   const L=smsAuditList();const box=document.getElementById('smsa-body');const accs=activeAccounts();
   box.innerHTML=L.length?L.map(t=>{const b=(t.dsc.match(/^(بانک \S+)/)||[])[1].replace('بانک','').trim();const sug=(accs.find(a=>(a.bank||'').includes(b))||{}).id||'';
@@ -4392,21 +4293,6 @@ async function smsQueuePaste(){
 // ============================================================
 // v24.0 — WEEKLY-REVIEW HOME, QUICK ADD, UNDO
 // ============================================================
-function rSmsCard(){
-  const el=document.getElementById('dashSmsQ');if(!el)return;
-  const n=(ST.smsQueue||[]).length;const li=ST.smsLastImport;
-  const sub=n?'برای ثبت به‌عنوان هزینه، درآمد یا انتقال بررسی کنید'
-    :(li?'آخرین دریافت: '+new Date(li).toLocaleDateString('fa-IR',{weekday:'long',month:'long',day:'numeric'}):'پیامک‌های بانکی را از فایل Shortcut دریافت کنید');
-  el.innerHTML=`<div style="padding:12px 14px 0"><div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:14px 16px;${n?'border-right:3px solid var(--pr)':''}">
-    <div style="display:flex;align-items:center;gap:11px;margin-bottom:11px"><span style="font-size:22px">📩</span>
-      <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:800;color:var(--t1)">${n?toFa(n)+' پیامک بانکی منتظر بررسی':'صندوق پیامک بانکی'}</div>
-      <div style="font-size:12.5px;color:var(--t2);margin-top:2px">${sub}</div></div></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <label class="btn btns" style="margin:0;position:relative;display:flex;align-items:center;justify-content:center;font-size:12.5px">📥 دریافت از فایل<input type="file" accept=".txt,text/plain" onchange="smsImportFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
-      ${n?`<button class="btn btnp" style="margin:0;font-size:12.5px" onclick="smsqIdx=0;openSmsQueue()">بررسی (${toFa(n)})</button>`
-         :`<button class="btn btns" style="margin:0;font-size:12.5px" onclick="openSms()">افزودن دستی</button>`}
-    </div></div></div>`;
-}
 function rWeek(){
   const el=document.getElementById('dashWeek');if(!el)return;
   const t=today();const to=jalOrdinal(t.y,t.m-1,t.d);
@@ -4600,7 +4486,7 @@ async function ghBackup(silent){
     const p=await ghFetch('/contents/'+GH_FILE,{method:'PUT',body:JSON.stringify({message:`پشتیبان ${t.y}/${t.m}/${t.d} ${hm} — ${APP_VERSION}`,content:ghB64(payload),sha})});
     if(!p.ok)throw new Error(ghErr(p));
     const result=await p.json();c.lastSha=result.content.sha;localStorage.setItem(GH_KEY,JSON.stringify(c));
-    localStorage.setItem(GH_LAST,String(Date.now()));ghStatus();rBackupCard();
+    localStorage.setItem(GH_LAST,String(Date.now()));ghStatus();rTodo();
     if(!silent)ntf('✅ پشتیبان در GitHub ذخیره شد');return true;
   }catch(e){const el=document.getElementById('gh-status');if(el)el.textContent='⚠️ پشتیبان GitHub انجام نشد: '+(e.message||'اتصال برقرار نشد');if(!silent)ntf('⚠️ پشتیبان GitHub: '+(e.message||'اتصال برقرار نشد'));return false;}
   finally{ghBusy=false;}
@@ -4629,7 +4515,7 @@ function ghStatus(){
   el.textContent=`فعال — ${c.owner}/${c.repo}${c.pass?' (رمزنگاری‌شده)':''}؛ `+(last?'آخرین پشتیبان: '+new Date(last).toLocaleString('fa-IR'):'هنوز پشتیبانی ثبت نشده');
 }
 function openGhModal(){
-  const c=ghCfg();
+  ghStatus();const c=ghCfg();
   document.getElementById('gh-owner').value=c.owner||'ahmadr59-ops';
   document.getElementById('gh-repo').value=c.repo||'sarmaye-backup';
   document.getElementById('gh-token').value=c.token||'';
@@ -4654,21 +4540,6 @@ async function ghShowHistory(){
   try{const H=await ghHistory();
     box.innerHTML=H.length?H.map(h=>`<button class="btn btns" style="text-align:right;font-size:12px" onclick="ghRestore('${h.sha}')">${esc(new Date(h.date).toLocaleString('fa-IR'))}<br><span style="font-size:12px;opacity:.7">${esc(h.msg)}</span></button>`).join(''):'<div style="font-size:12px;color:var(--t3)">هنوز نسخه‌ای وجود ندارد</div>';
   }catch(e){box.innerHTML=`<div style="font-size:12px;color:var(--rd)">${esc(e.message||'اتصال برقرار نشد')}</div>`;}
-}
-// Home: backup reminder (shown only when protection is stale)
-function rBackupCard(){
-  const el=document.getElementById('dashBk');if(!el)return;
-  const now=Date.now();const gh=ghOn()?(+localStorage.getItem(GH_LAST)||0):0;
-  const last=Math.max(gh,getLastBackupTs());const days=last?Math.floor((now-last)/864e5):null;
-  if(ghOn()&&gh&&now-gh<3*864e5){el.innerHTML='';return;}
-  if(!ghOn()&&last&&now-last<7*864e5){el.innerHTML='';return;}
-  el.innerHTML=`<div style="padding:12px 14px 0"><div style="background:var(--card);border-radius:var(--rads);box-shadow:var(--sh);padding:13px 16px;border-right:3px solid var(--am)">
-    <div style="font-size:13px;font-weight:800;color:var(--t1)">🛡️ ${days===null?'هنوز پشتیبانی گرفته نشده':'آخرین پشتیبان '+toFa(days)+' روز پیش'}</div>
-    <div style="font-size:12.5px;color:var(--t2);margin:3px 0 10px">${ghOn()?'پشتیبان خودکار GitHub چند روز است موفق نشده؛ اتصال را بررسی کنید.':'پشتیبان خودکار GitHub را فعال کنید، یا یک پشتیبان فایل بگیرید.'}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="btn btns" style="margin:0;font-size:12.5px" onclick="openBackupModal()">پشتیبان فایل</button>
-      <button class="btn btnp" style="margin:0;font-size:12.5px" onclick="${ghOn()?'ghBackup(false)':'openGhModal()'}">${ghOn()?'پشتیبان GitHub الان':'فعال‌سازی GitHub'}</button>
-    </div></div></div>`;
 }
 // ============================================================
 // v24.3 — BANK STATEMENT IMPORT (pre-classified package)
@@ -4840,14 +4711,6 @@ function todayOrd(){const t=today();return jalOrdinal(t.y,t.m-1,t.d);}
 function valLast(id){const h=(ST.valHist||{})[id]||[];return h.length?h[h.length-1]:null;}
 function valAge(id){const l=valLast(id);return l?todayOrd()-jalOrdinal(l.d.y,l.d.m,l.d.d):null;}
 function ageTxt(n){return n===null?'تاریخ ارزش‌گذاری نامعلوم':n<=0?'امروز':n===1?'دیروز':toFa(n)+' روز پیش';}
-function rValRow(){
-  let el=document.getElementById('valRow');const bd=document.getElementById('netWorthBreak');if(!bd)return;
-  if(!el){el=document.createElement('div');el.id='valRow';el.style.cssText='margin-top:8px;display:flex;flex-direction:column;gap:6px';bd.insertAdjacentElement('afterend',el);}
-  const L=manualInv();if(!L.length){el.innerHTML='';return;}
-  el.innerHTML=L.map(a=>{const ag=valAge(a.id),old=ag===null||ag>7;
-    return `<button onclick="openVal('${a.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;border:0;border-radius:12px;padding:7px 11px;font-family:'Vazirmatn',sans-serif;font-size:12.5px;cursor:pointer;text-align:right;background:${old?'rgba(255,184,0,.22)':'rgba(255,255,255,.14)'};color:#fff">
-      <span>📈 ${esc(a.bank)}${a.name?' — '+esc(a.name):''}: <b>${NW_SHOW?nf(calcAccBalance(a.id)):'••••••'}</b></span><span style="white-space:nowrap">${old?'⚠️ ':''}${ageTxt(ag)} · به‌روزرسانی ›</span></button>`;}).join('');
-}
 function openVal(id){
   const a=(ST.accounts||[]).find(x=>x.id===id);if(!a)return;valAcc=id;
   document.getElementById('valm-t').textContent='ارزش امروز — '+a.bank+(a.name?' ('+a.name+')':'');
@@ -4857,12 +4720,6 @@ function openVal(id){
   document.getElementById('valm-hist').innerHTML=h.length?`<div style="font-size:12.5px;font-weight:800;color:var(--t2);margin-bottom:4px">ارزش‌های ثبت‌شده</div>`+h.map((x,i)=>{const prev=h[i+1];const ch=prev?x.v-prev.v:null;
     return `<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--border)"><span>${fmtDate(x.d.d,x.d.m,x.d.y)}</span><span><b>${nf(x.v)}</b>${ch===null?'':` <span style="color:${ch>=0?'var(--gr)':'var(--rd)'}">(${ch>=0?'+':'−'}${nf(Math.abs(ch))})</span>`}</span></div>`;}).join(''):'';
   document.getElementById('valm').classList.add('on');setTimeout(()=>document.getElementById('valm-v').focus(),250);
-}
-function mergeReval(S,id){   // ONE revaluation row per account; total (and so the balance) unchanged
-  const L=S.tx.filter(t=>t.accId===id&&t.nature==='revaluation'&&!t.sarafi);if(L.length<2)return;
-  const sum=L.reduce((a,t)=>a+(t.tp==='income'?t.a:-t.a),0);const last=L.slice().sort((a,b)=>jalOrdinal(b.y,b.m,b.day)-jalOrdinal(a.y,a.m,a.day))[0];
-  const ids=new Set(L.map(t=>t.id));S.tx=S.tx.filter(t=>!ids.has(t.id));
-  if(Math.round(sum)!==0)S.tx.push({...last,tp:sum>=0?'income':'expense',a:Math.abs(Math.round(sum)),dsc:'به‌روزرسانی ارزش (پرتفوی)'});
 }
 async function saveVal(){
   const id=valAcc;const v=toLn(document.getElementById('valm-v').value);const E=m=>{const e=document.getElementById('valm-err');e.textContent=m;e.style.display='block';};
@@ -4926,11 +4783,11 @@ function rTodo(){
   </div></div>`;
 }
 const HELP=[
-  ['خانه','«کارهای من» هر چیزی را که منتظر شماست نشان می‌دهد: پیامک‌های بانک، قسط‌های سررسید، پشتیبان. خلاصه هفته در «جزئیات بیشتر» باز می‌شود. برای ثبت دستی، دکمهٔ ➕ پایین صفحه.'],
+  ['خانه','«کارهای من» هر چیزی را که منتظر شماست نشان می‌دهد: پیامک‌های بانک، قسط‌های سررسید، پشتیبان. خلاصه هفته با بازکردن همان بخش دیده می‌شود. برای ثبت دستی، دکمهٔ ➕ پایین صفحه.'],
   ['تراکنش‌ها','همهٔ ثبت‌ها به تفکیک روز. با لمس ردیف، جزئیات و دکمه ویرایش یا ثبت مشابه را می‌بینید. دو ماه آخر نمایش داده می‌شود؛ برای قبل‌تر «نمایش ماه‌های قبل». بعد از ثبت یا حذف، تا ۶ ثانیه «↶ بازگردانی» دارید.'],
   null,
   ['گزارش','درآمد و هزینهٔ واقعی شما؛ انتقال بین حساب‌ها، پول پیش و اصل وام جزو آن نیستند. سرمایه‌گذاری‌ها در کارت جداگانه آمده‌اند.'],
-  ['بیشتر','کاشی‌ها ابزارهای کم‌کاربردترند. «تنظیمات»: ظاهر، پشتیبان، قفل، دسته‌بندی‌ها و داده‌ها (از جمله ورود صورتحساب بانک).']];
+  ['بیشتر','کاشی‌ها ابزارهای کم‌کاربردترند. «حفاظت اطلاعات»: پشتیبان و بازیابی. «تنظیمات»: ظاهر، قفل و دسته‌بندی‌ها؛ ورود صورتحساب و حواله‌های قدیمی در بخش پیشرفته آن قرار دارند.']];
 function showHelp(i){const h=HELP[i];if(!h)return;document.getElementById('hlp-t').textContent=h[0];document.getElementById('hlp-b').textContent=h[1];document.getElementById('hlpm').classList.add('on');}
 document.addEventListener('DOMContentLoaded',()=>{[1,3,4].forEach(i=>{const hd=document.querySelector('#s'+i+' .hdr');if(!hd||hd.querySelector('.hlp'))return;hd.style.position='relative';
   const b=document.createElement('button');b.className='hlp';b.textContent='؟';b.setAttribute('aria-label','راهنما');b.onclick=()=>showHelp(i);hd.appendChild(b);});});
@@ -5127,7 +4984,7 @@ async function smsInboxPull(verbose){
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&typeof ghOn==='function'&&ghOn())smsInboxPull(false);});
 function markTheme(){const k=ST.theme||'auto';document.querySelectorAll('#set-theme .tb').forEach(b=>{const on=b.dataset.k===k;b.style.background=on?'var(--grad)':'';b.style.color=on?'#fff':'';});}
-function openSetSheet(){rSett();markTheme();ghStatus();{const b=document.getElementById('set-fx');if(b)b.style.display=(ST.fx||[]).length?'':'none';}document.getElementById('setm').classList.add('on');}
+function openSetSheet(){rSett();markTheme();{const b=document.getElementById('set-fx');if(b)b.style.display=(ST.fx||[]).length?'':'none';}document.getElementById('setm').classList.add('on');}
 // Export rental data for the standalone «املاک» app. Read-only: nothing in
 // this app changes. The receiving app shows a reconciliation report.
 function buildRentExport(){
@@ -5570,11 +5427,6 @@ function rBudgets(){
       </div>
     </div>`;
   }).join('');
-}
-async function dismissDue(key){
-  if(!ST.dismissed) ST.dismissed={};
-  ST.dismissed[key]=true;
-  await sv();rDash();
 }
 // Warn right after saving an expense that pushes a category past 80% / 100% of budget
 function budgetWarn(catId,m,y){
@@ -6868,8 +6720,6 @@ function rReportOverview(){
 function rHomeSummary(){
   const el=document.getElementById('home-month-net');if(el)el.textContent='ماه انتخاب‌شده '+fmtMonthYear(SM,SY)+' · مازاد درآمد بر هزینه: '+money(totals(getTx(SM,SY)).b);
   const n=document.getElementById('home-assets-total');if(n)n.textContent=NW_SHOW?money(netWorth()):'••••••';
-  const q=document.getElementById('valRow');if(q)q.style.display='none'; // valuations are reached through the collapsed asset details and Reports
-  document.getElementById('dashLoans').innerHTML='';
 }
 function accountCheckText(id){
   const b=(ST.bankBal||{})[id];if(!b)return 'هنوز با پیامک بانک مقایسه نشده';
@@ -6952,8 +6802,15 @@ function openProtection(){
   const when=t=>t?new Date(t).toLocaleString('fa-IR'):'هنوز ثبت نشده';
   box.innerHTML=uxRow('ذخیره روی این دستگاه',storageHealthy?(ts?when(ts):'هنوز تغییری ثبت نشده'):'نیازمند رسیدگی')+uxRow('پشتیبان موفق GitHub',when(gh))+uxRow('خروجی فایل تأییدشده',when(file))+
     '<p class="ux-note">ذخیره روی دستگاه، پشتیبان خارج از دستگاه نیست. ورود به Firebase نیز به معنی گرفتن پشتیبان نیست.</p>'+
-    `<button class="btn btnp" onclick="cls('protectionm');openBackupModal()">دریافت پشتیبان فایل</button><button class="btn btns" onclick="cls('protectionm');openGhModal()">پشتیبان GitHub و تاریخچه</button><button class="btn btns" onclick="cls('protectionm');openCloudModal()">پشتیبان دستی Firebase</button><button class="btn btns" onclick="cls('protectionm');document.getElementById('imp2').click()">بازیابی از فایل</button><button class="btn btns" onclick="undoRestore()">بازگشت از آخرین بازیابی</button>`;
-  document.getElementById('protectionm').classList.add('on');
+    `<button class="btn btnp" onclick="cls('protectionm');openBackupModal()">دریافت پشتیبان فایل</button>
+    <button class="btn btns" onclick="cls('protectionm');openGhModal()">پشتیبان GitHub و تاریخچه</button>
+    <button class="btn btns" onclick="cls('protectionm');document.getElementById('imp2').click()">بازیابی از فایل</button>
+    <details class="ux-more" id="protection-advanced"><summary>گزینه‌های پیشرفته و بازیابی قبلی</summary>
+      <button class="btn btns" onclick="cls('protectionm');openCloudModal()">پشتیبان دستی Firebase</button>
+      <button class="btn btns" onclick="undoRestore()">بازگشت از آخرین بازیابی</button>
+      <button class="btn btns" id="v1-row" style="display:none" onclick="cls('protectionm');openV1Modal()"><span id="v1-lbl"></span></button>
+    </details>`;
+  document.getElementById('protectionm').classList.add('on');refreshV1Row();
 }
 function loanInstallments(id){
   const groups=new Map();ST.tx.filter(t=>t.loanId===id&&t.installmentId).forEach(t=>{
