@@ -220,3 +220,145 @@ test('in-flight currency response cannot mutate state after a restore epoch chan
   f.run('stateEpoch++');release({ok:true,json:async()=>({content:Buffer.from(JSON.stringify({target:500,at:100})).toString('base64')})});
   assert.equal(await task,false);assert.equal(f.run(`ST.accounts.some(a=>a.bank==='ارز')`),false);
 });
+
+// Daily-use flows: synthetic records only; every external operation is mocked.
+const dailyBase=`ST.accounts=[{id:'a',bank:'بانک آزمایشی',initBalance:0},{id:'b',bank:'صندوق آزمایشی',initBalance:0}];ST.tx=[];`;
+test('quick chips and repetition prepare a new ordinary transaction without copying its source',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`ST.lastAccId='a';ST.tx=[{id:'old',tp:'expense',cat:'e7',a:50,day:1,m:0,y:1404,accId:'a',smsHash:'oldhash',stmtN:'source'}];openQuick()`);
+  assert.equal(f.w.document.getElementById('qa-acc').value,'a');
+  assert.equal(f.w.document.getElementById('qa-more').open,false);
+  const chip=f.w.document.querySelector('#qa-chips [data-cat="e7"]');assert.ok(chip);f.run(`(function(){${chip.getAttribute('onclick')}}).call(document.querySelector('#qa-chips [data-cat="e7"]'))`);assert.equal(f.run('qaCat'),'e7');
+  f.run(`openReportRows('expense',0,1404);openTxDetails('old');repeatTransaction('old')`);assert.equal(f.run('ST.tx.length'),1);
+  assert.equal(+f.w.document.getElementById('qa-day').value,f.run('today().d'));
+  await f.run('qaSave()');assert.equal(f.run('ST.tx.length'),2);
+  assert.equal(f.run('ST.tx[1].smsHash'),undefined);assert.equal(f.run('ST.tx[1].stmtN'),undefined);
+  assert.equal(f.run('ST.tx[1].a'),50);assert.equal(f.w.document.getElementById('ledgerm').classList.contains('on'),false);
+});
+test('special payments cannot be repeated and details escape descriptions',async t=>{
+  const f=setup(t);await f.boot();f.run(dailyBase+`ST.tx=[{id:'p',tp:'expense',cat:'loan',a:80,day:1,m:0,y:1405,accId:'a',nature:'loanPrincipal',loanId:'l',dsc:'<img src=x onerror=alert(1)>'}];openTxDetails('p')`);
+  assert.ok(f.w.document.getElementById('txdetail-repeat').hidden);
+  assert.equal(f.w.document.querySelector('#txdetail-body img'),null);
+  assert.ok(f.w.document.getElementById('txdetail-body').textContent.includes('<img'));
+  f.run(`repeatTransaction('p')`);assert.equal(f.w.document.getElementById('qam').classList.contains('on'),false);
+});
+test('account ledger keeps signed opening, transfers and valuation, independently of transaction filters',async t=>{
+  const f=setup(t);await f.boot();f.run(dailyBase+`ST.accounts[0].archived=true;ST.tx=[
+    {id:'o',tp:'expense',cat:'opening',isOpening:true,a:100,accId:'a',day:1,m:0,y:1405,nature:'opening'},
+    {id:'x',tp:'income',cat:'transfer',isTransfer:true,a:300,accId:'a',day:2,m:0,y:1405,nature:'transfer'},
+    {id:'v',tp:'expense',cat:'revaluation',a:25,accId:'a',day:3,m:0,y:1405,nature:'revaluation'}];
+    txFilter='income';txAccFilter='b';openAccountLedger('a')`);
+  assert.equal(f.run(`ledgerEntries(ledgerQuery).reduce((n,t)=>n+signedAmount(t),0)`),175);
+  assert.equal(f.run(`calcAccBalance('a')`),175);
+  assert.equal(f.w.document.querySelectorAll('#ledger-list .txi').length,3);
+  assert.match(f.w.document.getElementById('ledger-list').textContent,/تعدیل ارزش دارایی/);
+  assert.match(f.w.document.getElementById('ledger-list').textContent,/−/);
+});
+test('report drilldown excludes non-operating rows, paginates without changing totals and supports yearly categories',async t=>{
+  const f=setup(t);await f.boot();f.run(dailyBase+`ST.tx=Array.from({length:90},(_,i)=>({id:'e'+i,tp:'expense',cat:'e7',a:10,accId:'a',day:i%28+1,m:0,y:1405,nature:'operating'}));
+    ['opening','transfer','deposit','loanPrincipal','revaluation'].forEach((nature,i)=>ST.tx.push({id:'s'+i,tp:'expense',cat:'e7',a:1000,accId:'a',day:1,m:0,y:1405,nature}));openReportRows('expense',0,1405,'e7')`);
+  assert.equal(f.run('ledgerEntries(ledgerQuery).length'),90);
+  assert.equal(f.run('totals(ledgerEntries(ledgerQuery)).e'),900);
+  assert.equal(f.w.document.querySelectorAll('#ledger-list .txi').length,80);
+  assert.equal(f.w.document.getElementById('ledger-more').hidden,false);
+  const before=f.w.document.getElementById('ledger-summary').textContent;
+  f.run('ledgerLimit+=80;renderLedger()');assert.equal(f.w.document.querySelectorAll('#ledger-list .txi').length,90);
+  assert.equal(f.w.document.getElementById('ledger-summary').textContent,before);
+  f.run(`openReportRows('expense',null,1405,'e7')`);assert.equal(f.run('ledgerEntries(ledgerQuery).length'),90);
+});
+test('comparison uses equal elapsed days and crosses the Jalali year correctly',async t=>{
+  const f=setup(t);await f.boot();f.run(dailyBase+`today=()=>({y:1405,m:1,d:10});ST.tx=[
+    {id:'a1',tp:'expense',a:20,cat:'e7',day:5,m:0,y:1405}, {id:'a2',tp:'expense',a:90,cat:'e7',day:20,m:0,y:1405},
+    {id:'b1',tp:'expense',a:15,cat:'e7',day:5,m:11,y:1404}, {id:'b2',tp:'expense',a:70,cat:'e7',day:20,m:11,y:1404}]`);
+  assert.deepEqual(copy(f.run('monthComparison(0,1405)')), {prev:{m:11,y:1404},day:10,current:{i:0,e:20,b:-20},previous:{i:0,e:15,b:-15}});
+  assert.equal(f.run('monthComparison(11,1404).current.e'),85);
+});
+test('clear filters resets account, date, type and search together',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`txAccFilter='a';txSearchTerm='test';txFilter='income';txDateFilter='week';renderFilterSummary()`);
+  assert.ok(f.w.document.querySelector('#tx-filter-summary button'));
+  f.run(f.w.document.querySelector('#tx-filter-summary button').getAttribute('onclick'));
+  assert.deepEqual(copy(f.run('[txAccFilter,txSearchTerm,txFilter,txDateFilter]')),['','','all','all']);
+});
+test('SMS summary displays invalid input honestly and opens uncertain dates for review',async t=>{
+  const f=setup(t);await f.boot();f.run(dailyBase+`ST.smsQueue=[{hash:'test',raw:'پیام آزمایشی',p:{keys:[],a:100,tp:'expense',d:{y:1405,m:0,d:2},dateGuessed:true}}];smsqIdx=0;openSmsQueue();document.getElementById('smsq-amt').value='bad';smsCompactSummary()`);
+  assert.match(f.w.document.getElementById('smsq-summary').textContent,/مبلغ نیازمند اصلاح/);
+  assert.equal(f.w.document.getElementById('smsq-details').open,true);
+});
+test('monthly budget copy is a draft, save is isolated and survives reopening',async t=>{
+  const factory=new IDBFactory(),storage=new Map(),f=setup(t,factory,storage);await f.run('init()');
+  f.run(dailyBase+`SM=0;SY=1405;ST.budgets={e7:200};ST.budgetMonths={'1404_11':{e7:300}};openFriendlyBudget();copyPreviousBudget()`);
+  assert.equal(f.run('budgetDraft.e7'),300);assert.equal(f.run('budgetsAt().e7'),200);
+  f.run('budgetDraft.e7=400');await f.run('saveFriendlyBudget()');
+  assert.equal(f.run('budgetsAt(11,1404).e7'),300);assert.equal(f.run('budgetsAt(0,1405).e7'),400);
+  const g=setup(t,factory,storage);await g.boot();assert.equal(g.run('budgetsAt(0,1405).e7'),400);
+  f.run('openFriendlyBudget();budgetDraft={e7:0}');await f.run('saveFriendlyBudget()');
+  assert.deepEqual(copy(f.run('budgetsAt()')),{});
+});
+const paymentBase=dailyBase+`ST.accounts[0].archived=true;ST.accounts[1].archived=true;
+  ST.loans=[{id:'l',n:'وام آزمایشی',remaining:0,active:false,inst:100,day:10}];ST.bankBal={a:{ok:true}};
+  ST.tx=[{id:'p',tp:'expense',cat:'loan',a:80,accId:'a',day:2,m:0,y:1405,nature:'loanPrincipal',loanId:'l',installmentId:'g',smsHash:'source'},
+  {id:'i',tp:'expense',cat:'e8',a:20,accId:'a',day:2,m:0,y:1405,nature:'operating',loanId:'l',installmentId:'g'}];`;
+test('settled loan payment on archived account can be corrected; only interest enters expenses',async t=>{
+  const f=setup(t);await f.run('init()');f.run(paymentBase+`editInstallment('l','g')`);
+  assert.ok(f.w.document.getElementById('loanpaym').classList.contains('on'));
+  assert.equal(f.w.document.getElementById('loanpay-acc').value,'a');
+  f.w.document.getElementById('loanpay-amt').value='70';f.w.document.getElementById('loanpay-int').value='10';
+  await f.run('saveInstallmentEdit()');
+  assert.equal(f.run('ST.loans[0].remaining'),20);assert.equal(f.run('ST.loans[0].active'),true);
+  assert.equal(f.run(`calcAccBalance('a')`),-70);assert.equal(f.run('totals(ST.tx).e'),10);
+  assert.equal(f.run('ST.bankBal.a.ok'),false);assert.equal(f.run('ST.tx.filter(t=>t.smsHash).length'),1);
+  await f.run(`removeInstallment('l','g')`);
+  assert.equal(f.run('ST.loans[0].remaining'),80);assert.equal(f.run(`calcAccBalance('a')`),0);assert.equal(f.run('totals(ST.tx).e'),0);
+  await f.run('doUndo()');assert.equal(f.run('ST.loans[0].remaining'),20);assert.equal(f.run(`calcAccBalance('a')`),-70);
+});
+test('invalid installment date or excessive principal leaves payment and debt untouched',async t=>{
+  const f=setup(t);await f.run('init()');f.run(paymentBase+`editInstallment('l','g');document.getElementById('loanpay-amt').value='200';document.getElementById('loanpay-int').value='0'`);
+  const before=copy(f.run('ST'));await f.run('saveInstallmentEdit()');assert.deepEqual(copy(f.run('ST')),before);
+  f.run(`document.getElementById('loanpay-amt').value='50';document.getElementById('loanpay-day').value=''`);
+  await f.run('saveInstallmentEdit()');assert.deepEqual(copy(f.run('ST')),before);
+});
+test('bridge acknowledgment history is truthful, retains failures and strips local source from protocol',async t=>{
+  const f=setup(t);await f.boot();f.run(dailyBase+`ST.sarafiOutbox=[{id:'q',sourceTxId:'p',a:50}];ST.tx=[{id:'p',sarafiSent:1}];ghOn=()=>true;ghInboxUpdate=async()=>false`);
+  assert.match(f.run(`bridgeStateForTx(ST.tx[0])`),/در صف ارسال/);
+  await f.run('flushSarafiOutbox()');assert.equal(f.run('ST.sarafiOutbox.length'),1);assert.equal(f.run('(ST.bridgeLog||[]).length'),0);
+  assert.ok(f.run('ST.bridgeErrors.sarafi'));
+  f.run(`ghInboxUpdate=async mut=>{const d={items:{}};mut(d);if('sourceTxId' in d.items.q)throw Error('protocol leak');return true}`);
+  await f.run('flushSarafiOutbox()');assert.equal(f.run('ST.sarafiOutbox.length'),0);assert.equal(f.run('ST.bridgeLog.length'),1);
+  assert.equal(f.run('ST.bridgeErrors.sarafi'),undefined);
+  assert.match(f.run(`bridgeStateForTx(ST.tx[0])`),/ثبت نهایی را در مقصد بررسی کنید/);
+});
+test('investment flow separates principal transfers from revaluation and protection separates local save from backup',async t=>{
+  const f=setup(t);await f.boot();f.run(dailyBase+`ST.tx=[{id:'o',accId:'a',tp:'income',a:100,nature:'opening'},
+    {id:'t',accId:'a',tp:'income',a:70,nature:'transfer',isTransfer:true},
+    {id:'v',accId:'a',tp:'expense',a:5,nature:'revaluation'}]`);
+  assert.deepEqual(copy(f.run(`investmentFlows('a')`)),{incoming:70,outgoing:0,revaluation:-5});
+  await f.run('sv()');f.run('openProtection()');const text=f.w.document.getElementById('protection-body').textContent;
+  assert.match(text,/ذخیره روی دستگاه، پشتیبان خارج از دستگاه نیست/);assert.match(text,/هنوز ثبت نشده/);
+});
+test('learned SMS review keeps the simple path closed and saves the original source only once',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`ST.smsCatHint={'a|expense':'e7'};ST.smsKeys={known:'a'};
+    ST.smsQueue=[{id:'q1',hash:'h1',raw:'فقط متن آزمایشی',sender:'BANK',p:{keys:['known'],bank:'بانک آزمایشی',a:50,tp:'expense',d:{y:1405,m:0,d:2}}}];openSmsQueue()`);
+  assert.equal(f.w.document.getElementById('smsq-acc').value,'a');assert.equal(f.w.document.getElementById('smsq-cat').value,'e7');
+  assert.equal(f.w.document.getElementById('smsq-details').open,false);
+  await f.run('smsqSave()');assert.equal(f.run('ST.smsQueue.length'),0);assert.equal(f.run('ST.tx.length'),1);
+  assert.equal(f.run('ST.tx[0].src.raw'),'فقط متن آزمایشی');assert.equal(f.run('ST.tx[0].smsHash'),'h1');
+});
+test('transfer bridge links the exact local transaction and keeps both financial legs unchanged',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`const eu=sarafiAcc(true);const id=eu.id;
+    ST.tx=[{id:'f',tp:'expense',accId:'a',a:100,isTransfer:true,transferId:'g',day:2,m:0,y:1405},
+    {id:'t',tp:'income',accId:id,a:100,isTransfer:true,transferId:'g',day:2,m:0,y:1405}];sfPushFromTransfer('a',id,100,{y:1405,m:0,d:2})`);
+  assert.equal(f.run('ST.sarafiOutbox[0].sourceTxId'),'f');assert.equal(f.run('ST.tx.filter(t=>t.sarafiSent).length'),2);
+  assert.equal(f.run(`calcAccBalance('a')`),-100);assert.equal(f.run('totals(ST.tx).e'),0);
+});
+test('new optional backup fields reject malformed data and accept valid month-specific plans',async t=>{
+  const f=setup(t);await f.boot();assert.throws(()=>f.run(`validateBackup({...def(),budgetMonths:{'1405_12':{e7:50}}})`));
+  assert.throws(()=>f.run(`validateBackup({...def(),budgetMonths:{'1405_0':{e7:'bad'}}})`));
+  assert.throws(()=>f.run(`validateBackup({...def(),bridgeLog:[{id:'x',target:'unknown',at:1,a:50}]})`));
+  assert.doesNotThrow(()=>f.run(`validateBackup({...def(),budgetMonths:{'1405_0':{e7:50}},bridgeLog:[{id:'x',target:'amlak',at:1,a:50}]})`));
+});
+test('new screens retain unique DOM identifiers and valid inline action syntax',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`rRep();openQuick();openProtection();openBridgeStatus()`);
+  const ids=[...f.w.document.querySelectorAll('[id]')].map(n=>n.id),seen=new Set();
+  for(const id of ids){assert.equal(seen.has(id),false,'duplicate id '+id);seen.add(id);}
+  for(const node of f.w.document.querySelectorAll('*'))for(const a of node.attributes){if(a.name.startsWith('on'))assert.doesNotThrow(()=>new vm.Script('(function(event){'+a.value+'})'),a.name+': '+a.value);}
+  assert.equal(f.w.document.querySelectorAll('button button').length,0);
+});

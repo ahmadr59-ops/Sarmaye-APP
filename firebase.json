@@ -10,7 +10,8 @@
       "tests.js",
       "smoke.js",
       "README.md",
-      "RELIABILITY_NOTES.md"
+      "RELIABILITY_NOTES.md",
+      "DAILY_USE_NOTES.md"
     ]
   }
 }
