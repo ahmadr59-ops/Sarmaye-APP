@@ -1,4 +1,4 @@
-const CACHE = 'sarmaye-v24-32';
+const CACHE = 'sarmaye-v24-33';
 const FILES = [
   './',
   './index.html',

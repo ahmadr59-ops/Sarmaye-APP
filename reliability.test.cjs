@@ -398,3 +398,100 @@ test('pre-upgrade snapshot remains discoverable, downloadable and restorable aft
   assert.deepEqual(copy(await f.run('getV1Backup()')),{savedAt:1,state:old});
   await f.run('undoRestore()');assert.equal(f.run(`calcAccBalance('a')`),100);
 });
+
+const reviewQueue=`ST.smsQueue=[{id:'q',hash:'h',raw:'خرید فروشگاه كيان ۱۲۳',sender:'BANK',p:{keys:['bank-key'],bank:'بانک آزمایشی',a:50,tp:'expense',balKnown:true,bal:950,d:{y:1405,m:0,d:2}}}];smsqIdx=0;openSmsQueue();`;
+test('explicit SMS dismissal changes only queue and duplicate marker, with targeted undo preserving newer data',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`ST.bankBal={a:{bal:1000,d:{y:1405,m:0,d:1}}};ST.smsKeys={};ST.smsCatHint={};`+reviewQueue);
+  const before=copy(f.run('[ST.tx,ST.bankBal,ST.smsKeys,ST.smsCatHint]'));
+  assert.equal(await f.run('smsqDiscard()'),'sms-discarded');
+  assert.equal(f.run('ST.smsQueue.length'),0);assert.equal(f.run('ST.smsSeen.h.act'),'ignore');
+  assert.deepEqual(copy(f.run('[ST.tx,ST.bankBal,ST.smsKeys,ST.smsCatHint]')),before);
+  // A new import and an unrelated financial record arrive before Undo.
+  f.run(`ST.smsQueue.push({id:'newq',hash:'newh',p:{a:10,d:{y:1405,m:0,d:3},keys:[]},raw:'new'});ST.tx.push({id:'newtx',tp:'income',a:20,cat:'s1',day:3,m:0,y:1405,accId:'a'})`);await f.run('sv()');await f.run('doUndo()');
+  assert.equal(f.run('ST.smsQueue.length'),2);assert.equal(f.run('ST.smsQueue[0].id'),'q');
+  assert.equal(f.run('ST.tx[0].id'),'newtx');assert.equal(f.run('ST.smsSeen.h'),undefined);
+});
+test('ignore through the old selector uses targeted undo and a later expense still gets its own undo',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+reviewQueue+`smsqSetTp('ignore')`);
+  await f.run('smsqSave()');assert.equal(f.run('typeof __undoAction'),'function');assert.equal(f.run('__undoSnap'),null);
+  await f.run('doUndo()');assert.equal(f.run('ST.smsQueue.length'),1);
+  await f.run('smsqDiscard()');f.run(`openQuick();qaCatPick('e7');document.getElementById('qa-amt').value='10';document.getElementById('qa-acc').value='a'`);await f.run('qaSave()');
+  assert.equal(f.run('ST.tx.length'),1);assert.equal(f.run('__undoAction'),null);await f.run('doUndo()');assert.equal(f.run('ST.tx.length'),0);
+  assert.equal(f.run('ST.smsSeen.h.act'),'ignore');
+});
+test('dismissed SMS is not re-imported and failed save keeps it recoverable',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+String.raw`smsImport('بانک ملی\nبرداشت: 500,000 ریال\nمانده: 9,500,000 ریال\n1405/01/02');openSmsQueue()`);
+  assert.equal(f.run('ST.smsQueue.length'),1);await f.run('smsqDiscard()');
+  assert.equal(f.run(String.raw`smsImport('بانک ملی\nبرداشت: 500,000 ریال\nمانده: 9,500,000 ریال\n1405/01/02').dup`),1);
+  f.run(reviewQueue+`dbWriteState=async()=>{throw Error('disk')};localStorage.setItem=()=>{throw Error('quota')}`);
+  await assert.rejects(f.run('smsqDiscard()'));assert.equal(f.run('ST.smsQueue[0].id'),'q');assert.equal(f.run('ST.smsSeen.h'),undefined);
+});
+test('category rename preserves ids, transactions, budgets, schedules and rules across reopen',async t=>{
+  const factory=new IDBFactory(),storage=new Map(),f=setup(t,factory,storage);await f.run('init()');
+  f.run(dailyBase+`SM=0;SY=1405;ST.tx=[{id:'e',tp:'expense',cat:'e7',a:50,accId:'a',day:2,m:0,y:1405,nature:'operating'}];ST.budgetMonths={'1405_0':{e7:100}};ST.recurring=[{id:'r',tp:'expense',cat:'e7',amt:50,day:2}];ST.smsRules=[{id:'rule',tp:'expense',cat:'e7',term:'فروشگاه',accId:'a',enabled:true}];openCatMgr('expense');openCat('expense','e7')`);
+  assert.equal(f.w.document.getElementById('catmgr').classList.contains('on'),false);assert.equal(f.w.document.getElementById('ctyp').disabled,true);
+  const txBefore=copy(f.run('ST.tx'));f.w.document.getElementById('cnm').value='هزینه شخصی';await f.run('saveCat()');
+  assert.deepEqual(copy(f.run('ST.tx')),txBefore);assert.equal(f.run('ST.cats.expense.find(c=>c.id===\'e7\').n'),'هزینه شخصی');
+  assert.equal(f.run('ST.budgetMonths[\'1405_0\'].e7'),100);assert.equal(f.run('ST.recurring[0].cat'),'e7');assert.equal(f.run('ST.smsRules[0].cat'),'e7');
+  f.run(`openReportRows('expense',0,1405,'e7');openTxDetails('e')`);
+  assert.match(f.w.document.getElementById('ledger-title').textContent,/هزینه شخصی/);assert.match(f.w.document.getElementById('txdetail-body').textContent,/هزینه شخصی/);
+  const g=setup(t,factory,storage);await g.run('init()');assert.equal(g.run(`getCat('expense','e7').n`),'هزینه شخصی');assert.equal(g.run(`calcAccBalance('a')`),-50);
+});
+test('renaming rent and profit categories preserves semantics and statement imports resolve previous names',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`openCat('income','s2');document.getElementById('cnm').value='دریافتی ملک'`);await f.run('saveCat()');
+  assert.equal(f.run(`categoryRole(getCat('income','s2'),'rent')`),true);
+  f.run(`openQuick();qaTp('income');qaCatPick('s2')`);assert.equal(f.w.document.getElementById('qa-amlakw').style.display,'flex');
+  assert.equal(f.run(`stmtCat(ST,'income','اجاره آپارتمان')`),'s2');
+  f.run(`openCat('income','s4');document.getElementById('cnm').value='بازده دریافتی'`);await f.run('saveCat()');assert.equal(f.run(`categoryRole(getCat('income','s4'),'profit')`),true);
+  // An ordinary category called 'rent' must not silently change accounting role after a rename.
+  f.run(`openCat('income','s1');document.getElementById('cnm').value='اجاره نام نمایشی'`);await f.run('saveCat()');assert.equal(f.run(`categoryRole(getCat('income','s1'),'rent')`),false);
+});
+test('category validation rejects empty or duplicate names, blocks deleting used categories and cancellation is read-only',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`ST.tx=[{id:'e',tp:'expense',cat:'e7',a:50,day:2,m:0,y:1405}];openCat('expense','e7');document.getElementById('cnm').value=' '`);
+  const before=copy(f.run('ST'));await f.run('saveCat()');assert.deepEqual(copy(f.run('ST')),before);
+  f.run(`document.getElementById('cnm').value=ST.cats.expense[0].n`);await f.run('saveCat()');assert.deepEqual(copy(f.run('ST')),before);
+  await f.run(`delCat('expense','e7')`);assert.deepEqual(copy(f.run('ST')),before);
+  f.run(`document.getElementById('cnm').value='تغییر لغوشده';cancelCatEditor()`);assert.deepEqual(copy(f.run('ST')),before);
+});
+const sampleRules=`ST.smsRules=[{id:'r',tp:'expense',cat:'e2',term:'فروشگاه کیان 123',accId:'a',enabled:true}];`;
+test('literal SMS rules normalize Persian and Arabic, respect account and type, and only propose categories',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+sampleRules+`ST.smsKeys={'bank-key':'a'};ST.smsCatHint={'a|expense':'e7'};`+reviewQueue);
+  assert.equal(f.w.document.getElementById('smsq-cat').value,'e2');assert.match(f.w.document.getElementById('smsq-cat-suggestion').textContent,/پیشنهاد قاعده/);
+  assert.equal(f.run('ST.tx.length'),0);assert.equal(f.run(`smsCategorySuggestion(ST.smsQueue[0],'expense','b').cat`),'');assert.equal(f.run(`smsCategorySuggestion(ST.smsQueue[0],'income','a').cat`),'');
+  f.run(`document.getElementById('smsq-cat').value='e7'`);await f.run('smsqSave()');assert.equal(f.run('ST.tx[0].cat'),'e7');assert.equal(f.run('ST.smsRules[0].cat'),'e2');
+});
+test('conflicting rules require explicit choice; disabled rules stop suggesting; ordinary account hint remains a fallback',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+sampleRules+`ST.smsRules.push({id:'r2',tp:'expense',cat:'e5',term:'فروشگاه',accId:'',enabled:true});ST.smsKeys={'bank-key':'a'};ST.smsCatHint={'a|expense':'e7'};`+reviewQueue);
+  assert.equal(f.w.document.getElementById('smsq-cat').value,'');assert.match(f.w.document.getElementById('smsq-cat-suggestion').textContent,/چند قاعده/);
+  await f.run('smsqSave()');assert.equal(f.run('ST.tx.length'),0);
+  f.run(`ST.smsRules[1].enabled=false;smsqSetTp('expense')`);assert.equal(f.w.document.getElementById('smsq-cat').value,'e2');
+  f.run(`ST.smsRules[0].enabled=false;smsqSetTp('expense')`);assert.equal(f.w.document.getElementById('smsq-cat').value,'e7');
+});
+test('rule editor supports save, edit, disable and delete, persists and never changes existing transactions',async t=>{
+  const factory=new IDBFactory(),storage=new Map(),f=setup(t,factory,storage);await f.run('init()');
+  f.run(dailyBase+`openSmsRules('expense');document.getElementById('smsrule-term').value='فروشگاه';document.getElementById('smsrule-acc').value='a';document.getElementById('smsrule-cat').value='e2'`);await f.run('saveSmsRule()');assert.equal(f.run('ST.smsRules.length'),1);
+  const g=setup(t,factory,storage);await g.run('init()');assert.equal(g.run('ST.smsRules[0].term'),'فروشگاه');
+  f.run(`editSmsRule(ST.smsRules[0].id);document.getElementById('smsrule-cat').value='e5'`);await f.run('saveSmsRule()');assert.equal(f.run('ST.smsRules[0].cat'),'e5');
+  await f.run('toggleSmsRule(ST.smsRules[0].id)');assert.equal(f.run('ST.smsRules[0].enabled'),false);
+  await f.run('deleteSmsRule(ST.smsRules[0].id)');assert.equal(f.run('ST.smsRules.length'),0);assert.equal(f.run('ST.tx.length'),0);
+});
+test('rule editor rejects malformed and duplicate rules and safely displays HTML-like text',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`openSmsRules('expense');document.getElementById('smsrule-term').value='از';document.getElementById('smsrule-cat').value='e2'`);await f.run('saveSmsRule()');assert.equal(f.run('ST.smsRules.length'),0);
+  f.run(`document.getElementById('smsrule-term').value='<img src=x onerror=alert(1)>'`);await f.run('saveSmsRule()');assert.equal(f.run('ST.smsRules.length'),1);assert.equal(f.w.document.querySelector('#smsrule-list img'),null);
+  f.run(`document.getElementById('smsrule-term').value='<img src=x onerror=alert(1)>';document.getElementById('smsrule-cat').value='e5'`);await f.run('saveSmsRule()');assert.equal(f.run('ST.smsRules.length'),1);assert.match(f.w.document.getElementById('smsrule-msg').textContent,/وجود دارد/);
+});
+test('rule screen retains SMS amount and notes, and new fields survive backup restore without breaking older backups',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+`ST.smsKeys={'bank-key':'a'};`+reviewQueue+`document.getElementById('smsq-amt').value='75';document.getElementById('smsq-dsc').value='یادداشت';document.getElementById('smsq-cat').value='e5';openSmsRules('expense',true);closeSmsRules()`);
+  assert.equal(f.w.document.getElementById('smsq-amt').value,'75');assert.equal(f.w.document.getElementById('smsq-dsc').value,'یادداشت');assert.equal(f.w.document.getElementById('smsq-cat').value,'e5');
+  f.run(sampleRules);const backup=copy(f.run('ST'));f.w.__backup=backup;await f.run('applyBackupObject(__backup)');assert.equal(f.run('ST.smsRules[0].id'),'r');
+  const old=copy(f.run('def()'));delete old.smsRules;f.w.__backup=old;await f.run('applyBackupObject(__backup)');assert.deepEqual(copy(f.run('ST.smsRules')),[]);
+  assert.throws(()=>f.run(`validateBackup({...def(),smsRules:[{id:'x',tp:'expense',cat:'missing',term:'term',accId:'',enabled:true}]})`));
+  assert.throws(()=>f.run(`validateBackup({...def(),smsRules:'bad'})`));
+});
+test('double tap on discard removes only the displayed SMS while storage is pending',async t=>{
+  const f=setup(t);await f.run('init()');f.run(dailyBase+reviewQueue+`ST.smsQueue.push({...ST.smsQueue[0],id:'second',hash:'secondhash'})`);
+  let release;f.w.__hold=()=>new Promise(resolve=>release=resolve);f.run('const originalSave=sv;sv=__hold');
+  const first=f.run('smsqDiscard()');await f.run('smsqDiscard()');assert.equal(f.run('ST.smsQueue.length'),1);assert.equal(f.run('ST.smsQueue[0].id'),'second');
+  release();await first;f.run('sv=originalSave');await f.run('sv()');
+  await f.run('doUndo()');assert.equal(f.run('ST.smsQueue.length'),2);
+});

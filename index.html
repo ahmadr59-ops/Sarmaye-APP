@@ -880,7 +880,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="ov" id="catm">
 <div class="mdl">
   <div class="mh"></div>
-  <h2>دسته‌بندی جدید</h2>
+  <h2 id="cat-editor-title">دسته‌بندی جدید</h2>
   <div class="fg"><label>نام</label><input type="text" id="cnm" placeholder="مثال: تفریح"></div>
   <div class="fg"><label>آیکون</label>
     <div id="cion-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px"></div>
@@ -888,7 +888,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   </div>
   <div class="fg"><label>نوع</label><select id="ctyp"><option value="income">درآمد</option><option value="expense">هزینه</option></select></div>
   <button class="btn btnp" onclick="saveCat()">ذخیره</button>
-  <button class="btn btns" onclick="cls('catm')">انصراف</button>
+  <button class="btn btns" onclick="cancelCatEditor()">انصراف</button>
 </div>
 </div>
 
@@ -899,6 +899,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <h2 id="catmgr-title">مدیریت دسته‌بندی‌ها</h2>
   <div id="catmgr-list" style="margin-bottom:12px"></div>
   <button class="btn btnp" id="catmgr-add" onclick="">افزودن دسته‌بندی جدید</button>
+  <button class="btn btns" onclick="openSmsRules(catMgrType)">قواعد پیشنهاد دسته برای پیامک</button>
   <button class="btn btns" onclick="cls('catmgr')">بستن</button>
 </div>
 </div>
@@ -1333,7 +1334,14 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="ov" id="protectionm" role="dialog" aria-modal="true" aria-labelledby="protection-title"><div class="mdl"><div class="mh"></div><h2 id="protection-title">حفاظت اطلاعات</h2><div id="protection-body"></div><input type="file" id="imp2" accept=".json" hidden onchange="restore(this)"><button class="btn btns" onclick="cls('protectionm')">بستن</button></div></div>
 <div class="ov" id="loanhistorym" role="dialog" aria-modal="true" aria-labelledby="loanhistory-title"><div class="mdl"><div class="mh"></div><h2 id="loanhistory-title"></h2><div id="loanhistory-body"></div><button class="btn btns" onclick="cls('loanhistorym');openLoanList()">بازگشت به وام‌ها</button></div></div>
 
-
+<div class="ov" id="smsrulesm" role="dialog" aria-modal="true" aria-labelledby="smsrules-title"><div class="mdl"><div class="mh"></div>
+<h2 id="smsrules-title">قواعد پیشنهاد دسته پیامک</h2><p class="ux-note">اگر متن پیامک شامل این عبارت باشد، دسته پیشنهاد می‌شود. هیچ تراکنشی خودکار ثبت نمی‌شود. در تعارض قواعد، دسته را خودتان انتخاب می‌کنید.</p>
+<div class="fg"><label for="smsrule-tp">نوع تراکنش</label><select id="smsrule-tp" onchange="fillRuleCategories()"><option value="expense">هزینه</option><option value="income">درآمد</option></select></div>
+<div class="fg"><label for="smsrule-term">عبارت در متن پیامک</label><input id="smsrule-term" type="text" minlength="3" maxlength="100" placeholder="مثلاً: نام فروشگاه"><small>حداقل ۳ نویسه؛ ارقام فارسی و انگلیسی و ی/ک معادل‌اند.</small></div>
+<div class="fg"><label for="smsrule-acc">محدوده حساب</label><select id="smsrule-acc"></select></div>
+<div class="fg"><label for="smsrule-cat">دسته پیشنهادی</label><select id="smsrule-cat"></select></div>
+<p id="smsrule-msg" class="ux-note" aria-live="polite"></p><button class="btn btnp" id="smsrule-save" onclick="saveSmsRule()">افزودن قاعده</button><button class="btn btns" onclick="resetSmsRuleEditor()">فرم قاعده جدید</button>
+<div id="smsrule-list"></div><button class="btn btns" onclick="closeSmsRules()">بستن</button></div></div>
 
 <script>
 // ============================================================
@@ -1480,7 +1488,7 @@ function def(){
     tx:[],ten:[],pay:{},
     schemaVersion:1, // migrateV2() is the ONLY place allowed to stamp 2
     properties:[],tenants:[],rentalContracts:[],rentPayments:[],
-    budgets:{},loans:[],theme:'auto',fx:[],dismissed:{},smsQueue:[],smsSeen:{},smsKeys:{},smsCatHint:{},amlakOutbox:[],
+    budgets:{},loans:[],theme:'auto',fx:[],dismissed:{},smsQueue:[],smsSeen:{},smsKeys:{},smsCatHint:{},smsRules:[],amlakOutbox:[],
     notifLog:[],smsLog:[],
     cats:{
       income:[
@@ -1778,6 +1786,7 @@ function migrateState(s){
     (s.accounts||[]).forEach(a=>{const ac=String(a.accno||'').replace(/\D/g,'');if(ac.length>=8)s.smsKeys['a:'+ac]=a.id;
       const cd=String(a.cardno||'').replace(/\D/g,'');if(cd.length===16)s.smsKeys['c:'+[cd.slice(0,4),cd.slice(12)].sort().join('-')]=a.id;});}
   if(!s.smsCatHint||typeof s.smsCatHint!=='object') s.smsCatHint={};
+  if(!Array.isArray(s.smsRules))s.smsRules=[];
   if(!Array.isArray(s.amlakOutbox)) s.amlakOutbox=[];
   if(!s.dismissed||typeof s.dismissed!=='object') s.dismissed={};
 
@@ -1961,7 +1970,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.32';
+const APP_VERSION='v24.33';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2560,7 +2569,7 @@ function edTx(id){
 }
 function tAmlakUI(){
   const w=document.getElementById('tamlakw'),sent=document.getElementById('tamlaksent');if(!w)return;
-  const cat=document.getElementById('tcat').value;const isRent=txtp==='income'&&/اجاره/.test((getCat('income',cat)||{}).n||'');
+  const cat=document.getElementById('tcat').value;const isRent=txtp==='income'&&categoryRole(getCat('income',cat),'rent');
   const orig=etx?ST.tx.find(t=>t.id===etx):null;const done=!!(orig&&orig.amlakSent);
   w.style.display=isRent&&!done?'flex':'none';sent.style.display=isRent&&done?'block':'none';
   if(isRent&&done)sent.innerHTML=bridgeStateForTx(orig);
@@ -2876,14 +2885,19 @@ async function finishSaveSms(cat,a,dsc,accId,day,m,y){
 // CATEGORIES
 // ============================================================
 const ICON_LABELS={briefcase:'شغل',home:'خانه',building:'ساختمان','trend-up':'سرمایه',coin:'سکه',cart:'خرید',heart:'سلامت',piggy:'پس‌انداز',shirt:'پوشاک',car:'خودرو',health:'پزشکی',book:'آموزش',gift:'هدیه',more:'سایر',zap:'انرژی',bag:'کیف'};
-function openCat(tp){
-  document.getElementById('cnm').value='';
+function openCat(tp,id=null){
+  if(!['income','expense'].includes(tp))return;
+  const category=id?ST.cats[tp].find(c=>c.id===id):null;if(id&&!category)return;
+  editingCategory=category?{tp,id}:null;catEditorReturn=document.getElementById('catmgr').classList.contains('on');cls('catmgr');
+  document.getElementById('cat-editor-title').textContent=category?'ویرایش دسته‌بندی':'دسته‌بندی جدید';
+  document.getElementById('cnm').value=category?category.n:'';
   const grid=document.getElementById('cion-grid');
   grid.innerHTML=Object.keys(ICONS).map((k,idx)=>
     `<button type="button" onclick="pickCatIcon('${k}')" id="cicon-${k}" style="aspect-ratio:1;border-radius:12px;border:1.5px solid ${idx===0?'var(--pr)':'var(--border)'};background:${idx===0?'var(--prl)':'var(--inp-bg)'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:${idx===0?'var(--pr)':'var(--t2)'}"><svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS[k]}</svg></button>`
   ).join('');
   document.getElementById('cion').value=Object.keys(ICONS)[0];
-  document.getElementById('ctyp').value=tp;
+  document.getElementById('ctyp').value=tp;document.getElementById('ctyp').disabled=!!category;
+  if(category)pickCatIcon(category.i||'more');
   document.getElementById('catm').classList.add('on');
 }
 function pickCatIcon(key){
@@ -2897,14 +2911,23 @@ function pickCatIcon(key){
   });
 }
 async function saveCat(){
-  const n=document.getElementById('cnm').value.trim();
+  if(!storageHealthy||stateReplacing)return;
+  const n=document.getElementById('cnm').value.trim().replace(/\s+/g,' ');
   const i=document.getElementById('cion').value||'more';
-  const tp=document.getElementById('ctyp').value;
-  if(!n){ntf('⚠️ نام الزامی است');return;}
-  ST.cats[tp].push({id:'c'+uid(),n,i,c:CLR[ST.cats[tp].length%CLR.length]});
-  await sv();cls('catm');ntf('✅ اضافه شد');fillCat('tcat',txtp);
-  // Refresh manager if open
-  if(document.getElementById('catmgr').classList.contains('on')) openCatMgr(tp);
+  const tp=editingCategory?editingCategory.tp:document.getElementById('ctyp').value;
+  if(!['income','expense'].includes(tp)||!n||n.length>80){ntf('نام دسته باید بین ۱ تا ۸۰ نویسه باشد');return;}
+  const current=editingCategory?ST.cats[tp].find(c=>c.id===editingCategory.id):null;
+  if(editingCategory&&!current){ntf('دسته دیگر موجود نیست');return;}
+  if(ST.cats[tp].some(c=>c.id!==current?.id&&categoryNameMatches(c,n))){ntf('این نام برای دسته دیگری استفاده شده است');return;}
+  const before=current?JSON.parse(JSON.stringify(current)):null;let createdId=null;
+  if(current){
+    if(tp==='income'){current.semanticRent=categoryRole(current,'rent');current.semanticProfit=categoryRole(current,'profit');}
+    if(current.n!==n)current.previousNames=[...new Set([...(current.previousNames||[]),current.n])].slice(-20);
+    current.n=n;current.i=i;
+  }else{const value={id:'c'+uid(),n,i,c:CLR[ST.cats[tp].length%CLR.length]};createdId=value.id;ST.cats[tp].push(value);}
+  try{await sv();}catch(e){if(current)ST.cats[tp]=ST.cats[tp].map(c=>c.id===current.id?before:c);else ST.cats[tp]=ST.cats[tp].filter(c=>c.id!==createdId);throw e;}
+  const back=catEditorReturn;editingCategory=null;catEditorReturn=false;cls('catm');
+  refreshCategoryViews();if(back)openCatMgr(tp);ntf(before?'نام و آیکون دسته در سراسر اپ به‌روز شد':'دسته اضافه شد');
 }
 
 // ============================================================
@@ -3746,8 +3769,8 @@ function openCatMgr(tp){
   list.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
     ${ST.cats[tp].map(c=>`<div class="cat-chip">
       <span style="color:${c.c};margin-left:2px">${svgIc(c.i).replace('svg viewBox','svg style="width:14px;height:14px;stroke:currentColor;stroke-width:1.8;fill:none" viewBox')}</span>
-      ${esc(c.n)}
-      <button class="cat-chip-del" onclick="delCat('${tp}','${c.id}')">×</button>
+      <button class="ux-link" style="width:auto" data-id="${esc(c.id)}" onclick="openCat(catMgrType,this.dataset.id)">${esc(c.n)} · ویرایش</button>
+      <button aria-label="حذف دسته" class="cat-chip-del" onclick="delCat('${tp}','${c.id}')">×</button>
     </div>`).join('')}
   </div>`;
   document.getElementById('catmgr').classList.add('on');
@@ -3757,8 +3780,10 @@ async function delCat(tp,id){
   // installments to e8 — deleting them would orphan future auto-records.
   const SYS={s2:'اجاره آپارتمان (متصل به بخش اجاره‌ها)',s3:'اجاره تجاری (متصل به بخش اجاره‌ها)',e8:'قسط و وام (متصل به بخش وام‌ها)'};
   if(SYS[id]){ntf('🔒 دسته «'+SYS[id]+'» توسط سیستم استفاده می‌شود و قابل حذف نیست');return;}
+  if(categoryInUse(tp,id)){ntf('این دسته در سوابق، بودجه یا قواعد استفاده شده است؛ نام آن را ویرایش کنید');return;}
   if(ST.cats[tp].length<=1){ntf('⚠️ حداقل یک دسته لازم است');return;}
   ST.cats[tp]=ST.cats[tp].filter(c=>c.id!==id);
+  Object.keys(ST.smsCatHint||{}).forEach(k=>{if(k.endsWith('|'+tp)&&ST.smsCatHint[k]===id)delete ST.smsCatHint[k];});
   await sv();ntf('🗑️ حذف شد');openCatMgr(tp);
 }
 
@@ -4074,7 +4099,7 @@ function renderSmsQueue(){
     <div class="fg"><label>سود/کارمزدِ این قسط (تومان)</label><input id="smsq-int" inputmode="numeric" placeholder="۰" oninput="this.value=this.value?nf(toLn(this.value)):''"></div>
     <div style="font-size:12.5px;color:var(--t3);margin:-4px 2px 10px;line-height:1.7">اصل قسط از بدهی کم می‌شود؛ فقط سود به‌عنوان هزینه ثبت می‌شود.</div>
   </div>
-  <div id="smsq-catw" class="fg"><label>دسته</label><select id="smsq-cat"></select></div>
+  <div id="smsq-catw" class="fg"><label>دسته</label><select id="smsq-cat"></select><p id="smsq-cat-suggestion" class="ux-note" aria-live="polite"></p><button class="qchip" onclick="openSmsRules(smsqTp,true)">قاعده پیشنهاد دسته</button></div>
   <details id="smsq-details" class="ux-more"><summary>اصلاح مبلغ، تاریخ و توضیح</summary><div class="fg"><label>مبلغ (تومان)</label><input id="smsq-amt" inputmode="numeric" value="${p.a||''}" oninput="smsqBalCheck()"></div>
   <div class="dategrid">
     <div class="fg"><label>روز</label><select id="smsq-day">${DAY_OPTS()}</select></div>
@@ -4087,7 +4112,7 @@ function renderSmsQueue(){
   <div style="display:none" id="smsq-depnote"></div>
   <div id="smsq-dupe" style="font-size:12.5px;margin:2px 0 8px"></div>
   <div id="smsq-bal" style="font-size:12px;margin:2px 0 10px"></div>
-  <div id="smsq-savebar"><button class="btn btnp" onclick="smsqSave()">ثبت و بعدی</button></div>
+  <div id="smsq-savebar"><button class="btn btnp" onclick="smsqSave()">ثبت و بعدی</button><button class="btn btns" onclick="smsqDiscard()">نادیده و حذف از صف</button></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
     <button class="btn btns" onclick="smsqMove(-1)">قبلی</button><button class="btn btns" onclick="smsqMove(1)">بعدی (بعداً)</button>
   </div>`;
@@ -4104,9 +4129,7 @@ function smsqSetTp(k){
   document.getElementById('smsq-amlakw').style.display=k==='income'?'flex':'none';
   if(isPL){
     fillCat('smsq-cat',k);
-    const acc=document.getElementById('smsq-acc').value;
-    const hint=(ST.smsCatHint||{})[acc+'|'+k];const sel=document.getElementById('smsq-cat');
-    sel.value=hint&&[...sel.options].some(o=>o.value===hint)?hint:'';
+    applySmsCategorySuggestion();
   }
   if(k==='transfer'){
     const out=(ST.smsQueue[smsqIdx]||{p:{}}).p.tp!=='income';
@@ -4162,11 +4185,7 @@ async function smsqSave(){
     if(smsqIdx>=ST.smsQueue.length)smsqIdx=Math.max(0,ST.smsQueue.length-1);
     await sv();renderSmsQueue();rDash();if(typeof rTx==='function')rTx();
   };
-  if(smsqTp==='ignore'){
-    const twin=smsTransferTwin(q,acc);if(twin)twin.smsHash=q.hash;
-    smsLearn(q.p.keys,acc);
-    return done({act:'ignore',txId:twin?twin.id:null});
-  }
+  if(smsqTp==='ignore')return smsqDiscard();
   const a=toLn(document.getElementById('smsq-amt').value);
   const day=parseInt(document.getElementById('smsq-day').value);
   const m=parseInt(document.getElementById('smsq-mon').value);
@@ -4285,7 +4304,7 @@ async function smsQueuePaste(){
   await sv();rDash();
   if(added){cls('smsm');smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash===hashes[0]));openSmsQueue();ntf(`📩 ${toFa(added)} پیامک به صندوق اضافه شد`+(skipped?` (${toFa(skipped)} تکهٔ غیرپیامکی کنار گذاشته شد)`:''));return;}
   if(inQ)return msg(`این پیامک <b>همین الان در صندوق</b> است و منتظر بررسی. <button class="qchip" onclick="cls('smsm');smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash==='${inQ}'));openSmsQueue()">باز کردن</button>`);
-  if(seen)return msg(`این پیامک <b>قبلاً بررسی و ثبت شده</b>${seen.at?' ('+new Date(seen.at).toLocaleDateString('fa-IR')+')':''}؛ دوباره ثبت نمی‌شود.`);
+  if(seen)return msg(`این پیامک <b>${seen.act==='ignore'?'قبلاً نادیده گرفته شده':'قبلاً بررسی و ثبت شده'}</b>${seen.at?' ('+new Date(seen.at).toLocaleDateString('fa-IR')+')':''}؛ دوباره ثبت نمی‌شود.`);
   msg('چیزی اضافه نشد.');
 }
 
@@ -4347,7 +4366,7 @@ function qaTp(k){
   qaRentUI();quickCategories();
 }
 function qaCatPick(v){if(v==='__new__'){document.getElementById('qa-cat').value='';openCat(qaType);return;}qaCat=v;document.getElementById('qa-cat').value=v;qaRentUI();quickCategories();}
-function qaRentUI(){const isRent=qaType==='income'&&qaCat&&/اجاره/.test((getCat('income',qaCat)||{}).n||'');document.getElementById('qa-amlakw').style.display=isRent?'flex':'none';}
+function qaRentUI(){const isRent=qaType==='income'&&qaCat&&categoryRole(getCat('income',qaCat),'rent');document.getElementById('qa-amlakw').style.display=isRent?'flex':'none';}
 function qaWords(){const a=toLn(document.getElementById('qa-amt').value);document.getElementById('qa-words').textContent=a?amtWords(a)+' تومان':'تومان';}
 function amtWords(a){const parts=[];const u=[[1e9,'میلیارد'],[1e6,'میلیون'],[1e3,'هزار']];let r=Math.round(a);
   for(const [v,n] of u){const q=Math.floor(r/v);if(q){parts.push(toFa(q)+' '+n);r-=q*v;}}if(r)parts.push(toFa(r));return parts.join(' و ');}
@@ -4425,14 +4444,16 @@ function dupSameDay(tp,a,accId,day,m,y){
 function dupTransfer(f,t,a,day,m,y){
   return ST.tx.find(x=>x.isTransfer&&x.tp==='expense'&&x.accId===f&&Math.abs(x.a-a)<=1&&x.day===day&&x.m===m&&x.y===y&&(()=>{const p=findTransferPair(x);return p&&p.accId===t;})());}
 function dupAsk(x){return confirm(`⚠️ مشابه این تراکنش امروز ثبت شده:\n«${(x.dsc||'').slice(0,60)}» — ${nf(x.a)} تومان\n\nدوباره ثبت شود؟`);}
-// ---------- Undo (single-level, whole-state snapshot) ----------
-let __undoSnap=null,__undoTimer=null;
-function showUndo(label){
+// ---------- Undo (single-level; targeted for SMS dismissal, snapshot for financial edits) ----------
+let __undoSnap=null,__undoTimer=null,__undoAction=null;
+function showUndo(label,action=null){
+  __undoAction=action;
   const b=document.getElementById('undobar');if(!b)return;
   document.getElementById('undolbl').textContent=label;b.style.display='flex';
-  clearTimeout(__undoTimer);__undoTimer=setTimeout(()=>{b.style.display='none';__undoSnap=null;},6000);
+  clearTimeout(__undoTimer);__undoTimer=setTimeout(()=>{b.style.display='none';__undoSnap=null;__undoAction=null;},6000);
 }
 async function doUndo(){
+  if(__undoAction){const action=__undoAction;__undoAction=null;__undoSnap=null;clearTimeout(__undoTimer);document.getElementById('undobar').style.display='none';await action();return;}
   if(!__undoSnap)return;ST=JSON.parse(__undoSnap);__undoSnap=null;
   clearTimeout(__undoTimer);document.getElementById('undobar').style.display='none';
   document.querySelectorAll('.ov.on').forEach(o=>o.classList.remove('on'));
@@ -4442,7 +4463,7 @@ function undoable(name,label){
   const f=window[name];if(typeof f!=='function')return;
   window[name]=async function(...args){
     const before=JSON.stringify(ST);const r=await f.apply(this,args);
-    if(JSON.stringify(ST)!==before){__undoSnap=before;showUndo(label);}
+    if(JSON.stringify(ST)!==before&&r!=='sms-discarded'){__undoSnap=before;showUndo(label);}
     return r;
   };
 }
@@ -4575,7 +4596,7 @@ function stmtResolveAcc(S,key,spec){
   return null;
 }
 function stmtCat(S,tp,name){
-  const L=S.cats[tp]||(S.cats[tp]=[]);let c=L.find(x=>x.n===name);
+  const L=S.cats[tp]||(S.cats[tp]=[]);let c=L.find(x=>categoryNameMatches(x,name));
   if(!c){c={id:(tp==='income'?'si':'ei')+uid(),n:name,i:'more',c:tp==='income'?'#1A8A4A':'#65728C'};L.push(c);}
   return c.id;
 }
@@ -4740,7 +4761,7 @@ function rInvest(){
   if(!inv.length){el.style.display='none';return;}
   const t=today();const ids=new Set(inv.map(a=>a.id));
   const reval=ST.tx.filter(x=>x.nature==='revaluation'&&ids.has(x.accId)).reduce((s,x)=>s+(x.tp==='income'?x.a:-x.a),0);
-  const yrInc=ST.tx.filter(x=>isPnL(x)&&x.tp==='income'&&x.y===t.y&&/سود/.test(getCat('income',x.cat).n||'')).reduce((s,x)=>s+x.a,0);
+  const yrInc=ST.tx.filter(x=>isPnL(x)&&x.tp==='income'&&x.y===t.y&&categoryRole(getCat('income',x.cat),'profit')).reduce((s,x)=>s+x.a,0);
   const total=inv.reduce((s,a)=>s+calcAccBalance(a.id),0);
   el.style.display='block';
   el.innerHTML=`<div style="font-size:14px;font-weight:800;color:var(--t1);margin-bottom:10px">💼 سرمایه‌گذاری‌ها</div>
@@ -4884,7 +4905,7 @@ async function depOk(){const A=ST.amlakDep;if(!A)return;ST.amlakDepOk=A.total+'|
 function sarafiParts(st){const S={EUR:'€',USD:'$'};
   if(st.byCur&&typeof st.byCur==='object'){const p=Object.entries(st.byCur).filter(([,v])=>v&&v.amt).map(([k,v])=>`${nf(v.amt)} ${S[k]||k} × ${nf(v.mkt||0)}`);if(p.length)return p.join(' + ');}
   return `${nf(st.eur||0)} € × ${nf(st.mkt||0)}`;}
-function sfSpendCat(name){const L=ST.cats.expense||(ST.cats.expense=[]);let c=L.find(x=>x.n===name)||L.find(x=>x.n==='خرج ارزی');
+function sfSpendCat(name){const L=ST.cats.expense||(ST.cats.expense=[]);let c=L.find(x=>categoryNameMatches(x,name))||L.find(x=>categoryNameMatches(x,'خرج ارزی'));
   if(!c){c={id:'c'+uid(),n:'خرج ارزی',i:'more',c:'#B08D3E'};L.push(c);}return c.id;}
 function sarafiSpends(list,eu){
   const ok=list.filter(x=>x&&x.id&&x.toman>0&&x.date);const ids=new Set(ok.map(x=>x.id));
@@ -5178,6 +5199,15 @@ function validateBackup(p){
     if((k==='color'||k==='c')&&typeof x==='string'&&x&&!/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(x))throw new Error('رنگ نامعتبر در فایل');
     scan(x);
   }};scan(p);
+  if(p.smsRules!==undefined){
+    if(!Array.isArray(p.smsRules))throw new Error('قواعد پیامک نامعتبر است');const ids=new Set();
+    for(const r of p.smsRules){
+      if(!obj(r)||!safeId(r.id)||ids.has(r.id)||!['income','expense'].includes(r.tp)||typeof r.term!=='string'||r.term.length>100||normalizeMatch(r.term).length<3||typeof r.enabled!=='boolean'||typeof r.accId!=='string'||r.accId&&!((p.accounts||[]).some(a=>a.id===r.accId))||!(p.cats[r.tp]||[]).some(c=>c.id===r.cat))throw new Error('قاعده پیامک نامعتبر است');ids.add(r.id);
+    }
+  }
+  for(const list of Object.values(p.cats))if(Array.isArray(list))for(const c of list){
+    if(c.semanticRent!==undefined&&typeof c.semanticRent!=='boolean'||c.semanticProfit!==undefined&&typeof c.semanticProfit!=='boolean'||c.previousNames!==undefined&&(!Array.isArray(c.previousNames)||c.previousNames.length>20||c.previousNames.some(n=>typeof n!=='string'||n.length>200)))throw new Error('اطلاعات دسته‌بندی نامعتبر است');
+  }
   for(const t of p.tx){
     if(!obj(t)||!safeId(t.id)||!['income','expense'].includes(t.tp)||typeof t.a!=='number'||!Number.isFinite(t.a)||t.a<0||t.a>Number.MAX_SAFE_INTEGER)throw new Error('تراکنش نامعتبر در فایل');
     if(!Number.isInteger(t.m)||t.m<0||t.m>11||!Number.isInteger(t.day)||t.day<1||t.day>jMaxDay(t.m,t.y||1404)||t.y!==undefined&&(!Number.isInteger(t.y)||t.y<1380||t.y>=1500))throw new Error('تاریخ تراکنش نامعتبر در فایل');
@@ -6859,6 +6889,103 @@ async function removeInstallment(id,groupId){
   if(ST.bankBal?.[g.accId])ST.bankBal[g.accId].ok=false;
   await sv();openLoanHistory(id);rDash();rTx();__undoSnap=before;showUndo('پرداخت قسط حذف شد');
 }
+
+// v24.33 — explicit SMS dismissal, stable category names and suggestion-only rules.
+let editingCategory=null,catEditorReturn=false,editingSmsRule=null,smsDiscardBusy=false;
+function normalizeMatch(value){return String(value||'').normalize('NFKC').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[\u200c\u200d\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'').replace(/\s+/g,' ').trim().toLowerCase();}
+function categoryNameMatches(c,name){const n=normalizeMatch(name);return [c.n,...(c.previousNames||[])].some(x=>normalizeMatch(x)===n);}
+function categoryRole(c,role){
+  const prop=role==='rent'?'semanticRent':'semanticProfit';if(typeof c[prop]==='boolean')return c[prop];
+  return role==='rent'?['s2','s3'].includes(c.id)||/اجاره/.test(c.n||''):/سود/.test(c.n||'');
+}
+function categoryInUse(tp,id){
+  return ST.tx.some(t=>t.tp===tp&&t.cat===id)||(ST.recurring||[]).some(r=>r.tp===tp&&r.cat===id)||
+    (ST.smsRules||[]).some(r=>r.tp===tp&&r.cat===id)||tp==='expense'&&
+    ((ST.budgets||{})[id]>0||Object.values(ST.budgetMonths||{}).some(p=>p[id]>0));
+}
+function cancelCatEditor(){const tp=editingCategory?.tp||document.getElementById('ctyp').value,back=catEditorReturn;editingCategory=null;catEditorReturn=false;cls('catm');if(back)openCatMgr(tp);}
+function refreshCategoryViews(){
+  for(const [id,tp] of [['tcat',txtp],['qa-cat',qaType],['smsq-cat',smsqTp]]){
+    const el=document.getElementById(id);if(!el||!['income','expense'].includes(tp))continue;
+    const value=el.value;el.innerHTML=catOptions(tp);if([...el.options].some(o=>o.value===value))el.value=value;
+  }
+  quickCategories();rDash();rTx();rRep();
+  document.getElementById('cat-inc-count').textContent=toFa(ST.cats.income.length)+' دسته';
+  document.getElementById('cat-exp-count').textContent=toFa(ST.cats.expense.length)+' دسته';
+  if(document.getElementById('ledgerm').classList.contains('on'))renderLedger();
+  if(document.getElementById('txdetailm').classList.contains('on'))openTxDetails(detailTxId);
+}
+async function smsqDiscard(){
+  if(smsDiscardBusy||!storageHealthy||stateReplacing)return;
+  smsDiscardBusy=true;try{
+  const q=(ST.smsQueue||[])[smsqIdx];if(!q)return;
+  const index=smsqIdx,previous=(ST.smsSeen||{})[q.hash],token=uid();
+  ST.smsSeen=ST.smsSeen||{};ST.smsSeen[q.hash]={at:Date.now(),act:'ignore',discardToken:token};
+  ST.smsQueue=ST.smsQueue.filter(x=>x.id!==q.id);
+  const restore=()=>{
+    if(ST.smsSeen[q.hash]?.discardToken!==token||ST.tx.some(t=>t.smsHash===q.hash))return false;
+    if(!ST.smsQueue.some(x=>x.hash===q.hash))ST.smsQueue.splice(Math.min(index,ST.smsQueue.length),0,q);
+    if(previous)ST.smsSeen[q.hash]=previous;else delete ST.smsSeen[q.hash];return true;
+  };
+  try{await sv();}catch(e){restore();throw e;}
+  smsqIdx=Math.max(0,Math.min(index,ST.smsQueue.length-1));renderSmsQueue();rDash();
+  __undoSnap=null;showUndo('پیامک از صف کنار گذاشته شد',async()=>{
+    if(!storageHealthy||stateReplacing)return;
+    if(!restore()){ntf('وضعیت این پیامک تغییر کرده؛ بازگردانی انجام نشد');return;}
+    await sv();smsqIdx=Math.max(0,ST.smsQueue.findIndex(x=>x.hash===q.hash));openSmsQueue();rDash();ntf('پیامک به صف برگشت');
+  });
+  return 'sms-discarded';
+  }finally{smsDiscardBusy=false;}
+}
+function smsCategorySuggestion(q,tp,accId){
+  if(!q||!['income','expense'].includes(tp))return {cat:'',kind:'none'};
+  const text=normalizeMatch(q.raw),rules=(ST.smsRules||[]).filter(r=>r.enabled!==false&&r.tp===tp&&(!r.accId||r.accId===accId)&&normalizeMatch(r.term).length>=3&&text.includes(normalizeMatch(r.term))&&ST.cats[tp].some(c=>c.id===r.cat));
+  const cats=[...new Set(rules.map(r=>r.cat))];
+  if(cats.length>1)return {cat:'',kind:'conflict'};
+  if(cats.length===1)return {cat:cats[0],kind:'rule',term:rules[0].term};
+  const hint=(ST.smsCatHint||{})[accId+'|'+tp];
+  return {cat:ST.cats[tp].some(c=>c.id===hint)?hint:'',kind:hint?'hint':'none'};
+}
+function applySmsCategorySuggestion(){
+  const el=document.getElementById('smsq-cat');if(!el)return;
+  const result=smsCategorySuggestion((ST.smsQueue||[])[smsqIdx],smsqTp,document.getElementById('smsq-acc').value);
+  el.value=result.cat;
+  const note=document.getElementById('smsq-cat-suggestion');if(note){note.textContent=result.kind==='rule'?'پیشنهاد قاعده «'+result.term+'»؛ پیش از ثبت بررسی کنید.':result.kind==='conflict'?'چند قاعده دسته‌های متفاوت پیشنهاد می‌کنند؛ خودتان دسته را انتخاب کنید.':result.cat?'پیشنهاد بر اساس آخرین انتخاب این حساب؛ قابل تغییر است.':'';note.style.color=result.kind==='conflict'?'var(--am)':'';}
+}
+function fillRuleCategories(selected=''){
+  const tp=document.getElementById('smsrule-tp').value,el=document.getElementById('smsrule-cat');
+  el.innerHTML='<option value="">انتخاب دسته…</option>'+ST.cats[tp].map(c=>`<option value="${esc(c.id)}">${esc(c.n)}</option>`).join('');el.value=selected;
+}
+function resetSmsRuleEditor(){
+  editingSmsRule=null;document.getElementById('smsrule-term').value='';document.getElementById('smsrule-msg').textContent='';document.getElementById('smsrule-save').textContent='افزودن قاعده';fillRuleCategories();
+}
+function openSmsRules(tp='expense',fromSms=false){
+  document.getElementById('smsrule-tp').value=['income','expense'].includes(tp)?tp:'expense';resetSmsRuleEditor();
+  const sel=document.getElementById('smsrule-acc');sel.innerHTML='<option value="">همه حساب‌ها</option>'+(ST.accounts||[]).map(a=>`<option value="${esc(a.id)}">${esc(getAccName(a.id))}${a.archived?' (بایگانی)':''}</option>`).join('');sel.value='';
+  if(fromSms){sel.value=document.getElementById('smsq-acc').value;fillRuleCategories(document.getElementById('smsq-cat').value);}
+  renderSmsRules();document.getElementById('smsrulesm').classList.add('on');
+}
+function renderSmsRules(){
+  const list=ST.smsRules||[];document.getElementById('smsrule-list').innerHTML='<h3 style="margin-top:16px">قواعد ذخیره‌شده</h3>'+(list.length?list.map(r=>`<div class="ux-section">${uxRow('عبارت',r.term)}${uxRow(r.tp==='income'?'درآمد':'هزینه',getCat(r.tp,r.cat).n)}${uxRow('حساب',r.accId?getAccName(r.accId):'همه حساب‌ها')}<div class="ux-actions"><button class="btn btns" data-id="${esc(r.id)}" onclick="editSmsRule(this.dataset.id)">ویرایش</button><button class="btn btns" data-id="${esc(r.id)}" onclick="toggleSmsRule(this.dataset.id)">${r.enabled===false?'فعال‌کردن':'غیرفعال‌کردن'}</button><button class="btn btns" data-id="${esc(r.id)}" onclick="deleteSmsRule(this.dataset.id)">حذف قاعده</button></div></div>`).join(''):'<p class="ux-note">هنوز قاعده‌ای ندارید. مثلاً نام فروشگاه را به دسته خوراک متصل کنید.</p>');
+}
+function editSmsRule(id){
+  const r=(ST.smsRules||[]).find(r=>r.id===id);if(!r)return;editingSmsRule=id;
+  document.getElementById('smsrule-tp').value=r.tp;document.getElementById('smsrule-term').value=r.term;document.getElementById('smsrule-acc').value=r.accId||'';fillRuleCategories(r.cat);document.getElementById('smsrule-save').textContent='ذخیره تغییر قاعده';document.getElementById('smsrule-msg').textContent='ویرایش قاعده؛ سوابق قبلی تغییر نمی‌کند.';
+}
+async function saveSmsRule(){
+  if(!storageHealthy||stateReplacing)return;
+  const tp=document.getElementById('smsrule-tp').value,term=document.getElementById('smsrule-term').value.trim(),accId=document.getElementById('smsrule-acc').value,cat=document.getElementById('smsrule-cat').value;
+  const fail=text=>{document.getElementById('smsrule-msg').textContent=text;};
+  if(!['income','expense'].includes(tp)||normalizeMatch(term).length<3||term.length>100||!ST.cats[tp].some(c=>c.id===cat)||accId&&!ST.accounts.some(a=>a.id===accId)){fail('عبارت حداقل ۳ نویسه، دسته و حساب معتبر را انتخاب کنید.');return;}
+  const rules=ST.smsRules||[],old=rules.find(r=>r.id===editingSmsRule);
+  if(editingSmsRule&&!old){fail('این قاعده دیگر موجود نیست.');return;}
+  if(rules.some(r=>r.id!==editingSmsRule&&r.tp===tp&&(r.accId||'')===accId&&normalizeMatch(r.term)===normalizeMatch(term))){fail('قاعده‌ای با همین عبارت و محدوده وجود دارد؛ همان را ویرایش کنید.');return;}
+  const value={id:old?.id||uid(),tp,term,accId,cat,enabled:old?old.enabled!==false:true};ST.smsRules=old?rules.map(r=>r.id===old.id?value:r):[...rules,value];
+  await sv();resetSmsRuleEditor();renderSmsRules();ntf('قاعده ذخیره شد؛ ثبت تراکنش همچنان نیازمند تأیید شماست');
+}
+async function toggleSmsRule(id){if(!storageHealthy||stateReplacing)return;const r=(ST.smsRules||[]).find(r=>r.id===id);if(!r)return;r.enabled=r.enabled===false;await sv();renderSmsRules();}
+async function deleteSmsRule(id){if(!storageHealthy||stateReplacing||!confirm('این قاعده حذف شود؟ تراکنش‌های قبلی تغییر نمی‌کنند.'))return;ST.smsRules=(ST.smsRules||[]).filter(r=>r.id!==id);await sv();if(editingSmsRule===id)resetSmsRuleEditor();renderSmsRules();}
+function closeSmsRules(){cls('smsrulesm');if(document.getElementById('smsqm').classList.contains('on')&&!document.getElementById('smsq-cat')?.value)applySmsCategorySuggestion();}
 
 init();
 </script>
