@@ -902,3 +902,18 @@ test('connection badge requires successful read and never claims destination imp
  f.w.document.getElementById('bridge-body').innerHTML='<div id="bridge-access"></div>';await f.run("checkBridgeAccess('amlak')");assert.ok(f.w.document.getElementById('bridge-access').classList.contains('ok'));
  f.run(`ghFetch=async()=>({ok:false,status:403})`);await f.run("checkBridgeAccess('amlak')");assert.equal(f.w.document.getElementById('bridge-access').classList.contains('ok'),false);
 });
+
+test('renamed category is primary in old rows; historical alias descriptions remain intact in data',async t=>{
+ const f=setup(t);await f.run('init()');f.run(dailyBase+`ST.tx=[{id:'oldcat',tp:'expense',cat:'e2',a:50,accId:'a',day:2,m:0,y:1405,dsc:ST.cats.expense.find(c=>c.id==='e2').n}];openCatMgr('expense');openCat('expense','e2');document.getElementById('cnm').value='خواربار'`);
+ const before=f.run('JSON.stringify(ST.tx)');await f.run('saveCat()');assert.equal(f.run('JSON.stringify(ST.tx)'),before);
+ const markup=f.run('txHtml(ST.tx[0])');assert.match(markup,/خواربار/);assert.doesNotMatch(markup,/سوپرمارکت/);
+ assert.match(f.w.document.getElementById('cat-save-feedback').textContent,/ذخیره شد/);
+ f.run(`ST.tx[0].dsc='خرید برای مهمانی'`);assert.match(f.run('txHtml(ST.tx[0])'),/خرید برای مهمانی/);
+});
+test('category saves show progress, block double submission and expose failure without closing editor',async t=>{
+ const f=setup(t);await f.run('init()');f.run(`openCat('expense');document.getElementById('cnm').value='دسته آزمایشی';sv=()=>new Promise((resolve,reject)=>{window.finishCategory=resolve;window.failCategory=reject})`);
+ const count=f.run('ST.cats.expense.length'),saving=f.run('saveCat()');assert.equal(f.w.document.getElementById('cat-save-button').disabled,true);
+ await f.run('saveCat()');assert.equal(f.run('ST.cats.expense.length'),count+1);f.w.failCategory(Error('test failure'));await saving;
+ assert.equal(f.run('ST.cats.expense.length'),count);assert.equal(f.w.document.getElementById('cat-save-button').disabled,false);assert.equal(f.w.document.getElementById('catm').classList.contains('on'),true);assert.match(f.w.document.getElementById('cat-save-error').textContent,/ذخیره دسته انجام نشد/);
+ f.run(`document.getElementById('cnm').value=''`);await f.run('saveCat()');assert.equal(f.w.document.getElementById('cat-save-error').hidden,false);
+});

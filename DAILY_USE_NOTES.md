@@ -444,3 +444,10 @@ fixture آزمون پس از پایان هر سناریو مراجع DOM را آ
 - Accounts expose explicit current-balance correction with preview and a dated, auditable revaluation row. Prior transactions, opening balances, P&L and gross cashflow are preserved. Stale forms and duplicate/no-change submissions are guarded.
 - Bridge screens check read access to the selected GitHub inbox before showing a green check. This does not certify write permission or destination import; failed/offline checks remain unverified.
 - Report period selector uses a consistent touch-sized control and professional labels. GitHub backup status explains the existing 15-second debounce while the application is running.
+
+## v24.42 — category feedback and account action consistency
+- Balance correction and Archive share the same compact account action style.
+- Category save shows a disabled progress button, persistent inline validation/storage errors, and a success message in the category manager. Repeated taps cannot create duplicate categories; failed saves roll back the category edit.
+- Ordinary transaction rows use the current category name as the primary heading and place custom descriptions below it. A description exactly matching a current/historical category alias is omitted from the list only; original transaction descriptions remain unchanged and available in details.
+- Notification timers are replaced so an earlier notification cannot prematurely hide a newer result.
+- The reported user's data was not accessed; alias descriptions reproduce one reason for old names remaining visible. Different category IDs or another device's data still require inspecting an affected example if the symptom persists.

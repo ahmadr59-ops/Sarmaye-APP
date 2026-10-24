@@ -363,6 +363,10 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 .report-period-control{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:14px}
 #report-period{font:inherit;font-size:16px;font-weight:700;color:var(--pr);background:var(--prl);border:0;border-radius:12px;padding:12px;max-width:70%;min-height:48px}
 .connection-badge{display:block;padding:12px;border-radius:12px;background:var(--prl);color:var(--t2);line-height:1.8}.connection-badge.ok{background:var(--grl);color:var(--gr)}
+
+.account-action{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font-size:12px;color:var(--t2);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700;min-height:40px}
+button:active:not(:disabled){filter:brightness(.9)}button:disabled{cursor:wait}
+#cat-save-feedback{padding:12px;border-radius:12px;background:var(--grl);color:var(--gr);line-height:1.8}
 </style>
 </head>
 <body>
@@ -897,7 +901,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     <input type="hidden" id="cion" value="more">
   </div>
   <div class="fg"><label>نوع</label><select id="ctyp"><option value="income">درآمد</option><option value="expense">هزینه</option></select></div>
-  <button class="btn btnp" onclick="saveCat()">ذخیره</button>
+  <p id="cat-save-error" class="review-error" role="alert" hidden></p><button id="cat-save-button" class="btn btnp" onclick="saveCat()">ذخیره</button>
   <button class="btn btns" onclick="cancelCatEditor()">انصراف</button>
 </div>
 </div>
@@ -2015,7 +2019,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.41';
+const APP_VERSION='v24.42';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2444,12 +2448,13 @@ function txHtml(t){
   }
   const cat=getCat(t.tp,t.cat);
   const grad=catGrad(cat.i);
+  const description=categoryNameMatches(cat,t.dsc)?'':t.dsc;
   return `<div class="txi" onclick="openTxDetails('${t.id}')">
     <div class="txic" style="background:${grad}">
       <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:#fff;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS[cat.i]||ICONS.more}</svg>
     </div>
     <div class="txin">
-      <div class="txt">${esc(cat.n)}${t.dsc?' · '+esc(t.dsc):''}</div>
+      <div class="txt">${esc(cat.n)}</div>${description?'<div class="txd">'+esc(description)+'</div>':''}
       <div class="txd">${fmtDate(t.day,t.m,t.y||1404)}${t.rentPeriod?` · دورهٔ ${fmtMonthYear(t.rentPeriod.m,t.rentPeriod.y)}`:''}</div>
     </div>
     <div class="txa" style="color:${isI?'var(--gr)':'var(--rd)'}">${isI?'+':'-'}${nf(t.a)} ت</div>
@@ -2937,6 +2942,7 @@ function openCat(tp,id=null){
   editingCategory=category?{tp,id}:null;catEditorReturn=document.getElementById('catmgr').classList.contains('on');cls('catmgr');
   document.getElementById('cat-editor-title').textContent=category?'ویرایش دسته‌بندی':'دسته‌بندی جدید';
   document.getElementById('cnm').value=category?category.n:'';
+  document.getElementById('cat-save-error').hidden=true;
   const grid=document.getElementById('cion-grid');
   grid.innerHTML=Object.keys(ICONS).map((k,idx)=>
     `<button type="button" onclick="pickCatIcon('${k}')" id="cicon-${k}" style="aspect-ratio:1;border-radius:12px;border:1.5px solid ${idx===0?'var(--pr)':'var(--border)'};background:${idx===0?'var(--prl)':'var(--inp-bg)'};display:flex;align-items:center;justify-content:center;cursor:pointer;color:${idx===0?'var(--pr)':'var(--t2)'}"><svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round">${ICONS[k]}</svg></button>`
@@ -2956,24 +2962,37 @@ function pickCatIcon(key){
     el.style.color=active?'var(--pr)':'var(--t2)';
   });
 }
+let categorySaveBusy=false;
 async function saveCat(){
-  if(!storageHealthy||stateReplacing)return;
+  if(categorySaveBusy)return;
+  const error=document.getElementById('cat-save-error'),button=document.getElementById('cat-save-button');
+  const fail=message=>{error.textContent=message;error.hidden=false;ntf(message);};
+  if(!storageHealthy||stateReplacing){fail('ذخیره فعلاً ممکن نیست؛ وضعیت نگهداری اطلاعات را بررسی کنید');return;}
+  error.hidden=true;
   const n=document.getElementById('cnm').value.trim().replace(/\s+/g,' ');
   const i=document.getElementById('cion').value||'more';
   const tp=editingCategory?editingCategory.tp:document.getElementById('ctyp').value;
-  if(!['income','expense'].includes(tp)||!n||n.length>80){ntf('نام دسته باید بین ۱ تا ۸۰ نویسه باشد');return;}
+  if(!['income','expense'].includes(tp)||!n||n.length>80){fail('نام دسته باید بین ۱ تا ۸۰ نویسه باشد');return;}
   const current=editingCategory?ST.cats[tp].find(c=>c.id===editingCategory.id):null;
-  if(editingCategory&&!current){ntf('دسته دیگر موجود نیست');return;}
-  if(ST.cats[tp].some(c=>c.id!==current?.id&&categoryNameMatches(c,n))){ntf('این نام برای دسته دیگری استفاده شده است');return;}
+  if(editingCategory&&!current){fail('دسته دیگر موجود نیست');return;}
+  if(ST.cats[tp].some(c=>c.id!==current?.id&&categoryNameMatches(c,n))){fail('این نام برای دسته دیگری استفاده شده است');return;}
+  categorySaveBusy=true;button.disabled=true;button.textContent='در حال ذخیره…';button.setAttribute('aria-busy','true');
   const before=current?JSON.parse(JSON.stringify(current)):null;let createdId=null;
   if(current){
     if(tp==='income'){current.semanticRent=categoryRole(current,'rent');current.semanticProfit=categoryRole(current,'profit');}
     if(current.n!==n)current.previousNames=[...new Set([...(current.previousNames||[]),current.n])].slice(-20);
     current.n=n;current.i=i;
   }else{const value={id:'c'+uid(),n,i,c:CLR[ST.cats[tp].length%CLR.length]};createdId=value.id;ST.cats[tp].push(value);}
-  try{await sv();}catch(e){if(current)ST.cats[tp]=ST.cats[tp].map(c=>c.id===current.id?before:c);else ST.cats[tp]=ST.cats[tp].filter(c=>c.id!==createdId);throw e;}
+  try{await sv();}catch(e){
+    if(current)ST.cats[tp]=ST.cats[tp].map(c=>c.id===current.id?before:c);else ST.cats[tp]=ST.cats[tp].filter(c=>c.id!==createdId);
+    fail('ذخیره دسته انجام نشد؛ '+(e.message||'دوباره تلاش کنید'));return;
+  }finally{categorySaveBusy=false;button.disabled=false;button.textContent='ذخیره';button.removeAttribute('aria-busy');}
   const back=catEditorReturn;editingCategory=null;catEditorReturn=false;cls('catm');
-  refreshCategoryViews();if(back)openCatMgr(tp);ntf(before?'نام و آیکون دسته در سراسر اپ به‌روز شد':'دسته اضافه شد');
+  const message=before?'دسته «'+n+'» ذخیره شد؛ نام جدید در تراکنش‌های مرتبط اعمال شد.':'دسته «'+n+'» اضافه شد.';
+  if(back)openCatMgr(tp);
+  try{refreshCategoryViews();}catch(e){ntf('دسته ذخیره شد؛ برای تازه‌سازی نمایش صفحه را دوباره باز کنید');return;}
+  if(back){const box=document.createElement('p');box.id='cat-save-feedback';box.setAttribute('role','status');box.textContent=message;document.getElementById('catmgr-list').prepend(box);}
+  ntf(message);
 }
 
 // ============================================================
@@ -5341,11 +5360,12 @@ function openSms(){
   document.getElementById('smst').value='';
   document.getElementById('smsm').classList.add('on');
 }
+let notificationTimer=null;
 function ntf(msg){
   if(smsSubmitActive){const error=document.getElementById('smsq-error');if(error){error.hidden=false;error.textContent=msg;}}
   const n=document.getElementById('ntf');
   n.textContent=msg;n.classList.add('on');
-  setTimeout(()=>n.classList.remove('on'),2500);
+  clearTimeout(notificationTimer);notificationTimer=setTimeout(()=>n.classList.remove('on'),4000);
 }
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
 // v24.14: a ✕ on every sheet — closing means «cancel»
@@ -5932,8 +5952,8 @@ function openAccList(){
         <div style="border-top:0.5px solid var(--border);padding:8px 14px;display:flex;justify-content:flex-end;gap:7px">
           ${(a.archived
             ?`<button onclick="unarchiveAcc('${a.id}')" style="background:var(--grl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--gr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">فعال‌سازی</button>`
-            :`<button onclick="archiveAcc('${a.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font-size:12px;color:var(--t2);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">آرشیو</button>`)}
-          <button class="btns" data-id="${esc(a.id)}" onclick="openBalanceCorrection(this.dataset.id)">اصلاح موجودی</button><button onclick="openAccForm('${a.id}')" style="background:var(--prl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">ویرایش</button>
+            :`<button class="account-action" onclick="archiveAcc('${a.id}')">آرشیو</button>`)}
+          <button class="account-action" data-id="${esc(a.id)}" onclick="openBalanceCorrection(this.dataset.id)">اصلاح موجودی</button><button onclick="openAccForm('${a.id}')" style="background:var(--prl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">ویرایش</button>
         </div>
       </div>`;
     }).join('');
