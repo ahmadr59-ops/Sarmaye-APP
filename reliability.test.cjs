@@ -760,3 +760,33 @@ test('loan list filters and pagination never change dues, payments or balances',
  f.run("setLoanView('paid')");assert.equal(f.run('loanVisibleDues(loanDueItems(ST.loans[0]))[0].status'),'paid');
  f.run("setLoanView('all')");assert.equal(f.run('loanVisibleDues(loanDueItems(ST.loans[0])).length'),2);assert.deepEqual(copy(f.run('ST')),before);
 });
+
+test('missing loan schedule and interest produce persistent actionable SMS errors without changing balances',async t=>{
+ const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+"ST.smsKeys={'bank-key':'a'};"+reviewQueue+"smsqSetTp('loan')");const before=copy(f.run('ST.tx'));await f.run('smsqSave()');assert.equal(f.w.document.getElementById('smsq-error').hidden,false);assert.match(f.w.document.getElementById('smsq-error').textContent,/برنامه اقساط/);assert.deepEqual(copy(f.run('ST.tx')),before);assert.equal(f.run('ST.smsQueue.length'),1);
+ await configureLoan(f);f.run("returnToSmsReview();document.getElementById('smsq-int').value=''");await f.run('smsqSave()');assert.match(f.w.document.getElementById('smsq-error').textContent,/سود واقعی/);
+ f.run("document.getElementById('smsq-int').value='abc'");await f.run('smsqSave()');assert.match(f.w.document.getElementById('smsq-error').textContent,/عدد صحیح/);assert.deepEqual(copy(f.run('ST.tx')),before);
+});
+test('configuring simple tracking from a queued SMS refreshes its dues and posts exactly one linked bank debit',async t=>{
+ const f=setup(t);await f.run('init()');f.run(scheduledLoanBase+"ST.smsKeys={'bank-key':'a'};"+reviewQueue+"smsqSetTp('loan');configureSmsLoan();document.getElementById('loan-left-count').value='2';document.getElementById('loan-simple-amount').value='50';document.getElementById('loan-simple-day').value='10';fillMon('loan-simple-mon',1)");
+ await f.run('saveLoan()');f.run('returnToSmsReview()');assert.equal(f.w.document.getElementById('smsq-loan-due').options.length,2);await f.run('smsqSave()');assert.equal(f.run('ST.smsQueue.length'),0);assert.equal(f.run("calcAccBalance('a')"),1950);assert.equal(f.run('loanDueItems(ST.loans[0])[0].left'),0);assert.equal(f.run('ST.tx.filter(t=>t.loanId).length'),1);
+});
+test('SMS can attach to the last paid installment of a settled loan without paying or debiting twice',async t=>{
+ const f=await simpleLoan(t);await payLoan(f,200,0,1,5,true);f.run("ST.smsKeys={'bank-key':'a'};ST.smsQueue=[{id:'last-q',hash:'last-h',raw:'رسید آخر',p:{keys:['bank-key'],a:200,tp:'expense',d:{y:1405,m:1,d:5}}}];smsqIdx=0;openSmsQueue();smsqSetTp('loan');document.getElementById('smsq-loan-existing').value='payment:'+loanInstallments('l')[0].id");
+ const before=copy(f.run('[calcAccBalance(\'a\'),loanDueItems(ST.loans[0])]'));await f.run('smsqSave()');assert.equal(f.run('ST.smsQueue.length'),0);assert.deepEqual(copy(f.run('[calcAccBalance(\'a\'),loanDueItems(ST.loans[0])]')),before);
+});
+test('both bank SMS messages attach to one transfer with two accounting legs and distinct source texts',async t=>{
+ const f=setup(t);await f.run('init()');f.run(dailyBase+`upsertOpeningTx(ST.accounts[0],1000);ST.smsKeys={ka:'a',kb:'b'};ST.smsQueue=[{id:'qa',hash:'ha',raw:'برداشت آزمایشی',p:{keys:['ka'],a:100,tp:'expense',d:{y:1405,m:1,d:5}}},{id:'qb',hash:'hb',raw:'واریز آزمایشی',p:{keys:['kb'],a:100,tp:'income',d:{y:1405,m:1,d:5}}}];smsqIdx=0;openSmsQueue();smsqSetTp('transfer');document.getElementById('smsq-acc2').value='b'`);await f.run('smsqSave()');
+ assert.equal(f.run('ST.tx.filter(t=>t.isTransfer).length'),2);assert.equal(f.run('smsTransferCandidates().length'),1);
+ f.run("document.getElementById('smsq-transfer-existing').value=smsTransferCandidates()[0].id");await f.run('smsqSave()');
+ assert.equal(f.run('ST.smsQueue.length'),0);assert.equal(f.run('ST.tx.filter(t=>t.isTransfer).length'),2);assert.equal(f.run("calcAccBalance('a')"),900);assert.equal(f.run("calcAccBalance('b')"),100);assert.equal(f.run('totals(ST.tx).e'),0);assert.equal(f.run('totals(ST.tx).i'),0);
+ assert.equal(f.run("ST.tx.find(t=>t.smsHash==='ha').src.raw"),'برداشت آزمایشی');assert.equal(f.run("ST.tx.find(t=>t.smsHash==='hb').src.raw"),'واریز آزمایشی');assert.equal(f.run("ST.smsSeen.hb.act"),'transfer-linked');
+});
+test('ambiguous transfers are never auto-linked and changing the amount invalidates a previously selected link',async t=>{
+ const f=setup(t);await f.run('init()');f.run(dailyBase+`ST.smsKeys={kb:'b'};ST.tx=[1,2].flatMap(i=>[{id:'out'+i,transferId:'pair'+i,isTransfer:true,tp:'expense',accId:'a',a:100,day:5,m:1,y:1405},{id:'in'+i,transferId:'pair'+i,isTransfer:true,tp:'income',accId:'b',a:100,day:5,m:1,y:1405}]);ST.smsQueue=[{id:'q',hash:'h',raw:'آزمایشی',p:{keys:['kb'],a:100,tp:'income',d:{y:1405,m:1,d:5}}}];smsqIdx=0;openSmsQueue()`);
+ assert.equal(f.run('smsTransferCandidates().length'),2);assert.equal(f.w.document.getElementById('smsq-transfer-existing').value,'');
+ f.run("document.getElementById('smsq-transfer-existing').value='in1';document.getElementById('smsq-amt').value='101'");await f.run('smsqSave()');assert.equal(f.run('ST.tx.length'),4);assert.equal(f.run('ST.smsQueue.length'),1);assert.match(f.w.document.getElementById('smsq-error').textContent,/مطابق نیست/);
+});
+test('More uses consistent cards, separate service panels and no duplicate SMS-import action',async t=>{
+ const f=setup(t);await f.run('init()');assert.equal(f.w.document.querySelectorAll('#s4 .more-tile').length,8);assert.equal(f.w.document.querySelectorAll('#s4 [onclick="openSms()" ]').length,0);
+ f.run("openBridgeStatus('amlak')");assert.equal(f.w.document.querySelectorAll('#bridge-body h3').length,1);assert.equal(f.w.document.querySelector('#bridge-body h3').textContent,'املاک');f.run("openBridgeStatus('sarafi')");assert.equal(f.w.document.querySelector('#bridge-body h3').textContent,'صرافی');f.run('openProtection();rReportOverview()');assert.match(f.w.document.getElementById('protection-body').textContent,/ساخت پشتیبان/);assert.ok(f.w.document.querySelector('.report-hero'));
+});

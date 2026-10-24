@@ -343,6 +343,13 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 #tx-filter-summary{margin:8px 14px;display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}button:focus-visible,summary:focus-visible{outline:3px solid var(--pr);outline-offset:3px}
 [hidden]{display:none!important}.btn,.qchip,.fpill{min-height:44px}#ledger-list .txi{min-height:64px}#qa-savebar,#smsq-savebar{position:sticky;bottom:0;background:var(--bg);padding-top:8px;z-index:2;border-radius:10px}
 
+
+.more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px 14px}
+.more-tile{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:132px;padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--card);color:var(--t1);font:inherit;text-align:right;cursor:pointer}
+.more-tile b{font-size:14px}.more-tile small{font-size:12px;line-height:1.8;color:var(--t2)}.tile-icon{font-size:25px;color:var(--pr);background:var(--prl);border-radius:12px;padding:4px 12px}
+.report-subtitle{font-size:12.5px;text-align:center;opacity:.85;margin:8px 0}.report-hero{border-radius:18px;padding:18px;background:var(--grad);color:white;margin-bottom:16px}.report-hero h2{font-size:20px;margin:6px 0 16px}.report-hero p{font-size:12px;line-height:1.8;opacity:.9}.report-hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.report-hero-grid button{min-width:0;border:1px solid #ffffff40;border-radius:12px;background:#ffffff15;color:white;padding:12px 8px;font:inherit;text-align:right}.report-hero-grid small,.report-hero-grid b{display:block;overflow-wrap:anywhere}.report-hero-grid small{font-size:12px;margin-bottom:8px}.report-hero-grid b{font-size:16px}
+.review-error{padding:12px;border-radius:12px;background:var(--rdl);color:var(--rd);font-size:13px;line-height:1.9;white-space:normal;overflow-wrap:anywhere}#smsq-transfer-match select{width:100%;font:inherit;font-size:16px;padding:12px;background:var(--inp-bg);color:var(--t1);border:1px solid var(--border);border-radius:12px}.ntf{white-space:normal;max-width:calc(100vw - 32px);width:max-content;overflow-wrap:anywhere}
+
 </style>
 </head>
 <body>
@@ -472,7 +479,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     .fpill .fdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
     .frow{display:flex;gap:8px;padding:9px 14px 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
     .frow::-webkit-scrollbar{display:none}
-  </style>
+
+</style>
   <div class="frow">
     <button id="fltr-all" class="fpill on" onclick="setTxFilter('all')" style="background:var(--grad)">همه</button>
     <button id="fltr-income" class="fpill" onclick="setTxFilter('income')"><span class="fdot" style="background:var(--gr)"></span>درآمد</button>
@@ -503,7 +511,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 
 <!-- SCREEN 3: Reports -->
 <div class="scr" id="s3">
-  <div class="hdr"><div class="hdr-top"><div style="width:36px;flex-shrink:0"></div><h1>گزارش‌ها</h1><div style="width:36px;flex-shrink:0"></div></div></div>
+  <div class="hdr"><div class="hdr-top"><div style="width:36px;flex-shrink:0"></div><h1>گزارش‌ها</h1><div style="width:36px;flex-shrink:0"></div></div><p class="report-subtitle">تصویر روشن‌تری از پولی که وارد و خارج شده</p></div>
   <div class="card" id="report-overview"></div>
   <details class="ux-more" style="margin:0 14px"><summary>نمودارها و روند حساب‌ها</summary>
   <div class="card">
@@ -550,18 +558,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <!-- SCREEN 4: Settings -->
 <div class="scr" id="s4">
   <div class="hdr"><div class="hdr-top"><div style="width:36px;flex-shrink:0"></div><h1>بیشتر</h1><div style="width:36px;flex-shrink:0"></div></div></div>
-  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:9px;padding:14px 14px 0">
-    <button onclick="openAccList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--gr);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--grl);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--gr);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg></span>حساب‌ها</button><button onclick="openTransfer()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--am);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--aml);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--am);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg></span>انتقال</button><button onclick="openBudgetMgr()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--pr);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--prl);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--pr);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>بودجه</button><button onclick="openLoanList()" style="padding:14px 4px 12px;border-radius:18px;border:none;cursor:pointer;font-family:'Vazirmatn',sans-serif;background:var(--card);box-shadow:var(--sh);color:var(--rd);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12.5px;font-weight:700"><span style="width:42px;height:42px;border-radius:14px;background:var(--rdl);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--rd);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M2 13h20"/></svg></span>وام و اقساط</button>
-  </div>
-
-  <div style="padding:14px 14px 0">
-    <button onclick="openSetSheet()" style="width:100%;display:flex;align-items:center;gap:12px;padding:15px 16px;border:none;border-radius:18px;background:var(--card);box-shadow:var(--sh);cursor:pointer;font-family:'Vazirmatn',sans-serif;text-align:right">
-      <span style="width:42px;height:42px;border-radius:14px;background:var(--prl);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:21px;height:21px;stroke:var(--pr);stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></span>
-      <span style="flex:1;min-width:0"><b style="display:block;font-size:14px;color:var(--t1)">تنظیمات</b><span style="display:block;font-size:12.5px;color:var(--t2);margin-top:2px">ظاهر، قفل و دسته‌بندی‌ها</span></span>
-      <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--t3);stroke-width:2;fill:none;flex-shrink:0"><path d="M15 18l-6-6 6-6"/></svg>
-    </button>
-  </div>
-  <div class="card"><button class="ux-link ux-row" onclick="openSms()"><b>پیامک بانکی</b><span>ورود پیامک و دریافت خودکار ←</span></button><button class="ux-link ux-row" onclick="openProtection()"><b>پشتیبان و بازیابی</b><span>ذخیره، پشتیبان و بازیابی ←</span></button><button class="ux-link ux-row" onclick="openBridgeStatus()"><b>اتصال به املاک و صرافی</b><span>وضعیت ارسال و موارد نیازمند بررسی ←</span></button></div>
+  <div class="more-grid"><button class="more-tile" onclick="openAccList()"><span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></span><b>حساب‌ها و دارایی‌ها</b><small>موجودی و گردش حساب</small></button><button class="more-tile" onclick="openTransfer()"><span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h17m-4-4 4 4-4 4M21 17H4m4-4-4 4 4 4"/></svg></span><b>انتقال بین حساب‌ها</b><small>جابه‌جایی پول خودتان</small></button><button class="more-tile" onclick="openBudgetMgr()"><span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9h9"/></svg></span><b>بودجه</b><small>برنامه هزینه ماهانه</small></button><button class="more-tile" onclick="openLoanList()"><span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4m8-4v4M4 11h16m-12 4h3m2 0h3"/></svg></span><b>وام و اقساط</b><small>سررسید و ثبت پرداخت</small></button><button class="more-tile" onclick="openBridgeStatus('amlak')"><span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v11h-7v-7h-4v7H3z"/></svg></span><b>املاک</b><small>وضعیت ارتباط و ارسال</small></button><button class="more-tile" onclick="openBridgeStatus('sarafi')"><span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg></span><b>صرافی</b><small>وضعیت ارتباط و ارسال</small></button><button class="more-tile" onclick="openProtection()"><span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v5h16v-5M12 17V3m-5 5 5-5 5 5"/></svg></span><b>پشتیبان و بازیابی</b><small>ساخت نسخه یا بازگرداندن اطلاعات</small></button><button class="more-tile" onclick="openSetSheet()"><span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4M5 5l3 3m8 8 3 3M5 19l3-3M16 8l3-3"/></svg></span><b>تنظیمات</b><small>ظاهر، قفل و دسته‌بندی‌ها</small></button></div>
   <details class="ux-more" style="margin:18px 14px"><summary>درباره برنامه</summary><p class="ux-note"><span id="app-name-display">سرمایه</span><br>مدیریت مالی شخصی<br>سازنده: Ahmad Rezazadeh</p></details>
   <div style="height:20px"></div>
 </div>
@@ -1998,7 +1995,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.36';
+const APP_VERSION='v24.37';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -4107,7 +4104,7 @@ function renderSmsQueue(){
   const Q=ST.smsQueue||[];const box=document.getElementById('smsq-body');
   if(!Q.length){box.innerHTML='<p style="padding:20px 0;text-align:center;color:var(--t2)">✅ همهٔ پیامک‌ها بررسی شد.</p>';rDash();return;}
   const q=Q[smsqIdx];const p=q.p;const acc=smsAccFor(p);const twin=smsTransferTwin(q,acc.id);
-  smsqTp=p.ignore||twin?'ignore':(p.tp||'expense');
+  smsqTp=p.ignore?'ignore':(p.tp||'expense');
   const accs=activeAccounts();
   const opt=sel=>'<option value="">انتخاب کنید…</option>'+accs.map(a=>`<option value="${a.id}"${a.id===sel?' selected':''}>${esc(a.bank)}${a.name?' - '+esc(a.name):''}</option>`).join('');
   box.innerHTML=`
@@ -4118,15 +4115,15 @@ function renderSmsQueue(){
     <div style="font-size:12px;color:var(--t2);margin-top:2px">${fmtDate(p.d.d,p.d.m,p.d.y)}${p.time?' ساعت '+toFa(p.time):''}${p.dateGuessed?' <b style="color:var(--am)">(تاریخ در پیامک نبود)</b>':''}</div>
     <details style="margin-top:6px"><summary style="font-size:12.5px;color:var(--t3);cursor:pointer">متن پیامک</summary><pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--t2);margin-top:6px">${esc(q.raw)}</pre></details>
   </div>
-  ${twin?`<div style="background:var(--aml);color:var(--am);border-radius:10px;padding:9px 11px;font-size:12px;font-weight:600;margin-bottom:10px">این پیامک احتمالاً طرف دیگر انتقالِ ثبت‌شده «${esc(twin.dsc||'')}» است؛ پیشنهاد: نادیده.</div>`:''}
+  ${twin?`<div style="background:var(--aml);color:var(--am);border-radius:10px;padding:9px 11px;font-size:12px;font-weight:600;margin-bottom:10px">این پیامک احتمالاً طرف دیگر انتقالِ ثبت‌شده «${esc(twin.dsc||'')}» است؛ آن را از بخش «اتصال به انتقال ثبت‌شده» تأیید کنید تا موجودی دوباره تغییر نکند.</div>`:''}
   <p id="smsq-summary" class="ux-note" aria-live="polite"></p><details class="ux-more"><summary>تغییر نوع تراکنش</summary><div class="ttog" id="smsq-tp" style="grid-template-columns:repeat(3,1fr)">
-    ${[['expense','هزینه'],['income','درآمد'],['transfer','انتقال']].concat(activeLoans().length?[['loan','قسط']]:[]).concat([['deposit','پول پیش'],['sarafi','صرافی'],['ignore','نادیده']]).map(([k,l])=>`<button class="tb" data-k="${k}" onclick="smsqSetTp('${k}')">${l}</button>`).join('')}
+    ${[['expense','هزینه'],['income','درآمد'],['transfer','انتقال']].concat((ST.loans||[]).length?[['loan','قسط']]:[]).concat([['deposit','پول پیش'],['sarafi','صرافی'],['ignore','نادیده']]).map(([k,l])=>`<button class="tb" data-k="${k}" onclick="smsqSetTp('${k}')">${l}</button>`).join('')}
   </div>
   </details><div class="fg"><label id="smsq-acc-lbl">${acc.id?'حساب این پیامک':'این پیامک مربوط به کدام حساب شماست؟ <span style="color:var(--am);font-weight:600">(فقط یک بار می‌پرسم)</span>'}</label><select id="smsq-acc" onchange="smsqSetTp(smsqTp)">${opt(acc.id)}</select></div>
   <div id="smsq-other" class="fg" style="display:none"><label id="smsq-other-lbl"></label><select id="smsq-acc2" onchange="smsqFlow()">${opt(smsSuggestOther(p,acc.id))}</select>
     <div id="smsq-flow" style="font-size:13px;font-weight:800;color:var(--pr);margin-top:8px;text-align:center"></div></div>
   <div id="smsq-loanw" style="display:none">
-    <div class="fg"><label>وام</label><select id="smsq-loan" onchange="refreshSmsLoanPlan()">${activeLoans().map(l=>`<option value="${l.id}"${l.inst===p.a?' selected':''}>${esc(l.n)} — قسط ${nf(l.inst)} · ${esc(isSimpleLoan(l)?simpleLoanCaption(l):'مانده اصل '+money(l.remaining))}</option>`).join('')}</select></div>
+    <div class="fg"><label>وام</label><select id="smsq-loan" onchange="refreshSmsLoanPlan()">${(ST.loans||[]).map(l=>`<option value="${l.id}"${l.inst===p.a?' selected':''}>${esc(l.n)} — قسط ${nf(l.inst)} · ${esc(isSimpleLoan(l)?simpleLoanCaption(l):'مانده اصل '+money(l.remaining))}</option>`).join('')}</select></div>
     <div class="fg"><label for="smsq-loan-due">بابت سررسید</label><select id="smsq-loan-due"></select></div><p id="smsq-loan-plan-note" class="ux-note"></p><button class="qchip" onclick="configureSmsLoan()">برنامه اقساط / تعیین شروع</button>
     <label class="ux-row"><span>پوشش اقساط بعدی با مازاد مبلغ</span><input id="smsq-loan-multi" type="checkbox"></label>
     <div class="fg"><label for="smsq-loan-existing">برداشت مشابه قبلاً ثبت شده است؟</label><select id="smsq-loan-existing"></select></div>
@@ -4134,11 +4131,11 @@ function renderSmsQueue(){
     <div id="smsq-loan-accounting-note" style="font-size:12.5px;color:var(--t3);margin:-4px 2px 10px;line-height:1.7">اصل قسط از بدهی کم می‌شود؛ فقط سود به‌عنوان هزینه ثبت می‌شود.</div>
   </div>
   <div id="smsq-catw" class="fg"><label>دسته</label><select id="smsq-cat"></select><p id="smsq-cat-suggestion" class="ux-note" aria-live="polite"></p><button class="qchip" onclick="openSmsRules(smsqTp,true)">قاعده پیشنهاد دسته</button></div>
-  <details id="smsq-details" class="ux-more"><summary>اصلاح مبلغ، تاریخ و توضیح</summary><div class="fg"><label>مبلغ (تومان)</label><input id="smsq-amt" inputmode="numeric" value="${p.a||''}" oninput="smsqBalCheck()"></div>
+  <details id="smsq-details" class="ux-more"><summary>اصلاح مبلغ، تاریخ و توضیح</summary><div class="fg"><label>مبلغ (تومان)</label><input id="smsq-amt" inputmode="numeric" value="${p.a||''}" oninput="smsReviewFieldsChanged()"></div>
   <div class="dategrid">
-    <div class="fg"><label>روز</label><select id="smsq-day">${DAY_OPTS()}</select></div>
-    <div class="fg"><label>ماه</label><select id="smsq-mon"></select></div>
-    <div class="fg"><label>سال</label><select id="smsq-yr">${YEAR_OPTS()}</select></div>
+    <div class="fg"><label>روز</label><select id="smsq-day" onchange="smsReviewFieldsChanged()">${DAY_OPTS()}</select></div>
+    <div class="fg"><label>ماه</label><select id="smsq-mon" onchange="smsReviewFieldsChanged()"></select></div>
+    <div class="fg"><label>سال</label><select id="smsq-yr" onchange="smsReviewFieldsChanged()">${YEAR_OPTS()}</select></div>
   </div>
   <div class="fg"><label>توضیحات (اختیاری)</label><input id="smsq-dsc" type="text"></div>
   </details><label id="smsq-amlakw" style="display:none;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" id="smsq-amlak" style="width:18px;height:18px"> این واریز، اجارهٔ یک ملک است (ارسال به «املاک»)</label>
@@ -4146,7 +4143,7 @@ function renderSmsQueue(){
   <div style="display:none" id="smsq-depnote"></div>
   <div id="smsq-dupe" style="font-size:12.5px;margin:2px 0 8px"></div>
   <div id="smsq-bal" style="font-size:12px;margin:2px 0 10px"></div>
-  <div id="smsq-savebar"><button class="btn btnp" onclick="smsqSave()">ثبت و بعدی</button><button class="btn btns" onclick="smsqDiscard()">نادیده و حذف از صف</button></div>
+  <div id="smsq-transfer-match"></div><p id="smsq-error" class="review-error" role="alert" hidden></p><div id="smsq-savebar"><button class="btn btnp" onclick="smsqSave()">ثبت و بعدی</button><button class="btn btns" onclick="smsqDiscard()">نادیده و حذف از صف</button></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
     <button class="btn btns" onclick="smsqMove(-1)">قبلی</button><button class="btn btns" onclick="smsqMove(1)">بعدی (بعداً)</button>
   </div>`;
@@ -4181,7 +4178,8 @@ function smsqDupeCheck(){
   const L=ST.tx.filter(t=>t.accId===acc&&!t.isOpening&&t.smsHash!==q.hash&&Math.abs(t.a-q.p.a)<=1&&(!q.p.tp||t.tp===q.p.tp)&&Math.abs(jalOrdinal(t.y,t.m,t.day)-o)<=win).slice(0,2);
   el.innerHTML=L.length?`<div style="background:var(--aml);color:var(--am);border-radius:10px;padding:8px 10px;font-weight:700;line-height:1.8">⚠️ همین مبلغ قبلاً در این حساب ثبت شده: ${L.map(t=>`${fmtDate(t.day,t.m,t.y)} — ${esc((t.dsc||'').slice(0,30))}`).join('، ')}. اگر همان تراکنش است، «نادیده» را بزنید.</div>`:'';
 }
-function smsqBalCheck(){smsqDupeCheck();smsCompactSummary();
+function smsReviewFieldsChanged(){if(smsqTp==='loan')refreshSmsLoanPlan();smsqBalCheck();}
+function smsqBalCheck(){smsqDupeCheck();smsCompactSummary();renderSmsTransferMatches();
   const el=document.getElementById('smsq-bal');if(!el)return;
   const q=ST.smsQueue[smsqIdx];const acc=document.getElementById('smsq-acc').value;
   if(!q||!q.p.balKnown||!acc){el.innerHTML='';return;}
@@ -4210,7 +4208,7 @@ async function smsqSaveImpl(){
   const acc=document.getElementById('smsq-acc').value;
   const done=async(meta)=>{
     {const t=meta&&meta.txId?ST.tx.find(x=>x.id===meta.txId):null;   // v24.18: keep the original SMS on the record
-     if(t){const src={k:'sms',raw:String(q.raw||'').slice(0,900),sender:q.sender||'',recv:q.recv||null};t.src=src;if(t.transferId)ST.tx.forEach(x=>{if(x.transferId===t.transferId)x.src=src;});}}
+     if(t){const src={k:'sms',raw:String(q.raw||'').slice(0,900),sender:q.sender||'',recv:q.recv||null};t.src=src;}}
     ST.smsSeen[q.hash]={at:Date.now(),dOrd:jalOrdinal(q.p.d.y,q.p.d.m,q.p.d.d),...meta};
     if(q.p.balKnown&&acc){if(!ST.bankBal)ST.bankBal={};const cur=ST.bankBal[acc];const key=x=>jalOrdinal(x.d.y,x.d.m,x.d.d)*1440+(x.time?parseInt(x.time)*60+parseInt(x.time.slice(3)):0);
       const nb={bal:q.p.bal,d:q.p.d,time:q.p.time||'',delta:(q.p.tp==='income'?1:-1)*(q.p.a||0)};
@@ -4228,11 +4226,15 @@ async function smsqSaveImpl(){
   if(!(a>0)){ntf('⚠️ مبلغ نامعتبر است');hiErr('smsq-amt');return;}
   if(!(y>1380&&y<1500)||!(day>=1&&day<=jMaxDay(m,y))){ntf(dateMsg(day,m,y));hiErr('smsq-day');return;}
   smsLearn(q.p.keys,acc);
+  const transferLink=document.getElementById('smsq-transfer-existing')?.value||'';
+  if(transferLink){const leg=smsTransferCandidates().find(t=>t.id===transferLink);if(!leg){ntf('انتقال انتخابی دیگر با مبلغ، حساب، تاریخ یا جهت پیامک مطابق نیست.');return;}leg.smsHash=q.hash;ntf('پیامک به انتقال قبلی متصل شد؛ موجودی تغییر نکرد');return done({act:'transfer-linked',txId:leg.id});}
   const dsc=document.getElementById('smsq-dsc').value.trim();
   if(smsqTp==='transfer'){
     const other=document.getElementById('smsq-acc2').value;
     if(!other||other===acc){ntf('⚠️ حساب طرف دیگر را انتخاب کنید');hiErr('smsq-acc2');return;}
-    const out=q.p.tp!=='income';const from=out?acc:other,to=out?other:acc;const tid=uid();
+    const out=q.p.tp!=='income';const from=out?acc:other,to=out?other:acc;
+    if(smsTransferCandidates().some(t=>findTransferPair(t)?.accId===other)&&!confirm('انتقالی با همین مبلغ، تاریخ و حساب‌ها وجود دارد. برای اتصال پیامک به آن، انصراف بزنید و «اتصال به انتقال ثبت‌شده» را انتخاب کنید. آیا این یک انتقال جداگانه است؟'))return;
+    const tid=uid();
     const l1={id:uid(),tp:'expense',cat:'transfer',a,dsc:'انتقال به '+getAccName(to)+(dsc?' · '+dsc:''),day,m,y,accId:from,isTransfer:true,transferId:tid};
     const l2={id:uid(),tp:'income',cat:'transfer',a,dsc:'دریافت از '+getAccName(from)+(dsc?' · '+dsc:''),day,m,y,accId:to,isTransfer:true,transferId:tid};
     (out?l1:l2).smsHash=q.hash;ST.tx.push(l1,l2);
@@ -4256,6 +4258,7 @@ async function smsqSaveImpl(){
   if(smsqTp==='loan'){
     const l=(ST.loans||[]).find(x=>x.id===document.getElementById('smsq-loan').value);
     if(!l){ntf('⚠️ وام را انتخاب کنید');return;}
+    if(q.p.tp==='income'){ntf('این پیامک واریز است؛ پرداخت قسط باید برداشت از حساب باشد.');return;}
     const selectedExisting=document.getElementById('smsq-loan-existing').value;
     if(selectedExisting.startsWith('payment:')){
       const group=loanInstallments(l.id).find(g=>g.id===selectedExisting.slice(8));
@@ -4265,7 +4268,8 @@ async function smsqSaveImpl(){
     }
     if(!Array.isArray(l.schedule)){ntf('ابتدا شروع پیگیری و برنامه اقساط را مشخص کنید');return;}
     if(!isSimpleLoan(l)&&!document.getElementById('smsq-int').value.trim()){ntf('سود واقعی قسط را وارد کنید؛ بدون سود = ۰');return;}
-    const intr=isSimpleLoan(l)?0:toLn(document.getElementById('smsq-int').value)||0;if(intr<0||intr>a||!isSimpleLoan(l)&&a-intr>l.remaining){ntf('مبلغ اصل یا سود قسط معتبر نیست');return;}
+    const interestText=normDigits(document.getElementById('smsq-int').value).replace(/[,،٬]/g,'').trim();if(!isSimpleLoan(l)&&!/^\d+$/.test(interestText)){ntf('سود واقعی باید عدد صحیح باشد؛ اگر سود ندارد، ۰ وارد کنید.');return;}
+    const intr=isSimpleLoan(l)?0:Number(interestText);if(!Number.isSafeInteger(intr)||intr<0||intr>a||!isSimpleLoan(l)&&a-intr>l.remaining){ntf('مبلغ اصل یا سود قسط معتبر نیست');return;}
     let allocations,first;try{
       allocations=loanAllocation(l,a,document.getElementById('smsq-loan-due').value,document.getElementById('smsq-loan-multi').checked);
       const existingId=document.getElementById('smsq-loan-existing').value;
@@ -4274,6 +4278,7 @@ async function smsqSaveImpl(){
     }catch(e){ntf(e.message);return;}
     ntf('✅ قسط ثبت شد');return done({act:'loan',txId:first.id});
   }
+  if(smsTransferCandidates().length&&!confirm('یک انتقال ثبت‌شده با این پیامک مطابقت دارد. برای جلوگیری از ثبت دوباره، انصراف بزنید و از «اتصال به انتقال ثبت‌شده» استفاده کنید. آیا تراکنش جداگانه‌ای ثبت می‌کنید؟'))return;
   const cat=document.getElementById('smsq-cat').value;
   if(!cat){ntf('⚠️ دسته‌بندی را انتخاب کنید');hiErr('smsq-cat');return;}
   const dup=ST.tx.find(t=>!t.isTransfer&&!t.isOpening&&t.tp===smsqTp&&t.a===a&&t.day===day&&t.m===m&&t.y===y&&(t.accId||'')===acc);
@@ -5317,6 +5322,7 @@ function openSms(){
   document.getElementById('smsm').classList.add('on');
 }
 function ntf(msg){
+  if(smsSubmitActive){const error=document.getElementById('smsq-error');if(error){error.hidden=false;error.textContent=msg;}}
   const n=document.getElementById('ntf');
   n.textContent=msg;n.classList.add('on');
   setTimeout(()=>n.classList.remove('on'),2500);
@@ -6741,6 +6747,7 @@ function rReportOverview(){
     <p class="ux-note">${diff===0?'هزینه بدون تغییر':money(Math.abs(diff))+(diff>0?' هزینه بیشتر':' هزینه کمتر')} نسبت به ${fmtMonthYear(cmp.prev.m,cmp.prev.y)}${cmp.day?'؛ مقایسه تا روز '+toFa(cmp.day)+' هر دو ماه':'؛ مقایسه کل ماه‌ها'}.</p>
     <div class="ux-note">${top.length?'بیشترین هزینه‌ها:':'هنوز هزینه‌ای ثبت نشده است.'}</div>
     ${top.map(([id,a])=>`<button class="ux-link ux-row" data-cat="${esc(id)}" onclick="openReportRows('expense',SM,SY,this.dataset.cat)"><span>${esc(getCat('expense',id).n)}</span><b>${money(a)} ←</b></button>`).join('')}`;
+  const flow=cashFlowSummary();el.insertAdjacentHTML('afterbegin',`<div class="report-hero"><span>${fmtMonthYear(SM,SY)}</span><h2>گردش پول این ماه</h2><div class="report-hero-grid"><button onclick="openCashFlowRows('income')"><small>ورودی حساب‌ها</small><b>${money(flow.incoming)}</b></button><button onclick="openCashFlowRows('expense')"><small>خروجی، شامل اقساط</small><b>${money(flow.outgoing)}</b></button></div><p>جزئیات هر مبلغ را با لمس آن ببینید.</p></div>`);
   renderUnsplitLoanReport(el);renderCashFlowReport(el);
 }
 function rHomeSummary(){
@@ -6812,9 +6819,11 @@ function bridgeStateForTx(t){
   return `<p class="ux-note">${pending?'در صف ارسال':sent?'به صندوق مقصد ارسال شده؛ ثبت نهایی را در مقصد بررسی کنید':'ارسال قدیمی؛ وضعیت نهایی از این نسخه مشخص نیست'}. اصلاح مبلغ یا حذف را در اپ مقصد نیز بررسی کنید.</p>`;
 }
 function openBridgeConnectionSettings(){cls('bridgem');openGhModal();}
-function openBridgeStatus(){
+let bridgeView=null;
+function openBridgeStatus(target=null){
+  bridgeView=['amlak','sarafi'].includes(target)?target:null;document.getElementById('bridge-title').textContent=bridgeView==='amlak'?'ارتباط با املاک':bridgeView==='sarafi'?'ارتباط با صرافی':'ارتباط با املاک و صرافی';
   const box=document.getElementById('bridge-body');
-  box.innerHTML='<p class="ux-note">'+(ghOn()?'تنظیمات GitHub موجود است؛ موفقیت هر ارسال جداگانه گزارش می‌شود.':'برای ارسال، ابتدا اتصال GitHub را تنظیم کنید؛ صف موجود حفظ می‌شود.')+'</p><button class="btn btns" onclick="openBridgeConnectionSettings()">تنظیم اتصال GitHub</button><p class="ux-note">ارسال به صندوق مقصد با ثبت نهایی در آن اپ فرق دارد. اطلاعات قرارداد در «املاک» و معامله و هزینه ارزی در «صرافی» اصلاح می‌شود.</p>'+['amlak','sarafi'].map(target=>{
+  box.innerHTML='<p class="ux-note">'+(ghOn()?'تنظیمات GitHub موجود است؛ موفقیت هر ارسال جداگانه گزارش می‌شود.':'برای ارسال، ابتدا اتصال GitHub را تنظیم کنید؛ صف موجود حفظ می‌شود.')+'</p><button class="btn btns" onclick="openBridgeConnectionSettings()">تنظیم اتصال GitHub</button><p class="ux-note">ارسال به صندوق مقصد با ثبت نهایی در آن اپ فرق دارد. اطلاعات قرارداد در «املاک» و معامله و هزینه ارزی در «صرافی» اصلاح می‌شود.</p>'+(bridgeView?[bridgeView]:['amlak','sarafi']).map(target=>{
     const name=target==='amlak'?'املاک':'صرافی',queue=ST[target+'Outbox']||[],history=(ST.bridgeLog||[]).filter(x=>x.target===target).slice(-10).reverse();
     return `<div class="ux-section"><h3>${name}</h3><p class="ux-note">${ST.bridgeErrors?.[target]?'نیازمند بررسی اتصال؛ موارد ارسال‌نشده در صف حفظ شده‌اند.':queue.length?'در انتظار ارسال':'موردی در صف نیست'}</p>
       ${queue.map(x=>uxRow('در صف ارسال',money(x.a||0))).join('')}
@@ -6823,15 +6832,15 @@ function openBridgeStatus(){
       <button class="btn btns" onclick="retryBridge('${target}')">تلاش برای ارسال صف ${name}</button></div>`;
   }).join('');document.getElementById('bridgem').classList.add('on');
 }
-async function retryBridge(target){if(target==='amlak')await flushAmlakOutbox();else await flushSarafiOutbox();openBridgeStatus();}
+async function retryBridge(target){if(target==='amlak')await flushAmlakOutbox();else await flushSarafiOutbox();openBridgeStatus(bridgeView);}
 function openProtection(){
   const box=document.getElementById('protection-body');const ts=Number(ST._savedAt)||0,gh=Number(localStorage.getItem(GH_LAST))||0,file=getLastBackupTs();
   const when=t=>t?new Date(t).toLocaleString('fa-IR'):'هنوز ثبت نشده';
-  box.innerHTML=uxRow('ذخیره روی این دستگاه',storageHealthy?(ts?when(ts):'هنوز تغییری ثبت نشده'):'نیازمند رسیدگی')+uxRow('پشتیبان موفق GitHub',when(gh))+uxRow('خروجی فایل تأییدشده',when(file))+
+  box.innerHTML='<p class="ux-note"><b>ساخت پشتیبان:</b> یک کپی از اطلاعات فعلی می‌سازد.<br><b>بازگرداندن اطلاعات:</b> اطلاعات یک فایل قبلی را با تأیید شما جایگزین اطلاعات فعلی می‌کند.</p>'+uxRow('ذخیره روی این دستگاه',storageHealthy?(ts?when(ts):'هنوز تغییری ثبت نشده'):'نیازمند رسیدگی')+uxRow('پشتیبان موفق GitHub',when(gh))+uxRow('خروجی فایل تأییدشده',when(file))+
     '<p class="ux-note">ذخیره روی دستگاه، پشتیبان خارج از دستگاه نیست. ورود به Firebase نیز به معنی گرفتن پشتیبان نیست.</p>'+
-    `<button class="btn btnp" onclick="cls('protectionm');openBackupModal()">دریافت پشتیبان فایل</button>
+    `<button class="btn btnp" onclick="cls('protectionm');openBackupModal()">ساخت فایل پشتیبان</button>
     <button class="btn btns" onclick="cls('protectionm');openGhModal()">پشتیبان GitHub و تاریخچه</button>
-    <button class="btn btns" onclick="cls('protectionm');document.getElementById('imp2').click()">بازیابی از فایل</button>
+    <button class="btn btns" onclick="cls('protectionm');document.getElementById('imp2').click()">بازگرداندن اطلاعات از فایل</button>
     <button class="btn btns" onclick="cls('protectionm');openCloudModal()">پشتیبان ابری (Firebase)</button>
     <details class="ux-more" id="protection-advanced"><summary>نسخه‌های بازیابی قبلی</summary>
       <button class="btn btns" onclick="undoRestore()">بازگشت از آخرین بازیابی</button>
@@ -7036,6 +7045,7 @@ function renderLoanSchedule(){
   box.innerHTML=uxRow(isSimpleLoan(l)?'وضعیت اقساط':'مانده اصل وام',isSimpleLoan(l)?simpleLoanCaption(l):money(l.remaining))+uxRow('جمع پرداخت‌های باقی‌مانده برنامه با سود',money(left))+
     '<p class="ux-note">جمع برنامه، برآورد بر اساس جدول ثبت‌شده است؛ با بانک تطبیق دهید. تاریخ پرداخت می‌تواند با سررسید متفاوت باشد. ثبت قسط، مبلغ را فقط یک بار از حساب کم می‌کند.</p>'+filter+visible.slice(0,loanViewLimit).map(s=>`<div class="ux-section">${uxRow(s.number?'قسط '+toFa(s.number)+' · سررسید':'سررسید',fmtDate(s.day,s.m,s.y))}${uxRow('وضعیت',LOAN_STATUS[s.status]+(s.isDue&&s.status==='partial'?' · نیازمند تکمیل':''))}${uxRow('مبلغ / پرداخت‌شده',money(s.a)+' / '+money(s.paid))}${uxRow('باقی‌مانده',money(s.left))}<div class="ux-actions">${s.left>0?`<button class="btn btnp" data-id="${esc(s.id)}" onclick="payScheduleItem(this.dataset.id)">ثبت پرداخت این قسط</button>`:''}<button class="btn btns" data-id="${esc(s.id)}" onclick="editScheduleItem(this.dataset.id)">اصلاح سررسید و مبلغ برنامه</button></div></div>`).join('')+
     (visible.length>loanViewLimit?'<button class="btn btns" onclick="loanViewLimit+=24;renderLoanSchedule()">نمایش اقساط بیشتر</button>':'')+
+    (document.getElementById('smsqm').classList.contains('on')?'<button class="btn btnp" onclick="returnToSmsReview()">بازگشت به پیامک و ثبت قسط</button>':'')+
     `<button class="btn btns" onclick="cls('loanschedulem');openLoanHistory('${l.id}')">سابقه پرداخت‌های واقعی</button>`;
 }
 function buildLoanScheduleDraft(){
@@ -7096,14 +7106,17 @@ function postLoanPayment(l,amount,interest,date,accId,allocations,source=null,ex
 function refreshSmsLoanPlan(){
   const select=document.getElementById('smsq-loan-due');if(!select)return;const l=ST.loans.find(l=>l.id===document.getElementById('smsq-loan').value);
   document.getElementById('smsq-interest-wrap').hidden=isSimpleLoan(l);document.getElementById('smsq-loan-accounting-note').textContent=isSimpleLoan(l)?'کل پرداخت از حساب کم و جدا از هزینه‌های دارای تفکیک گزارش می‌شود؛ اصل و سود حدس زده نمی‌شوند.':'اصل قسط از بدهی کم می‌شود؛ فقط سود هزینه است.';
+  const previousDue=select.value,previousExisting=document.getElementById('smsq-loan-existing').value;
   select.innerHTML=l?loanDueItems(l).filter(s=>s.left>0).map(s=>`<option value="${esc(s.id)}">${esc(fmtDate(s.day,s.m,s.y)+' · '+money(s.left))}</option>`).join(''):'';
+  if([...select.options].some(o=>o.value===previousDue))select.value=previousDue;
   const acc=document.getElementById('smsq-acc').value,amount=toLn(document.getElementById('smsq-amt').value),day=+document.getElementById('smsq-day').value,m=+document.getElementById('smsq-mon').value,y=+document.getElementById('smsq-yr').value;
   document.getElementById('smsq-loan-existing').innerHTML='<option value="">برداشت جدید</option>'+ST.tx.filter(t=>linkableLoanTx(t)&&t.accId===acc&&t.a===amount&&t.day===day&&t.m===m&&t.y===y).map(t=>`<option value="${esc(t.id)}">${esc(fmtDate(t.day,t.m,t.y)+' · '+money(t.a)+' · '+(t.dsc||''))}</option>`).join('');
   const same=l?loanInstallments(l.id).filter(g=>g.accId===acc&&loanGroupAmount(g)===amount&&g.day===day&&g.m===m&&g.y===y):[];
   document.getElementById('smsq-loan-existing').innerHTML+=same.map(g=>`<option value="payment:${esc(g.id)}">${esc('پرداخت قسط قبلاً ثبت‌شده · '+fmtDate(g.day,g.m,g.y)+' · '+money(amount))}</option>`).join('');
-  document.getElementById('smsq-loan-plan-note').textContent=same.length?'پرداخت قسط مشابه قبلاً ثبت شده است؛ آن را از فهرست انتخاب کنید تا دوباره برداشت نشود.':l&&!Array.isArray(l.schedule)?'ابتدا اولین قسط و برنامه را مشخص کنید؛ پرداخت تاریخی حدس زده نمی‌شود.':'';
+  const existing=document.getElementById('smsq-loan-existing');if([...existing.options].some(o=>o.value===previousExisting))existing.value=previousExisting;
+  document.getElementById('smsq-loan-plan-note').textContent=same.length?'پرداخت قسط مشابه قبلاً ثبت شده است؛ آن را از فهرست انتخاب کنید تا دوباره برداشت نشود.':l&&!Array.isArray(l.schedule)?'این وام هنوز برنامه اقساط ندارد؛ دکمه «برنامه اقساط / تعیین شروع» را بزنید و سپس به پیامک برگردید.':l&&!select.options.length?'قسط پرداخت‌نشده‌ای وجود ندارد؛ اگر قبلاً پرداخت کرده‌اید، برداشت ثبت‌شده را انتخاب کنید.':l&&!isSimpleLoan(l)?'سود واقعی این پرداخت را وارد کنید؛ اگر سود ندارد، ۰ بزنید.':'';
 }
-function configureSmsLoan(){const id=document.getElementById('smsq-loan').value;if(id)openLoanSchedule(id);}
+function configureSmsLoan(){const id=document.getElementById('smsq-loan').value,l=ST.loans.find(l=>l.id===id);if(!l)return;if(!Array.isArray(l.schedule)){openLoanForm(id);startSimpleLoanConversion();}else openLoanSchedule(id);}
 
 function syncLoanNoticeFlags(){(ST.notifLog||[]).filter(n=>n.type==='loan'&&n.dueId).forEach(n=>{const active=loanNoticeActive(n);if(active&&n.resolved)n.read=false;n.resolved=!active;});}
 
@@ -7135,7 +7148,15 @@ function validateLoanSchedules(p){
   for(const [key,amount] of paid)if(dues.has(key)&&amount>dues.get(key))throw Error('پرداخت از مبلغ سررسید بیشتر است');
 }
 let smsReviewBusy=false;
-async function smsqSave(){if(smsReviewBusy||!storageHealthy||stateReplacing)return;smsReviewBusy=true;try{return await smsqSaveImpl();}finally{smsReviewBusy=false;}}
+let smsSubmitActive=false;
+async function smsqSave(){
+  if(smsReviewBusy)return;
+  if(!storageHealthy||stateReplacing){smsSubmitActive=true;ntf('ذخیره‌سازی آماده نیست؛ ابتدا خطای ذخیره یا بازیابی را برطرف کنید.');smsSubmitActive=false;return;}
+  smsReviewBusy=true;smsSubmitActive=true;const err=document.getElementById('smsq-error');if(err)err.hidden=true;
+  const button=document.querySelector('#smsq-savebar button');if(button){button.disabled=true;button.textContent='در حال ثبت…';}
+  try{return await smsqSaveImpl();}catch(e){ntf(e.message||'ثبت انجام نشد؛ دوباره بررسی کنید.');}
+  finally{smsReviewBusy=false;smsSubmitActive=false;if(button?.isConnected){button.disabled=false;button.textContent='ثبت و بعدی';}}
+}
 
 // v24.35 — count-based tracking; never infer principal from gross installments.
 function isSimpleLoan(l){return l?.trackingMode==='simple';}
@@ -7233,7 +7254,7 @@ async function saveSimpleLoan(){
         ST.tx.push(tx);saved.disbursementTxId=tx.id;if(ST.bankBal?.[accId])ST.bankBal[accId].ok=false;
       }
     }
-    ensureLoanCat();await sv();cls('loanfm');updateLoanCount();rDash();rTx();openLoanSchedule(saved.id);__undoSnap=before;showUndo('وام و برنامه اقساط ذخیره شد');
+    ensureLoanCat();await sv();cls('loanfm');updateLoanCount();rDash();rTx();refreshSmsLoanPlan();openLoanSchedule(saved.id);__undoSnap=before;showUndo('وام و برنامه اقساط ذخیره شد');
   }catch(e){ntf(e.message);}finally{loanBusy=false;}
 }
 function renderUnsplitLoanReport(el){
@@ -7260,6 +7281,21 @@ function renderCashFlowReport(el){
     <button class="ux-link ux-row" onclick="openCashFlowRows('expense')"><span>خروجی حساب‌ها، شامل اقساط</span><b>${money(f.outgoing)} ←</b></button>
     <button class="ux-link ux-row" onclick="openCashFlowRows('')"><span>خالص گردش وجوه</span><b>${money(f.net)} ←</b></button>
     <p class="ux-note">بر اساس تاریخ واقعی تراکنش‌های دارای حساب؛ دریافت و بازپرداخت وام و ودیعه را شامل می‌شود. انتقال بین حساب‌ها، موجودی اولیه و تغییر ارزش دارایی در این جمع نیست. این عدد موجودی قابل‌خرج یا سود نیست؛ برای تطبیق کامل موجودی، گردش هر حساب را ببینید.</p></div>`);
+}
+
+
+function returnToSmsReview(){cls('loanschedulem');cls('loanfm');refreshSmsLoanPlan();document.getElementById('smsqm').classList.add('on');}
+function smsTransferCandidates(){
+  const q=ST.smsQueue[smsqIdx];if(!q)return [];
+  const acc=document.getElementById('smsq-acc')?.value,amount=toLn(document.getElementById('smsq-amt')?.value),day=+document.getElementById('smsq-day')?.value,m=+document.getElementById('smsq-mon')?.value,y=+document.getElementById('smsq-yr')?.value;
+  return ST.tx.filter(t=>{const pair=findTransferPair(t);return t.isTransfer&&!t.smsHash&&t.accId===acc&&t.a===amount&&t.tp===q.p.tp&&t.day===day&&t.m===m&&t.y===y&&pair&&pair.a===amount&&pair.tp!==t.tp&&ST.accounts.some(a=>a.id===pair.accId)&&pair.accId!==acc;});
+}
+function renderSmsTransferMatches(){
+  const box=document.getElementById('smsq-transfer-match');if(!box)return;const previous=document.getElementById('smsq-transfer-existing')?.value||'';
+  if(!['income','expense','transfer'].includes(smsqTp)){box.innerHTML='';return;}
+  const rows=smsTransferCandidates();if(!rows.length){box.innerHTML='';return;}
+  box.innerHTML='<div class="ux-section"><label for="smsq-transfer-existing">اتصال به انتقال ثبت‌شده</label><p class="ux-note">اگر این پیامک مربوط به انتقال زیر است، آن را انتخاب و «ثبت و بعدی» را بزنید. موجودی دوباره کم یا زیاد نمی‌شود.</p><select id="smsq-transfer-existing"><option value="">انتخاب نکرده‌ام؛ تراکنش جدید</option>'+rows.map(t=>`<option value="${esc(t.id)}">${esc(getAccName(t.accId)+' ↔ '+getAccName(findTransferPair(t).accId)+' · '+money(t.a)+' · '+fmtDate(t.day,t.m,t.y))}</option>`).join('')+'</select></div>';
+  if(rows.some(t=>t.id===previous))document.getElementById('smsq-transfer-existing').value=previous;
 }
 
 init();
