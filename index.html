@@ -1224,8 +1224,9 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <h2 id="loanfmt">وام جدید</h2>
   <div class="fg"><label>عنوان وام</label><input type="text" id="loan-n" placeholder="مثلاً وام مسکن"></div>
   <div id="loan-simple-fields">
-    <div class="fg"><label for="loan-kind">چه وامی ثبت می‌کنید؟</label><select id="loan-kind" onchange="loanKindChanged()"><option value="existing">وام قبلی؛ پیگیری اقساط باقی‌مانده</option><option value="new">وام تازه دریافت‌شده</option></select></div>
+    <div class="fg" id="loan-kind-field"><label for="loan-kind">چه وامی ثبت می‌کنید؟</label><select id="loan-kind" onchange="loanKindChanged()"><option value="existing">وام قبلی؛ پیگیری اقساط باقی‌مانده</option><option value="new">وام تازه دریافت‌شده</option></select></div>
     <div class="fg"><label for="loan-bank">بانک / وام‌دهنده (اختیاری)</label><input id="loan-bank" type="text" maxlength="120" placeholder="نام بانک یا شخص"></div>
+    <p id="loan-edit-count-help" class="ux-note" hidden></p>
     <div id="loan-old-counts"><div class="fg"><label for="loan-left-count">تعداد اقساط باقی‌مانده، شامل قسط معوق</label><input id="loan-left-count" type="text" inputmode="numeric" placeholder="مثلاً ۱۲"></div>
     <div class="fg"><label for="loan-paid-count">تعداد اقساط قبلاً پرداخت‌شده (اختیاری)</label><input id="loan-paid-count" type="text" inputmode="numeric" placeholder="اگر نمی‌دانید خالی بگذارید"></div></div>
     <p class="ux-note">اگر تعداد کل و پرداخت‌شده را وارد کنید، باقی‌مانده می‌تواند خالی بماند و محاسبه می‌شود.</p>
@@ -1256,7 +1257,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   </div>
   </div>
   <button id="loan-convert-simple" type="button" class="btn btns" onclick="startSimpleLoanConversion()">پیگیری ساده با تعداد اقساط باقی‌مانده</button>
-  <button class="btn btnp" onclick="saveLoan()">ذخیره</button>
+  <p id="loan-edit-error" class="review-error" role="alert" hidden></p>
+  <button class="btn btnp" onclick="saveLoan()">ذخیره تغییرات</button>
   <button class="btn btnd" id="dloanb" style="display:none" onclick="delLoan()">حذف وام</button>
   <button class="btn btns" onclick="cls('loanfm')">انصراف</button>
 </div>
@@ -2006,7 +2008,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.39';
+const APP_VERSION='v24.40';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -7204,22 +7206,28 @@ function prepareSimpleLoanForm(l,convert=false){
   document.getElementById('loan-simple-fields').hidden=!simple;document.getElementById('loan-advanced-fields').hidden=simple;
   document.getElementById('loan-convert-simple').hidden=!l||isSimpleLoan(l)||convert;
   document.getElementById('loan-kind').value=locked?l.entryKind:'existing';
-  const now=today(),first=locked?l.schedule[0]:null,received=locked?l.receivedDate:null;
+  const now=today(),items=locked?loanDueItems(l):[],outstanding=items.filter(s=>s.left>0),last=items.at(-1),nextPeriod=last?last.y*12+last.m+1:0,nextYear=Math.floor(nextPeriod/12),nextMonth=nextPeriod%12,nextDay=last?Math.min(l.day||last.day,jMaxDay(nextMonth,nextYear)):1,first=locked?(outstanding[0]||(validLoanDate(nextYear,nextMonth,nextDay)?{y:nextYear,m:nextMonth,day:nextDay}:last)):null,received=locked?l.receivedDate:null;
   const fields={'loan-bank':l?.bank||'','loan-contract':l?.contractNumber||'','loan-note':l?.note||'',
-    'loan-left-count':locked?l.installmentCount:'','loan-total-count':locked?(l.totalInstallments??''):'','loan-paid-count':locked?(l.paidBefore??''):'',
-    'loan-simple-amount':l?nf(l.inst):'','loan-simple-day':first?.day||l?.day||'','loan-simple-year':first?.y||now.y,
+    'loan-left-count':locked?outstanding.length:'','loan-total-count':locked?(l.totalInstallments??''):'','loan-paid-count':locked?(l.paidBefore??''):'',
+    'loan-simple-amount':l?nf(locked?(outstanding[0]?.a||l.inst):l.inst):'','loan-simple-day':first?.day||l?.day||'','loan-simple-year':first?.y||now.y,
     'loan-received-amount':locked&&l.receivedAmount?nf(l.receivedAmount):'',
     'loan-received-day':received?.d||now.d,'loan-received-year':received?.y||now.y};
   for(const [id,value] of Object.entries(fields))document.getElementById(id).value=value;
   fillMon('loan-simple-mon',first?.m??now.m-1);fillMon('loan-received-mon',received?.m??now.m-1);
   document.getElementById('loan-received-acc').innerHTML='<option value="">بدون واریز جدید؛ قبلاً در حساب لحاظ شده</option>'+activeAccounts().filter(a=>a.id!==SAVINGS_ACC_ID&&accKind(a)!=='invest').map(a=>`<option value="${esc(a.id)}">ثبت واریز جدید به ${esc(getAccName(a.id))}</option>`).join('');
   for(const id of ['loan-kind','loan-left-count','loan-total-count','loan-paid-count','loan-simple-amount','loan-simple-day','loan-simple-mon','loan-simple-year','loan-received-amount','loan-received-day','loan-received-mon','loan-received-year','loan-received-acc'])document.getElementById(id).disabled=locked;
-  document.getElementById('loan-simple-note').textContent=locked?'تعدادها، مبنای شروع پیگیری هستند؛ وضعیت فعلی: '+simpleLoanCaption(l)+' . برای اصلاح تاریخ و مبلغ هر قسط به برنامه اقساط و برای پرداخت اشتباه به سابقه بروید.':convert?'با تأیید شما، برنامه تازه فقط برای اقساط باقی‌مانده ساخته می‌شود. پرداخت‌های قدیمی و موجودی حفظ می‌شوند؛ مانده اصل قبلی دیگر در جمع بدهی قطعی نمی‌آید.':'اقساط پرداخت‌شده قبلی فقط سابقه شروع هستند و برداشت جدید ایجاد نمی‌کنند. برای قسط با مبلغ متفاوت، پس از ذخیره برنامه را اصلاح کنید.';
+  ['loan-left-count','loan-total-count','loan-paid-count','loan-simple-amount','loan-simple-day','loan-simple-mon','loan-simple-year'].forEach(id=>document.getElementById(id).disabled=false);
+  document.getElementById('loan-kind-field').hidden=locked;
+  document.querySelector('label[for="loan-paid-count"]').textContent=locked?'اقساط پرداخت‌شده قبل از شروع پیگیری (اختیاری)':'تعداد اقساط قبلاً پرداخت‌شده (اختیاری)';
+  document.getElementById('loan-edit-error').hidden=true;
+  const help=document.getElementById('loan-edit-count-help');help.hidden=!locked;help.textContent='تعداد کل = سابقه پیش از شروع + '+toFa(items.filter(s=>s.left===0).length)+' قسط تکمیل‌شده در اپ + اقساط باقی‌مانده. پرداخت‌های واقعی از این فرم تغییر نمی‌کنند.';
+  document.getElementById('loan-simple-note').textContent=locked?'ویرایش تعداد، مبلغ و سررسید فقط برنامه اقساط پرداخت‌نشده را اصلاح می‌کند؛ پرداخت‌های واقعی، حساب و موجودی بازنویسی نمی‌شوند. '+toFa(items.filter(s=>s.left===0).length)+' قسط تکمیل‌شده در برنامه حفظ می‌شود. تغییر مبلغ/تاریخ فقط در صورت تغییر همان فیلد روی اقساط پرداخت‌نشده اعمال می‌شود. اطلاعات دریافت قبلی از این فرم بازنویسی نمی‌شود.':convert?'با تأیید شما، برنامه تازه فقط برای اقساط باقی‌مانده ساخته می‌شود. پرداخت‌های قدیمی و موجودی حفظ می‌شوند؛ مانده اصل قبلی دیگر در جمع بدهی قطعی نمی‌آید.':'اقساط پرداخت‌شده قبلی فقط سابقه شروع هستند و برداشت جدید ایجاد نمی‌کنند. برای قسط با مبلغ متفاوت، پس از ذخیره برنامه را اصلاح کنید.';
   loanKindChanged();
+  simpleLoanEditState=locked?{loanId:l.id,source:JSON.stringify(l),receipts:JSON.stringify(ST.tx.filter(t=>t.loanId===l.id)),fields:readSimpleLoanEditFields()}:null;
 }
 function loanKindChanged(){
   const fresh=document.getElementById('loan-kind').value==='new';
-  document.getElementById('loan-old-counts').hidden=fresh;document.getElementById('loan-new-receipt').hidden=!fresh;
+  document.getElementById('loan-old-counts').hidden=fresh&&!isSimpleLoan(ST.loans.find(l=>l.id===eLoanId));document.getElementById('loan-new-receipt').hidden=!fresh;
   document.getElementById('loan-total-label').textContent=fresh?'تعداد کل اقساط':'تعداد کل اقساط (اختیاری)';
 }
 function startSimpleLoanConversion(){
@@ -7252,20 +7260,21 @@ function buildSimpleLoanDraft(){
   return draft;
 }
 async function saveSimpleLoan(){
-  if(loanBusy||!storageHealthy||stateReplacing)return;loanBusy=true;
+  if(loanBusy||!storageHealthy||stateReplacing)return;loanBusy=true;document.getElementById('loan-edit-error').hidden=true;
   try{
     const n=document.getElementById('loan-n').value.trim();if(!n)throw Error('عنوان وام الزامی است');
     const l=ST.loans.find(l=>l.id===eLoanId),metadata={n,bank:document.getElementById('loan-bank').value.trim().slice(0,120),contractNumber:document.getElementById('loan-contract').value.trim().slice(0,160),note:document.getElementById('loan-note').value.trim().slice(0,1500)};
-    const draft=isSimpleLoan(l)?null:buildSimpleLoanDraft(),accId=document.getElementById('loan-received-acc').value;
+    const edit=isSimpleLoan(l)?buildSimpleLoanEdit(l):null,draft=edit?null:buildSimpleLoanDraft(),accId=document.getElementById('loan-received-acc').value;
     if(draft?.entryKind==='new'&&accId&&!activeAccounts().some(a=>a.id===accId&&a.id!==SAVINGS_ACC_ID&&accKind(a)!=='invest'))throw Error('حساب دریافت وام معتبر نیست');
     const summary=draft?'برنامه '+toFa(draft.installmentCount)+' قسط از '+fmtDate(draft.schedule[0].day,draft.schedule[0].m,draft.schedule[0].y)+'، جمع پرداخت‌ها '+money(draft.schedule.reduce((n,s)=>n+s.a,0))+'. ':'';
     if(draft&&!confirm((draft.paidBefore>0?'طبق اعلام شما، '+toFa(draft.paidBefore)+' قسط اول پیش از شروع برنامه پرداخت شده‌اند. ':'')+summary+(l?'برنامه قبلی بایگانی می‌شود؛ تراکنش‌ها و موجودی تغییر نمی‌کنند. مانده اصل قبلی دیگر بدهی قطعی تلقی نمی‌شود.':draft.entryKind==='new'&&accId?'واریز '+money(draft.receivedAmount)+' به حساب ثبت می‌شود. اگر قبلاً لحاظ شده انصراف بزنید.':'هیچ واریز یا برداشت قبلی دوباره ثبت نمی‌شود.')+' ذخیره شود؟'))return;
+    if(edit?.changed&&!confirm(edit.preview))return;
     const before=JSON.stringify(ST);let saved=l;
     if(l&&draft){
       l.previousTracking={at:Date.now(),remaining:l.remaining,principalTotal:l.principalTotal,total:l.total,schedule:l.schedule||null,scheduleBaseline:l.scheduleBaseline??null};
       ST.tx.filter(t=>t.loanId===l.id&&t.dueAllocations!==undefined).forEach(t=>{t.priorDueAllocations=t.dueAllocations;delete t.dueAllocations;});
       delete l.scheduleBaseline;Object.assign(l,draft,metadata);syncLoanNoticeFlags();
-    }else if(l)Object.assign(l,metadata);
+    }else if(l){if(edit?.changed){Object.assign(l,edit.loan);syncLoanNoticeFlags();}Object.assign(l,metadata);}
     else{
       saved={id:uid(),...draft,...metadata,remaining:0,principalTotal:0,total:0,disbursementTxId:null};ST.loans=ST.loans||[];ST.loans.push(saved);
       if(draft.entryKind==='new'&&accId){
@@ -7274,7 +7283,7 @@ async function saveSimpleLoan(){
       }
     }
     ensureLoanCat();await sv();cls('loanfm');updateLoanCount();rDash();rTx();refreshSmsLoanPlan();openLoanSchedule(saved.id);__undoSnap=before;showUndo('وام و برنامه اقساط ذخیره شد');
-  }catch(e){ntf(e.message);}finally{loanBusy=false;}
+  }catch(e){const error=document.getElementById('loan-edit-error');error.textContent=e.message;error.hidden=false;ntf(e.message);}finally{loanBusy=false;}
 }
 function renderUnsplitLoanReport(el){
   const sum=getTx(SM,SY).filter(t=>natureOf(t)==='loanUnsplit').reduce((n,t)=>n+t.a,0);if(!sum)return;
@@ -7407,6 +7416,43 @@ async function saveLoanHistoricalSetup(){
   let count;try{count=loanInputInteger('loan-historical-count');if(count>10000||!Number.isSafeInteger(count+l.schedule.length))throw Error('تعداد سابقه معتبر نیست؛ حداکثر ۱۰۰۰۰ قسط قدیمی');}catch(e){ntf(e.message);return;}
   if(!confirm('تأیید می‌کنید '+toFa(count)+' قسط اول پیش از شروع برنامه پرداخت شده‌اند؟ تعداد کل '+toFa(count+l.schedule.length)+' خواهد شد. هیچ مبلغ یا تاریخ پرداختی ساخته نمی‌شود و موجودی تغییر نمی‌کند.'))return;
   loanBusy=true;try{const before=JSON.stringify(ST);l.paidBefore=count;l.totalInstallments=count+l.schedule.length;l.historicalUnconfirmed=(l.historicalUnconfirmed||[]).filter(n=>n<=count);l.historicalReviewAt=Date.now();l.schedule.forEach((s,i)=>s.number=count+i+1);await sv();cls('loanhistoricalm');renderLoanSchedule();rDash();__undoSnap=before;showUndo('سابقه شروع تنظیم شد؛ موجودی حفظ شد');}finally{loanBusy=false;}
+}
+
+
+let simpleLoanEditState=null;
+function readSimpleLoanEditFields(){return {left:loanInputInteger('loan-left-count',true),paid:loanInputInteger('loan-paid-count',true),total:loanInputInteger('loan-total-count',true),amount:loanInputInteger('loan-simple-amount'),date:loanInputDate('loan-simple')};}
+function buildSimpleLoanEdit(l){
+  const ref=simpleLoanEditState;if(!ref||ref.loanId!==l.id||(JSON.stringify(l)!==ref.source||JSON.stringify(ST.tx.filter(t=>t.loanId===l.id))!==ref.receipts))throw Error('اطلاعات وام هنگام ویرایش تغییر کرده؛ فرم را دوباره باز کنید.');
+  const f=readSimpleLoanEditFields(),old=ref.fields,list=loanDueItems(l),open=list.filter(s=>s.left>0),settled=list.filter(s=>s.left===0),paidChanged=f.paid!==old.paid,totalChanged=f.total!==old.total;
+  let count=f.left,paid=f.paid,total=f.total;if(count==null&&total!=null&&paid!=null)count=total-paid-settled.length;
+  if(!Number.isSafeInteger(count)||count<0||count+settled.length<1||count+settled.length>600)throw Error('تعداد باقی‌مانده معتبر نیست؛ مجموع برنامه باید بین ۱ تا ۶۰۰ قسط باشد.');
+  if(totalChanged&&!paidChanged&&total!=null)paid=total-settled.length-count;
+  else if(!totalChanged&&(paidChanged||count!==old.left))total=paid==null?null:paid+settled.length+count;
+  if(total!=null&&paid==null)paid=total-settled.length-count;else if(paid!=null&&total==null)total=paid+settled.length+count;
+  if(paid!=null&&(!Number.isSafeInteger(paid)||paid<0)||total!=null&&(!Number.isSafeInteger(total)||total<0||total!==paid+settled.length+count))throw Error('تعداد کل باید برابر سابقه شروع + اقساط تکمیل‌شده در اپ + اقساط باقی‌مانده باشد.');
+  if(f.amount<=0||!Number.isSafeInteger(f.amount*count))throw Error('مبلغ هر قسط یا جمع برنامه معتبر نیست.');
+  const amountChanged=f.amount!==old.amount,dateChanged=JSON.stringify(f.date)!==JSON.stringify(old.date),changed=count!==old.left||paid!==l.paidBefore||total!==l.totalInstallments||amountChanged||dateChanged;
+  if(!changed)return {changed:false};
+  const remove=open.slice(count);if(remove.some(s=>s.paid>0))throw Error('کاهش تعداد، قسط دارای پرداخت ناقص را حذف می‌کند؛ ابتدا پرداخت را از سابقه بررسی کنید.');
+  const removed=new Set(remove.map(s=>s.id)),schedule=l.schedule.filter(s=>!removed.has(s.id)).map(s=>({...s})),keptOpen=open.slice(0,count).map(s=>s.id);
+  const added=[];for(let i=open.length;i<count;i++){
+    const last=[...schedule,...added].sort((a,b)=>dateToInt(a.y,a.m,a.day)-dateToInt(b.y,b.m,b.day)).at(-1),period=dateChanged?f.date.y*12+f.date.m+i:last.y*12+last.m+1,y=Math.floor(period/12),m=period%12,day=Math.min(dateChanged?f.date.d:l.day||last.day,jMaxDay(m,y));
+    if(!validLoanDate(y,m,day))throw Error('انتهای برنامه خارج از محدوده تاریخ است.');
+    added.push({id:uid(),y,m,day,a:f.amount,interest:0});
+  }
+  schedule.push(...added);const targetIds=[...keptOpen,...added.map(s=>s.id)];
+  for(let i=0;i<targetIds.length;i++){
+    const s=schedule.find(s=>s.id===targetIds[i]),original=list.find(x=>x.id===s.id);
+    if(amountChanged){if(original?.paid>0&&f.amount<=original.paid)throw Error('مبلغ جدید نمی‌تواند قسط دارای پرداخت ناقص را بدون تراکنش تسویه کند؛ مبلغ باید بیشتر از پرداخت ثبت‌شده باشد.');s.a=f.amount;}
+    if(dateChanged){const period=f.date.y*12+f.date.m+i,y=Math.floor(period/12),m=period%12,day=Math.min(f.date.d,jMaxDay(m,y));if(!validLoanDate(y,m,day))throw Error('تاریخ برنامه معتبر نیست.');Object.assign(s,{y,m,day});}
+  }
+  if(!Number.isSafeInteger(schedule.reduce((n,s)=>n+s.a,0)))throw Error('جمع مبالغ برنامه از محدوده پشتیبانی خارج است.');
+  schedule.forEach((s,i)=>{if(paid!=null)s.number=paid+i+1;else delete s.number;});
+  const loan={...l,schedule,installmentCount:schedule.length,paidBefore:paid,totalInstallments:total,inst:amountChanged?f.amount:l.inst,day:dateChanged?f.date.d:l.day,historicalUnconfirmed:(l.historicalUnconfirmed||[]).filter(n=>n<=(paid??0)),active:count>0};
+  if(paid!==l.paidBefore)loan.historicalReviewAt=Date.now();
+  validateLoanSchedules({...ST,loans:ST.loans.map(x=>x.id===l.id?loan:x)});
+  const next=schedule.filter(s=>targetIds.includes(s.id)).sort((a,b)=>dateToInt(a.y,a.m,a.day)-dateToInt(b.y,b.m,b.day))[0];
+  return {changed:true,loan,preview:'پیش‌نمایش تغییر وام:\nاقساط باقی‌مانده: '+toFa(open.length)+' ← '+toFa(count)+'\nسابقه پیش از شروع: '+(paid==null?'نامعلوم':toFa(paid))+'\nتعداد کل: '+(total==null?'نامعلوم':toFa(total))+'\nجمع باقی‌مانده برنامه: '+money(loanDueItems(loan).reduce((n,s)=>n+s.left,0))+(amountChanged?'\nمبلغ کامل اقساط پرداخت‌نشده: '+money(f.amount):'')+(next?'\nاولین سررسید پرداخت‌نشده: '+fmtDate(next.day,next.m,next.y):'')+'\n'+toFa(settled.length)+' قسط تکمیل‌شده و همه تراکنش‌ها/موجودی حفظ می‌شوند.\nتغییرات ذخیره شود؟'};
 }
 
 init();

@@ -690,10 +690,10 @@ test('new-loan receipt already reflected in balances creates no duplicate deposi
   g.run("document.getElementById('loan-received-amount').value='300'");await g.run('saveLoan()');assert.equal(g.run('ST.loans.length'),0);
   g.run("document.getElementById('loan-received-amount').value='150';document.getElementById('loan-received-day').value='21'");await g.run('saveLoan()');assert.equal(g.run('ST.loans.length'),0);
 });
-test('simple form exposes standard relevant fields, keeps optional details optional and prevents accidental schedule replacement',async t=>{
+test('simple edit form exposes financial fields and name-only edits preserve the schedule',async t=>{
   const f=await simpleLoan(t);f.run("openLoanForm('l')");assert.equal(f.w.document.getElementById('loan-simple-fields').hidden,false);assert.equal(f.w.document.getElementById('loan-advanced-fields').hidden,true);
-  assert.equal(f.w.document.getElementById('loan-simple-amount').disabled,true);assert.equal(f.w.document.getElementById('loan-new-receipt').hidden,true);
-  const plan=copy(f.run('ST.loans[0].schedule'));f.run("document.getElementById('loan-left-count').value='99';document.getElementById('loan-n').value='نام تازه'");await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST.loans[0].schedule')),plan);
+  assert.equal(f.w.document.getElementById('loan-simple-amount').disabled,false);assert.equal(f.w.document.getElementById('loan-new-receipt').hidden,true);
+  const plan=copy(f.run('ST.loans[0].schedule'));f.run("document.getElementById('loan-n').value='نام تازه'");await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST.loans[0].schedule')),plan);
   f.run('openLoanForm()');assert.equal(f.w.document.getElementById('loan-left-count').disabled,false);f.run("document.getElementById('loan-kind').value='new';loanKindChanged()");assert.equal(f.w.document.getElementById('loan-old-counts').hidden,true);assert.equal(f.w.document.getElementById('loan-new-receipt').hidden,false);
 });
 test('explicit conversion archives legacy schedule without changing receipts, cash or their known split; cancellation is inert',async t=>{
@@ -847,4 +847,38 @@ test('large history paginates and unknown history is never inferred for legacy d
 test('total and previously-paid counts derive outstanding count while newer installments still require real account transactions',async t=>{
  const f=await simpleLoan(t,{'loan-left-count':''});assert.equal(f.run('ST.loans[0].schedule.length'),2);assert.equal(f.run('ST.loans[0].totalInstallments'),5);f.run("openLoanSchedule('l');setLoanView('history')");assert.equal(f.w.document.querySelectorAll('#loan-payment-bar button').length,0);
  const before=copy(f.run('ST.tx'));f.run("setLoanView('open');toggleLoanDueSelection(ST.loans[0].schedule[0].id,true)");assert.deepEqual(copy(f.run('ST.tx')),before);f.run('beginSelectedLoanPayment()');assert.deepEqual(copy(f.run('ST.tx')),before);await f.run('confirmPayInstallment()');assert.equal(f.run('ST.tx.filter(t=>t.loanId).length'),1);assert.equal(f.run("calcAccBalance('a')"),1900);
+});
+
+test('simple loan editing opens count, amount and date fields and corrects unknown historical totals without cash movement',async t=>{
+ const f=await simpleLoan(t,{'loan-paid-count':'','loan-total-count':''});f.run("openLoanForm('l')");for(const id of ['loan-left-count','loan-total-count','loan-paid-count','loan-simple-amount','loan-simple-day','loan-simple-mon','loan-simple-year'])assert.equal(f.w.document.getElementById(id).disabled,false,id);
+ const before=copy(f.run('[ST.tx,calcAccBalance(\'a\'),ST.loans[0].schedule]'));f.run("document.getElementById('loan-total-count').value='5'");await f.run('saveLoan()');assert.equal(f.run('ST.loans[0].paidBefore'),3);assert.equal(f.run('ST.loans[0].totalInstallments'),5);assert.deepEqual(copy(f.run('[ST.tx,calcAccBalance(\'a\')]')),before.slice(0,2));assert.deepEqual(copy(f.run('ST.loans[0].schedule.map(s=>s.id)')),before[2].map(s=>s.id));assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+});
+test('confirmed edits change only unpaid planned amounts and dates while preserving completed installments and real payments',async t=>{
+ const f=await simpleLoan(t);await payLoan(f,100);const settled=copy(f.run('ST.loans[0].schedule[0]')),rows=copy(f.run('ST.tx'));f.run("openLoanForm('l')");assert.equal(f.w.document.getElementById('loan-left-count').value,'1');f.run("document.getElementById('loan-simple-amount').value='125';document.getElementById('loan-simple-day').value='15';fillMon('loan-simple-mon',3)");await f.run('saveLoan()');
+ assert.deepEqual(copy(f.run('ST.loans[0].schedule[0]')),settled);assert.deepEqual(copy(f.run('ST.tx')),rows);assert.equal(f.run("calcAccBalance('a')"),1900);assert.equal(f.run('ST.loans[0].schedule[1].a'),125);assert.equal(f.run('ST.loans[0].schedule[1].day'),15);assert.equal(f.run('ST.loans[0].schedule[1].m'),3);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+ await f.run('doUndo()');assert.equal(f.run('ST.loans[0].schedule[1].a'),100);assert.deepEqual(copy(f.run('ST.tx')),rows);
+});
+test('increasing or reducing remaining count preserves existing due IDs, paid dues and all allocations',async t=>{
+ const f=await simpleLoan(t);await payLoan(f,100);const paidId=f.run('ST.loans[0].schedule[0].id'),openId=f.run('ST.loans[0].schedule[1].id'),rows=copy(f.run('ST.tx'));
+ f.run("openLoanForm('l');document.getElementById('loan-left-count').value='3'");await f.run('saveLoan()');assert.equal(f.run('ST.loans[0].schedule.length'),4);assert.equal(f.run('ST.loans[0].totalInstallments'),7);assert.equal(f.run('ST.loans[0].schedule[0].id'),paidId);assert.equal(f.run('ST.loans[0].schedule[1].id'),openId);assert.deepEqual(copy(f.run('ST.tx')),rows);
+ f.run("openLoanForm('l');document.getElementById('loan-left-count').value='1'");await f.run('saveLoan()');assert.equal(f.run('ST.loans[0].schedule.length'),2);assert.equal(f.run('ST.loans[0].totalInstallments'),5);assert.equal(f.run('ST.loans[0].schedule[0].id'),paidId);assert.equal(f.run('ST.loans[0].schedule[1].id'),openId);assert.deepEqual(copy(f.run('ST.tx')),rows);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+});
+test('partial-payment protection rejects deletion or amount changes that would silently settle a due',async t=>{
+ const f=await simpleLoan(t);f.run("payInstallment('l',false,'',ST.loans[0].schedule[1].id);document.getElementById('loanpay-amt').value='40';document.getElementById('loanpay-int').value='0'");await f.run('confirmPayInstallment()');const before=copy(f.run('ST'));
+ f.run("openLoanForm('l');document.getElementById('loan-left-count').value='1'");await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST')),before);assert.match(f.w.document.getElementById('loan-edit-error').textContent,/پرداخت ناقص/);
+ f.run("openLoanForm('l');document.getElementById('loan-simple-amount').value='40'");await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST')),before);assert.match(f.w.document.getElementById('loan-edit-error').textContent,/بدون تراکنش/);
+ f.run("openLoanForm('l');document.getElementById('loan-simple-amount').value='120'");await f.run('saveLoan()');assert.equal(f.run('loanDueItems(ST.loans[0])[1].left'),80);assert.deepEqual(copy(f.run('ST.tx')),before.tx);
+});
+test('cancelled, stale and inconsistent edits are inert, while untouched custom schedule values stay intact',async t=>{
+ const f=await simpleLoan(t);f.run("ST.loans[0].schedule[1].a=140;ST.loans[0].schedule[1].day=19;openLoanForm('l')");const before=copy(f.run('ST'));f.w.confirm=()=>false;f.run("document.getElementById('loan-simple-amount').value='120'");await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST')),before);f.w.confirm=()=>true;
+ f.run("openLoanForm('l');document.getElementById('loan-paid-count').value='4'");await f.run('saveLoan()');assert.equal(f.run('ST.loans[0].schedule[1].a'),140);assert.equal(f.run('ST.loans[0].schedule[1].day'),19);assert.deepEqual(copy(f.run('ST.tx')),before.tx);
+ f.run("openLoanForm('l');document.getElementById('loan-total-count').value='2';document.getElementById('loan-paid-count').value='5'");const valid=copy(f.run('ST'));await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST')),valid);
+ f.run("openLoanForm('l');ST.loans[0].note='تغییر همزمان';document.getElementById('loan-n').value='ویرایش قدیمی'");await f.run('saveLoan()');assert.equal(f.run('ST.loans[0].n'),valid.loans[0].n);assert.match(f.w.document.getElementById('loan-edit-error').textContent,/دوباره باز کنید/);
+});
+test('settled simple loan can be renamed without new cash entries and new planned dues start after its last due',async t=>{
+ const f=await simpleLoan(t);await payLoan(f,200,0,1,5,true);const rows=copy(f.run('ST.tx'));f.run("openLoanForm('l');document.getElementById('loan-n').value='عنوان اصلاح‌شده'");await f.run('saveLoan()');assert.equal(f.run('ST.loans[0].n'),'عنوان اصلاح‌شده');assert.deepEqual(copy(f.run('ST.tx')),rows);
+ f.run("openLoanForm('l')");assert.equal(f.w.document.getElementById('loan-simple-mon').value,'3');f.run("document.getElementById('loan-left-count').value='1'");await f.run('saveLoan()');assert.equal(f.run('ST.loans[0].schedule[2].m'),3);assert.equal(f.run('ST.loans[0].schedule[0].a'),100);assert.deepEqual(copy(f.run('ST.tx')),rows);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
+});
+test('a payment arriving during loan editing invalidates the stale form even when the loan scalar fields stay unchanged',async t=>{
+ const f=await simpleLoan(t);f.run("openLoanForm('l');const pendingEditScalar=JSON.stringify(ST.loans[0]);const liveLoan=ST.loans[0];postLoanPayment(liveLoan,25,0,{y:1405,m:1,d:5},'a',[{dueId:liveLoan.schedule[0].id,a:25}]);document.getElementById('loan-simple-amount').value='120'");assert.equal(f.run('JSON.stringify(ST.loans[0])===pendingEditScalar'),true);const before=copy(f.run('ST'));await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST')),before);assert.match(f.w.document.getElementById('loan-edit-error').textContent,/دوباره باز کنید/);
 });
