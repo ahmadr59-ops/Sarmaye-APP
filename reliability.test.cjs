@@ -882,3 +882,23 @@ test('settled simple loan can be renamed without new cash entries and new planne
 test('a payment arriving during loan editing invalidates the stale form even when the loan scalar fields stay unchanged',async t=>{
  const f=await simpleLoan(t);f.run("openLoanForm('l');const pendingEditScalar=JSON.stringify(ST.loans[0]);const liveLoan=ST.loans[0];postLoanPayment(liveLoan,25,0,{y:1405,m:1,d:5},'a',[{dueId:liveLoan.schedule[0].id,a:25}]);document.getElementById('loan-simple-amount').value='120'");assert.equal(f.run('JSON.stringify(ST.loans[0])===pendingEditScalar'),true);const before=copy(f.run('ST'));await f.run('saveLoan()');assert.deepEqual(copy(f.run('ST')),before);assert.match(f.w.document.getElementById('loan-edit-error').textContent,/دوباره باز کنید/);
 });
+
+test('balance correction preserves history and excludes adjustment from income and cashflow',async t=>{
+ const f=setup(t);await f.boot();f.run(`ST.accounts=[{id:'probe',bank:'آزمایشی',initBalance:0}];ST.tx=[{id:'old',tp:'income',cat:'i1',a:1000,accId:'probe',day:1,m:0,y:1405}];rDash=()=>{};rTx=()=>{};`);
+ const old=f.run('JSON.stringify(ST.tx[0])');f.run(`openBalanceCorrection('probe');document.getElementById('balancecorrection-amount').value='۷۵۰'`);await f.run('saveBalanceCorrection()');
+ assert.equal(f.run("calcAccBalance('probe')"),750);assert.equal(f.run('JSON.stringify(ST.tx[0])'),old);assert.equal(f.run('isPnL(ST.tx[1])'),false);assert.equal(f.run('cashFlowEntry(ST.tx[1],ST.tx[1].m,ST.tx[1].y)'),false);
+ f.run(`openBalanceCorrection('probe');document.getElementById('balancecorrection-amount').value='۷۵۰'`);await f.run('saveBalanceCorrection()');assert.equal(f.run('ST.tx.length'),2);
+ f.run(`openBalanceCorrection('probe');document.getElementById('balancecorrection-amount').value='abc'`);await f.run('saveBalanceCorrection()');assert.equal(f.run('ST.tx.length'),2);
+ f.run(`document.getElementById('balancecorrection-amount').value='900';ST.tx[0].a=1100`);await f.run('saveBalanceCorrection()');assert.equal(f.run('ST.tx.length'),2);assert.match(f.w.document.getElementById('balancecorrection-error').textContent,/تغییر/);
+});
+test('modal scroll lock persists through stacked sheets and restores previous page position',async t=>{
+ const f=setup(t);let restored;f.w.scrollTo=(x,y)=>restored=y;Object.defineProperty(f.w,'scrollY',{value:230});
+ f.run(`document.getElementById('transm').classList.add('on');syncModalScroll()`);assert.equal(f.w.document.body.style.top,'-230px');
+ f.run(`document.getElementById('accm').classList.add('on');cls('transm');syncModalScroll()`);assert.equal(f.w.document.body.style.position,'fixed');
+ f.run(`cls('accm');syncModalScroll()`);assert.equal(f.w.document.body.style.position,'');assert.equal(restored,230);
+});
+test('connection badge requires successful read and never claims destination import',async t=>{
+ const f=setup(t);f.run(`ghOn=()=>true;ghFetch=async()=>({ok:true,json:async()=>({type:'file'})})`);
+ f.w.document.getElementById('bridge-body').innerHTML='<div id="bridge-access"></div>';await f.run("checkBridgeAccess('amlak')");assert.ok(f.w.document.getElementById('bridge-access').classList.contains('ok'));
+ f.run(`ghFetch=async()=>({ok:false,status:403})`);await f.run("checkBridgeAccess('amlak')");assert.equal(f.w.document.getElementById('bridge-access').classList.contains('ok'),false);
+});

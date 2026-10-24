@@ -438,3 +438,9 @@ fixture آزمون پس از پایان هر سناریو مراجع DOM را آ
 همزمان، وام تسویه‌شده و رسیدن پرداخت در زمان بازبودن فرم را پوشش می‌دهند.
 تست‌ها با داده ساختگی و شبکه مسدودند؛ صفحه‌کلید و ظاهر نسخه اصلاح‌شده روی آیفون
 واقعی در این محیط آزمایش نشده‌اند.
+
+## v24.41 — account correction, modal scrolling and report polish
+- Modal sheets lock the background at its current position until the last sheet closes; nested sheet scrolling is contained. Real iPhone verification remains necessary.
+- Accounts expose explicit current-balance correction with preview and a dated, auditable revaluation row. Prior transactions, opening balances, P&L and gross cashflow are preserved. Stale forms and duplicate/no-change submissions are guarded.
+- Bridge screens check read access to the selected GitHub inbox before showing a green check. This does not certify write permission or destination import; failed/offline checks remain unverified.
+- Report period selector uses a consistent touch-sized control and professional labels. GitHub backup status explains the existing 15-second debounce while the application is running.

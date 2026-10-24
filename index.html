@@ -357,6 +357,12 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 
 #loanm .mdl{background:var(--bg);max-height:94vh;max-height:94dvh}.loan-entry-list{display:grid;gap:14px;margin:16px 0}.loan-entry-card{width:100%;border:1px solid var(--border);background:var(--card);border-radius:20px;padding:16px;text-align:right;font:inherit;color:var(--t1);cursor:pointer;box-shadow:var(--sh)}.loan-entry-heading{display:flex;align-items:center;gap:12px}.loan-entry-heading b,.loan-entry-heading small{display:block}.loan-entry-heading b{font-size:16px}.loan-entry-heading small{font-size:12px;color:var(--t2);margin-top:5px}.loan-entry-bank{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:var(--prl);color:var(--pr);flex-shrink:0}.loan-entry-bank svg{width:24px;height:24px}.loan-entry-arrow{margin-right:auto;font-size:30px;color:var(--t3)}.loan-entry-progress{display:block;background:var(--prl);height:6px;border-radius:6px;overflow:hidden;margin:16px 0 8px}.loan-entry-progress>span{display:block;background:var(--gr);height:100%;border-radius:6px}.loan-entry-caption{display:block;font-size:12px;color:var(--t2)}.loan-entry-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.loan-entry-stats small,.loan-entry-stats b{display:block;line-height:1.9;overflow-wrap:anywhere}.loan-entry-stats small{font-size:11px;color:var(--t2)}.loan-entry-stats b{font-size:13px}.loan-entry-next{display:block;font-size:12px;line-height:1.9;padding-top:10px;border-top:1px solid var(--border)}.loan-entry-alert{display:block;font-size:12px;padding:8px;border-radius:10px;background:var(--aml);color:var(--am);margin-top:8px}.loan-historical-card{border-inline-start:3px solid var(--gr)}
 
+
+/* Modal scrolling stays inside the sheet, including iOS. */
+.ov{overscroll-behavior:none}.mdl{overscroll-behavior-y:contain;max-height:88dvh;touch-action:pan-y}
+.report-period-control{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:14px}
+#report-period{font:inherit;font-size:16px;font-weight:700;color:var(--pr);background:var(--prl);border:0;border-radius:12px;padding:12px;max-width:70%;min-height:48px}
+.connection-badge{display:block;padding:12px;border-radius:12px;background:var(--prl);color:var(--t2);line-height:1.8}.connection-badge.ok{background:var(--grl);color:var(--gr)}
 </style>
 </head>
 <body>
@@ -1364,6 +1370,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 
 <div class="ov" id="ledgerm" role="dialog" aria-modal="true" aria-labelledby="ledger-title"><div class="mdl"><div class="mh"></div><h2 id="ledger-title"></h2><p id="ledger-summary" class="ux-note"></p><div id="ledger-list"></div><button id="ledger-more" class="btn btns" onclick="ledgerLimit+=80;renderLedger()">نمایش بیشتر</button><button class="btn btns" onclick="cls('ledgerm')">بستن</button></div></div>
 <div class="ov" id="txdetailm" role="dialog" aria-modal="true" aria-labelledby="txdetail-title"><div class="mdl"><div class="mh"></div><h2 id="txdetail-title">جزئیات تراکنش</h2><div id="txdetail-body"></div><div class="ux-actions"><button id="txdetail-edit" class="btn btnp" onclick="editDetailedTx()">ویرایش</button><button id="txdetail-repeat" class="btn btns" onclick="repeatTransaction(detailTxId)">ثبت مشابه با تاریخ امروز</button></div><button class="btn btns" onclick="cls('txdetailm')">بستن</button></div></div>
+<div class="ov" id="balancecorrectionm" role="dialog" aria-modal="true" aria-labelledby="balancecorrection-title"><div class="mdl"><h2 id="balancecorrection-title">اصلاح موجودی فعلی</h2><p id="balancecorrection-current" class="ux-note"></p><label for="balancecorrection-amount">موجودی صحیح (تومان)</label><input id="balancecorrection-amount" class="inp" inputmode="decimal" dir="ltr"><p class="ux-note">اختلاف با تاریخ امروز در گردش حساب ثبت می‌شود؛ درآمد یا هزینه محسوب نمی‌شود. اگر تراکنشی ثبت نشده، ابتدا آن را ثبت کنید.</p><p id="balancecorrection-error" role="alert" class="review-error" hidden></p><button class="btn btnp" id="balancecorrection-save" onclick="saveBalanceCorrection()">بررسی و ثبت اصلاح</button><button class="btn btns" onclick="cls('balancecorrectionm')">انصراف</button></div></div>
 <div class="ov" id="bridgem" role="dialog" aria-modal="true" aria-labelledby="bridge-title"><div class="mdl"><div class="mh"></div><h2 id="bridge-title">اتصال به املاک و صرافی</h2><div id="bridge-body"></div><button class="btn btns" onclick="cls('bridgem')">بستن</button></div></div>
 <div class="ov" id="protectionm" role="dialog" aria-modal="true" aria-labelledby="protection-title"><div class="mdl"><div class="mh"></div><h2 id="protection-title">پشتیبان و بازیابی</h2><div id="protection-body"></div><input type="file" id="imp2" accept=".json" hidden onchange="restore(this)"><button class="btn btns" onclick="cls('protectionm')">بستن</button></div></div>
 <div class="ov" id="loanhistorym" role="dialog" aria-modal="true" aria-labelledby="loanhistory-title"><div class="mdl"><div class="mh"></div><h2 id="loanhistory-title"></h2><div id="loanhistory-body"></div><button class="btn btns" onclick="cls('loanhistorym');openLoanList()">بازگشت به وام‌ها</button></div></div>
@@ -2008,7 +2015,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.40';
+const APP_VERSION='v24.41';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -4545,7 +4552,7 @@ function ghFetch(path,opt){
   const c=ghCfg();opt=opt||{};
   const h={'Authorization':'Bearer '+c.token,'Accept':opt.accept||'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
   if(opt.body)h['Content-Type']='application/json';
-  return fetch('https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+path,{method:opt.method||'GET',cache:'no-store',headers:h,body:opt.body});
+  return fetch('https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+path,{signal:opt.signal,method:opt.method||'GET',cache:'no-store',headers:h,body:opt.body});
 }
 function ghErr(r){return r.status===401?'توکن نامعتبر یا منقضی است':r.status===403?'توکن اجازهٔ نوشتن در این ریپو را ندارد':r.status===404?'ریپو پیدا نشد یا توکن به آن دسترسی ندارد':r.status===409?'تداخل همزمانی؛ دوباره تلاش کنید':'خطای GitHub ('+r.status+')';}
 async function ghBackup(silent){
@@ -4593,7 +4600,7 @@ function ghStatus(){
   const el=document.getElementById('gh-status');if(!el)return;
   if(!ghOn()){el.textContent='تنظیم نشده — مشخصات مخزن خودتان را وارد کنید؛ دسترسی شبکه برای اتصال لازم است';return;}
   const c=ghCfg();const last=+localStorage.getItem(GH_LAST)||0;
-  el.textContent=`فعال — ${c.owner}/${c.repo}${c.pass?' (رمزنگاری‌شده)':''}؛ `+(last?'آخرین پشتیبان: '+new Date(last).toLocaleString('fa-IR'):'هنوز پشتیبانی ثبت نشده');
+  el.textContent=`خودکار؛ حدود ۱۵ ثانیه پس از آخرین تغییر، هنگام بازبودن اپ و دسترسی به اینترنت — ${c.owner}/${c.repo}${c.pass?' (رمزنگاری‌شده)':''}؛ `+(last?'آخرین پشتیبان: '+new Date(last).toLocaleString('fa-IR'):'هنوز پشتیبانی ثبت نشده');
 }
 function openGhModal(){
   ghStatus();const c=ghCfg();
@@ -5926,7 +5933,7 @@ function openAccList(){
           ${(a.archived
             ?`<button onclick="unarchiveAcc('${a.id}')" style="background:var(--grl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--gr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">فعال‌سازی</button>`
             :`<button onclick="archiveAcc('${a.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font-size:12px;color:var(--t2);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">آرشیو</button>`)}
-          <button onclick="openAccForm('${a.id}')" style="background:var(--prl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">ویرایش</button>
+          <button class="btns" data-id="${esc(a.id)}" onclick="openBalanceCorrection(this.dataset.id)">اصلاح موجودی</button><button onclick="openAccForm('${a.id}')" style="background:var(--prl);border:none;border-radius:9px;padding:7px 14px;font-size:12px;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700">ویرایش</button>
         </div>
       </div>`;
     }).join('');
@@ -6750,14 +6757,14 @@ function rReportOverview(){
   const categories={};getTx(SM,SY).filter(t=>isPnL(t)&&t.tp==='expense').forEach(t=>categories[t.cat]=(categories[t.cat]||0)+t.a);
   const top=Object.entries(categories).sort((a,b)=>b[1]-a[1]).slice(0,3);
   const periods=new Set([SY*12+SM]);const now=today();for(let i=0;i<24;i++)periods.add(now.y*12+now.m-1-i);ST.tx.forEach(t=>periods.add((t.y||SY)*12+t.m));
-  el.innerHTML=`<label for="report-period" class="ux-note">دوره گزارش</label><select id="report-period" onchange="selectReportPeriod(this.value)">${[...periods].sort((a,b)=>b-a).map(p=>`<option value="${Math.floor(p/12)}_${p%12}" ${p===SY*12+SM?'selected':''}>${fmtMonthYear(p%12,Math.floor(p/12))}</option>`).join('')}</select><div class="card-t" style="margin-top:12px">ماه ${fmtMonthYear(SM,SY)}</div>
+  el.innerHTML=`<div class="report-period-control"><label for="report-period">دوره گزارش</label><select id="report-period" onchange="selectReportPeriod(this.value)">${[...periods].sort((a,b)=>b-a).map(p=>`<option value="${Math.floor(p/12)}_${p%12}" ${p===SY*12+SM?'selected':''}>${fmtMonthYear(p%12,Math.floor(p/12))}</option>`).join('')}</select></div><div class="card-t">خلاصه درآمد و هزینه</div>
     <button class="ux-link ux-row" onclick="openReportRows('expense')"><span>هزینه‌های ثبت‌شده</span><b>${money(cur.e)} ←</b></button>
-    <button class="ux-link ux-row" onclick="openReportRows('income')"><span>چقدر درآمد داشتم؟</span><b>${money(cur.i)} ←</b></button>
+    <button class="ux-link ux-row" onclick="openReportRows('income')"><span>درآمد ثبت‌شده</span><b>${money(cur.i)} ←</b></button>
     <button class="ux-link ux-row" onclick="openReportRows('all')"><span>مازاد درآمد بر هزینه</span><b>${money(cur.b)} ←</b></button>
     <p class="ux-note">${diff===0?'هزینه بدون تغییر':money(Math.abs(diff))+(diff>0?' هزینه بیشتر':' هزینه کمتر')} نسبت به ${fmtMonthYear(cmp.prev.m,cmp.prev.y)}${cmp.day?'؛ مقایسه تا روز '+toFa(cmp.day)+' هر دو ماه':'؛ مقایسه کل ماه‌ها'}.</p>
     <div class="ux-note">${top.length?'بیشترین هزینه‌ها:':'هنوز هزینه‌ای ثبت نشده است.'}</div>
     ${top.map(([id,a])=>`<button class="ux-link ux-row" data-cat="${esc(id)}" onclick="openReportRows('expense',SM,SY,this.dataset.cat)"><span>${esc(getCat('expense',id).n)}</span><b>${money(a)} ←</b></button>`).join('')}`;
-  const flow=cashFlowSummary();el.insertAdjacentHTML('afterbegin',`<div class="report-hero"><span>${fmtMonthYear(SM,SY)}</span><h2>گردش پول این ماه</h2><div class="report-hero-grid"><button onclick="openCashFlowRows('income')"><small>ورودی حساب‌ها</small><b>${money(flow.incoming)}</b></button><button onclick="openCashFlowRows('expense')"><small>خروجی، شامل اقساط</small><b>${money(flow.outgoing)}</b></button></div><p>جزئیات هر مبلغ را با لمس آن ببینید.</p></div>`);
+  const flow=cashFlowSummary();el.insertAdjacentHTML('beforeend',`<div class="report-hero"><span>${fmtMonthYear(SM,SY)}</span><h2>گردش حساب‌ها</h2><div class="report-hero-grid"><button onclick="openCashFlowRows('income')"><small>ورودی حساب‌ها</small><b>${money(flow.incoming)}</b></button><button onclick="openCashFlowRows('expense')"><small>خروجی حساب‌ها</small><b>${money(flow.outgoing)}</b></button></div><p>شامل وام و اقساط؛ بدون انتقال بین حساب‌های خودتان.</p></div>`);
   renderUnsplitLoanReport(el);renderCashFlowReport(el);
 }
 function rHomeSummary(){
@@ -6833,14 +6840,14 @@ let bridgeView=null;
 function openBridgeStatus(target=null){
   bridgeView=['amlak','sarafi'].includes(target)?target:null;document.getElementById('bridge-title').textContent=bridgeView==='amlak'?'ارتباط با املاک':bridgeView==='sarafi'?'ارتباط با صرافی':'ارتباط با املاک و صرافی';
   const box=document.getElementById('bridge-body');
-  box.innerHTML='<p class="ux-note">'+(ghOn()?'تنظیمات GitHub موجود است؛ موفقیت هر ارسال جداگانه گزارش می‌شود.':'برای ارسال، ابتدا اتصال GitHub را تنظیم کنید؛ صف موجود حفظ می‌شود.')+'</p><button class="btn btns" onclick="openBridgeConnectionSettings()">تنظیم اتصال GitHub</button><p class="ux-note">ارسال به صندوق مقصد با ثبت نهایی در آن اپ فرق دارد. اطلاعات قرارداد در «املاک» و معامله و هزینه ارزی در «صرافی» اصلاح می‌شود.</p>'+(bridgeView?[bridgeView]:['amlak','sarafi']).map(target=>{
+  box.innerHTML='<div id="bridge-access" class="connection-badge" role="status">در حال بررسی اتصال…</div><p class="ux-note">'+(ghOn()?'تنظیمات GitHub موجود است؛ موفقیت هر ارسال جداگانه گزارش می‌شود.':'برای ارسال، ابتدا اتصال GitHub را تنظیم کنید؛ صف موجود حفظ می‌شود.')+'</p><button class="btn btns" onclick="openBridgeConnectionSettings()">تنظیم اتصال GitHub</button><p class="ux-note">ارسال به صندوق مقصد با ثبت نهایی در آن اپ فرق دارد. اطلاعات قرارداد در «املاک» و معامله و هزینه ارزی در «صرافی» اصلاح می‌شود.</p>'+(bridgeView?[bridgeView]:['amlak','sarafi']).map(target=>{
     const name=target==='amlak'?'املاک':'صرافی',queue=ST[target+'Outbox']||[],history=(ST.bridgeLog||[]).filter(x=>x.target===target).slice(-10).reverse();
     return `<div class="ux-section"><h3>${name}</h3><p class="ux-note">${ST.bridgeErrors?.[target]?'نیازمند بررسی اتصال؛ موارد ارسال‌نشده در صف حفظ شده‌اند.':queue.length?'در انتظار ارسال':'موردی در صف نیست'}</p>
       ${queue.map(x=>uxRow('در صف ارسال',money(x.a||0))).join('')}
       ${history.map(x=>uxRow('ارسال به صندوق · '+new Date(x.at).toLocaleString('fa-IR'),money(x.a))).join('')}
       ${!history.length?'<p class="ux-note">هنوز ارسال تأییدشده‌ای در این نسخه ثبت نشده است.</p>':''}
       <button class="btn btns" onclick="retryBridge('${target}')">تلاش برای ارسال صف ${name}</button></div>`;
-  }).join('');document.getElementById('bridgem').classList.add('on');
+  }).join('');document.getElementById('bridgem').classList.add('on');checkBridgeAccess(bridgeView);
 }
 async function retryBridge(target){if(target==='amlak')await flushAmlakOutbox();else await flushSarafiOutbox();openBridgeStatus(bridgeView);}
 function openProtection(){
@@ -7453,6 +7460,56 @@ function buildSimpleLoanEdit(l){
   validateLoanSchedules({...ST,loans:ST.loans.map(x=>x.id===l.id?loan:x)});
   const next=schedule.filter(s=>targetIds.includes(s.id)).sort((a,b)=>dateToInt(a.y,a.m,a.day)-dateToInt(b.y,b.m,b.day))[0];
   return {changed:true,loan,preview:'پیش‌نمایش تغییر وام:\nاقساط باقی‌مانده: '+toFa(open.length)+' ← '+toFa(count)+'\nسابقه پیش از شروع: '+(paid==null?'نامعلوم':toFa(paid))+'\nتعداد کل: '+(total==null?'نامعلوم':toFa(total))+'\nجمع باقی‌مانده برنامه: '+money(loanDueItems(loan).reduce((n,s)=>n+s.left,0))+(amountChanged?'\nمبلغ کامل اقساط پرداخت‌نشده: '+money(f.amount):'')+(next?'\nاولین سررسید پرداخت‌نشده: '+fmtDate(next.day,next.m,next.y):'')+'\n'+toFa(settled.length)+' قسط تکمیل‌شده و همه تراکنش‌ها/موجودی حفظ می‌شوند.\nتغییرات ذخیره شود؟'};
+}
+
+
+// Preserve the page position across stacked sheets and every close path.
+let modalScrollSnapshot=null;
+function syncModalScroll(){
+ const opened=!!document.querySelector('.ov.on');
+ if(opened&&!modalScrollSnapshot){const b=document.body;modalScrollSnapshot={y:window.scrollY,position:b.style.position,top:b.style.top,width:b.style.width};b.style.position='fixed';b.style.top='-'+modalScrollSnapshot.y+'px';b.style.width='100%';}
+ else if(!opened&&modalScrollSnapshot){const old=modalScrollSnapshot;modalScrollSnapshot=null;Object.assign(document.body.style,{position:old.position,top:old.top,width:old.width});window.scrollTo(0,old.y);}
+}
+if(typeof MutationObserver!=='undefined'){const modalObserver=new MutationObserver(syncModalScroll);document.querySelectorAll('.ov').forEach(el=>modalObserver.observe(el,{attributes:true,attributeFilter:['class']}));}
+let balanceCorrection=null,balanceCorrectionBusy=false;
+function openBalanceCorrection(id){
+ const a=ST.accounts.find(a=>a.id===id);if(!a)return;
+ balanceCorrection={id,balance:calcAccBalance(id),epoch:stateEpoch};
+ document.getElementById('balancecorrection-current').textContent=getAccName(id)+' · موجودی ثبت‌شده: '+money(balanceCorrection.balance);
+ document.getElementById('balancecorrection-amount').value=balanceCorrection.balance;
+ document.getElementById('balancecorrection-error').hidden=true;document.getElementById('balancecorrectionm').classList.add('on');
+}
+async function saveBalanceCorrection(){
+ if(balanceCorrectionBusy||!balanceCorrection)return;
+ const error=document.getElementById('balancecorrection-error'),button=document.getElementById('balancecorrection-save');
+ balanceCorrectionBusy=true;button.disabled=true;
+ try{
+  const c=balanceCorrection,raw=normDigits(document.getElementById('balancecorrection-amount').value).replace(/[,٬\s]/g,'');
+  if(!/^-?\d+$/.test(raw))throw Error('موجودی را به تومان و بدون اعشار وارد کنید');
+  const target=Number(raw);if(!Number.isSafeInteger(target)||Math.abs(target)>100000000000)throw Error('موجودی خارج از محدوده مجاز است');
+  if(!storageHealthy||stateReplacing||c.epoch!==stateEpoch||!ST.accounts.some(a=>a.id===c.id)||calcAccBalance(c.id)!==c.balance)throw Error('اطلاعات حساب تغییر کرده؛ فرم را دوباره باز کنید');
+  const diff=target-c.balance;if(!diff){cls('balancecorrectionm');return;}
+  if(!confirm('موجودی ثبت‌شده: '+money(c.balance)+'\nموجودی صحیح: '+money(target)+'\nتعدیل: '+money(diff)+'\nاصلاح ثبت شود؟'))return;
+  const d=today();ST.tx.push({id:uid(),tp:diff>0?'income':'expense',cat:'revaluation',nature:'revaluation',balanceCorrection:true,a:Math.abs(diff),accId:c.id,day:d.d,m:d.m-1,y:d.y,dsc:'اصلاح دستی موجودی حساب'});
+  await sv();balanceCorrection=null;cls('balancecorrectionm');openAccList();rDash();rTx();ntf('اصلاح موجودی در گردش حساب ثبت شد');
+ }catch(e){error.textContent=e.message||'ذخیره انجام نشد';error.hidden=false;}
+ finally{balanceCorrectionBusy=false;button.disabled=false;}
+}
+let bridgeCheckSequence=0;
+async function checkBridgeAccess(target){
+ const seq=++bridgeCheckSequence,el=document.getElementById('bridge-access');if(!el)return;
+ if(!ghOn()){el.textContent='اتصال GitHub تنظیم نشده است';return;}
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  if(!target){el.textContent='برای بررسی اتصال، املاک یا صرافی را انتخاب کنید';return;}
+  const file=target==='sarafi'?'sarafi-inbox.json':'amlak-inbox.json';
+  const r=await ghFetch('/contents/'+file,{signal:controller.signal});if(!r.ok)throw Error(r.status===404?'صندوق مقصد یافت نشد؛ اتصال نیازمند بررسی است':ghErr(r));
+  const data=await r.json();if(data.type!=='file')throw Error('صندوق مقصد معتبر نیست');
+  if(seq!==bridgeCheckSequence)return;
+  el.className='connection-badge ok';el.textContent='✓ ارتباط با صندوق '+(target==='sarafi'?'صرافی':'املاک')+' برقرار است';
+  const note=document.createElement('small');note.style.display='block';note.textContent='دسترسی خواندن بررسی شد؛ دریافت نهایی اطلاعات در اپ مقصد جداگانه انجام می‌شود.';el.appendChild(note);
+ }catch(e){if(seq===bridgeCheckSequence){el.className='connection-badge';el.textContent='اتصال تأیید نشد؛ '+(e.name==='AbortError'?'زمان پاسخ به پایان رسید':e.message);}}
+ finally{clearTimeout(timer);}
 }
 
 init();
