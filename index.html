@@ -544,7 +544,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <div style="padding:16px 14px 0">
     <button class="btn btnp" onclick="exportCSV()" style="margin:0"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>خروجی CSV</button>
   </div>
-  <div class="creator-footer">سرمایه — ساخته شده توسط <span>Ahmad Rezazadeh</span></div>
+
 </div>
 
 <!-- SCREEN 4: Settings -->
@@ -561,8 +561,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
       <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--t3);stroke-width:2;fill:none;flex-shrink:0"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
   </div>
-  <div class="card"><button class="ux-link ux-row" onclick="openProtection()"><b>حفاظت اطلاعات</b><span>ذخیره، پشتیبان و بازیابی ←</span></button><button class="ux-link ux-row" onclick="openBridgeStatus()"><b>املاک و صرافی</b><span>وضعیت ارسال و موارد نیازمند بررسی ←</span></button></div>
-  <div style="text-align:center;font-size:12px;color:var(--t3);margin-top:22px;line-height:1.9"><span id="app-name-display">سرمایه</span><br>Ahmad Rezazadeh</div>
+  <div class="card"><button class="ux-link ux-row" onclick="openSms()"><b>پیامک بانکی</b><span>ورود پیامک و دریافت خودکار ←</span></button><button class="ux-link ux-row" onclick="openProtection()"><b>پشتیبان و بازیابی</b><span>ذخیره، پشتیبان و بازیابی ←</span></button><button class="ux-link ux-row" onclick="openBridgeStatus()"><b>اتصال به املاک و صرافی</b><span>وضعیت ارسال و موارد نیازمند بررسی ←</span></button></div>
+  <details class="ux-more" style="margin:18px 14px"><summary>درباره برنامه</summary><p class="ux-note"><span id="app-name-display">سرمایه</span><br>مدیریت مالی شخصی<br>سازنده: Ahmad Rezazadeh</p></details>
   <div style="height:20px"></div>
 </div>
 
@@ -609,13 +609,13 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   </div>
   <div class="sg-div"></div>
   <details id="settings-advanced" class="ux-more"><summary>ورود داده و ابزارهای پیشرفته</summary>
-    <p class="sg-txt">خروجی CSV در «گزارش» و پشتیبان و بازیابی در «بیشتر ← حفاظت اطلاعات» قرار دارند.</p>
+    <p class="sg-txt">خروجی CSV در «گزارش» و پشتیبان و بازیابی در «بیشتر ← پشتیبان و بازیابی» قرار دارند.</p>
     <button class="btn btns" onclick="cls('setm');openSms()">ورود دستی متن پیامک</button>
     <label class="btn btns" style="position:relative;display:flex;align-items:center;justify-content:center">ورود صورتحساب بانکی<input type="file" accept=".json,application/json" onchange="stmtOpen(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
     <button class="btn btns" id="set-fx" style="display:none" onclick="cls('setm');openFxList()">حواله‌های ارزی قبلی</button>
   </details>
   <details id="settings-reset" class="ux-more"><summary>بازنشانی اطلاعات</summary>
-    <p class="sg-txt">پاک‌کردن اطلاعات این دستگاه؛ پیش از ادامه از «حفاظت اطلاعات» پشتیبان بگیرید.</p>
+    <p class="sg-txt">پاک‌کردن اطلاعات این دستگاه؛ پیش از ادامه از «پشتیبان و بازیابی» پشتیبان بگیرید.</p>
     <button class="btn" style="background:transparent;color:var(--rd);border:1px solid var(--rdl)" onclick="confirmClearData()">پاک کردن همهٔ داده‌ها</button>
   </details>
   <button class="btn btns" onclick="cls('setm')">بستن</button>
@@ -796,9 +796,9 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
     <ol style="padding-right:18px;margin:4px 0">
       <li><b>Base64 Encode</b> ← ورودی: همان <b>Text</b> ← Line Breaks: <b>None</b></li>
       <li><b>Format Date</b> ← Current Date ← Custom: <code>yyyyMMdd-HHmmss-SSS</code></li>
-      <li><b>Get Contents of URL</b> ← <code dir="ltr">https://api.github.com/repos/ahmadr59-ops/sarmaye-backup/contents/sms/</code> + <b>Formatted Date</b> + <code>.txt</code> ← Method: <b>PUT</b> ← Headers: <code dir="ltr">Authorization</code> = <code dir="ltr">Bearer توکن</code> ← Request Body: <b>JSON</b>: <code>message</code> = <code>sms</code> ، <code>content</code> = <b>Base64 Encoded</b></li>
+      <li><b>Get Contents of URL</b> ← <code id="sms-inbox-url" dir="ltr">https://api.github.com/repos/OWNER/REPOSITORY/contents/sms/</code> + <b>Formatted Date</b> + <code>.txt</code> ← Method: <b>PUT</b> ← Headers: <code dir="ltr">Authorization</code> = <code dir="ltr">Bearer توکن</code> ← Request Body: <b>JSON</b>: <code>message</code> = <code>sms</code> ، <code>content</code> = <b>Base64 Encoded</b></li>
     </ol>
-    از آن به بعد، هر بار سرمایه را باز کنید پیامک‌های تازه در صندوق‌اند.</div>
+    OWNER و REPOSITORY باید مربوط به مخزن خودتان باشند؛ اگر اتصال GitHub تنظیم شده باشد، آدرس بالا از همان تنظیمات پر می‌شود. با بازشدن اپ و برقراری اتصال، پیامک‌های تازه بررسی می‌شوند.</div>
     <button class="btn btns" id="smspull-btn" style="margin-top:6px;font-size:12.5px" onclick="smsInboxPull(true)">🔄 بررسی پیامک‌های رسیده از Shortcut</button>
     <div id="smspull-st" style="display:none;font-size:13px;font-weight:600;line-height:1.9;border-radius:10px;padding:8px 10px;margin-top:6px"></div></details>
 
@@ -956,7 +956,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="ov" id="acclist">
 <div class="mdl">
   <div class="mh"></div>
-  <h2>حساب‌های بانکی</h2>
+  <h2>حساب‌ها و دارایی‌ها</h2>
   <div id="acc-list-content" style="margin-bottom:14px"></div>
   <button class="btn btnp" onclick="openAccForm(null)">➕ افزودن حساب جدید</button>
   <button class="btn btns" onclick="cls('acclist')" style="margin-top:8px">بستن</button>
@@ -1133,7 +1133,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 <div class="ov" id="secm">
 <div class="mdl">
   <div class="mh"></div>
-  <h2>قفل امنیتی</h2>
+  <h2>قفل ورود</h2><p class="ux-note">این کد، ورود به رابط برنامه را محدود می‌کند؛ اطلاعات ذخیره‌شده روی دستگاه را رمزگذاری نمی‌کند.</p>
   <div id="sec-off-view">
     <div style="font-size:12.5px;color:var(--t2);line-height:1.8;margin-bottom:14px">با فعال کردن قفل، هر بار باز کردن برنامه یک کد عبور خواسته می‌شود. اگر کد را فراموش کنید، تنها راه بازیابی، پاک کردن کامل داده‌های برنامه است — پس حتماً پیش از فعال‌سازی یک پشتیبان (Backup) تهیه کنید.</div>
     <div class="fg"><label>کد عبور (۴ تا ۸ رقم)</label><input type="password" id="sec-pin1" inputmode="numeric" maxlength="8" placeholder="****"></div>
@@ -1356,8 +1356,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 
 <div class="ov" id="ledgerm" role="dialog" aria-modal="true" aria-labelledby="ledger-title"><div class="mdl"><div class="mh"></div><h2 id="ledger-title"></h2><p id="ledger-summary" class="ux-note"></p><div id="ledger-list"></div><button id="ledger-more" class="btn btns" onclick="ledgerLimit+=80;renderLedger()">نمایش بیشتر</button><button class="btn btns" onclick="cls('ledgerm')">بستن</button></div></div>
 <div class="ov" id="txdetailm" role="dialog" aria-modal="true" aria-labelledby="txdetail-title"><div class="mdl"><div class="mh"></div><h2 id="txdetail-title">جزئیات تراکنش</h2><div id="txdetail-body"></div><div class="ux-actions"><button id="txdetail-edit" class="btn btnp" onclick="editDetailedTx()">ویرایش</button><button id="txdetail-repeat" class="btn btns" onclick="repeatTransaction(detailTxId)">ثبت مشابه با تاریخ امروز</button></div><button class="btn btns" onclick="cls('txdetailm')">بستن</button></div></div>
-<div class="ov" id="bridgem" role="dialog" aria-modal="true" aria-labelledby="bridge-title"><div class="mdl"><div class="mh"></div><h2 id="bridge-title">ارتباط با املاک و صرافی</h2><div id="bridge-body"></div><button class="btn btns" onclick="cls('bridgem')">بستن</button></div></div>
-<div class="ov" id="protectionm" role="dialog" aria-modal="true" aria-labelledby="protection-title"><div class="mdl"><div class="mh"></div><h2 id="protection-title">حفاظت اطلاعات</h2><div id="protection-body"></div><input type="file" id="imp2" accept=".json" hidden onchange="restore(this)"><button class="btn btns" onclick="cls('protectionm')">بستن</button></div></div>
+<div class="ov" id="bridgem" role="dialog" aria-modal="true" aria-labelledby="bridge-title"><div class="mdl"><div class="mh"></div><h2 id="bridge-title">اتصال به املاک و صرافی</h2><div id="bridge-body"></div><button class="btn btns" onclick="cls('bridgem')">بستن</button></div></div>
+<div class="ov" id="protectionm" role="dialog" aria-modal="true" aria-labelledby="protection-title"><div class="mdl"><div class="mh"></div><h2 id="protection-title">پشتیبان و بازیابی</h2><div id="protection-body"></div><input type="file" id="imp2" accept=".json" hidden onchange="restore(this)"><button class="btn btns" onclick="cls('protectionm')">بستن</button></div></div>
 <div class="ov" id="loanhistorym" role="dialog" aria-modal="true" aria-labelledby="loanhistory-title"><div class="mdl"><div class="mh"></div><h2 id="loanhistory-title"></h2><div id="loanhistory-body"></div><button class="btn btns" onclick="cls('loanhistorym');openLoanList()">بازگشت به وام‌ها</button></div></div>
 
 <div class="ov" id="smsrulesm" role="dialog" aria-modal="true" aria-labelledby="smsrules-title"><div class="mdl"><div class="mh"></div>
@@ -1998,7 +1998,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.35';
+const APP_VERSION='v24.36';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -2227,10 +2227,10 @@ function nav(idx,btn){
   window.scrollTo(0,0);
   curScreen=idx;
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>{b.classList.remove('on');b.removeAttribute('aria-current');});
   document.getElementById('s'+idx).classList.add('on');
-  if(btn)btn.classList.add('on');
-  else document.querySelectorAll('.nb')[idx].classList.add('on');
+  const active=document.querySelectorAll('.nb')[({0:0,1:1,2:4,3:3,4:4})[idx]];
+  if(active){active.classList.add('on');active.setAttribute('aria-current','page');}
   closePickers();
   if(idx===0)rDash();
   if(idx===1)rTx();
@@ -4573,13 +4573,13 @@ async function ghRestore(sha){
 }
 function ghStatus(){
   const el=document.getElementById('gh-status');if(!el)return;
-  if(!ghOn()){el.textContent='غیرفعال — بدون VPN کار می‌کند؛ برای فعال‌سازی «تنظیم» را بزنید';return;}
+  if(!ghOn()){el.textContent='تنظیم نشده — مشخصات مخزن خودتان را وارد کنید؛ دسترسی شبکه برای اتصال لازم است';return;}
   const c=ghCfg();const last=+localStorage.getItem(GH_LAST)||0;
   el.textContent=`فعال — ${c.owner}/${c.repo}${c.pass?' (رمزنگاری‌شده)':''}؛ `+(last?'آخرین پشتیبان: '+new Date(last).toLocaleString('fa-IR'):'هنوز پشتیبانی ثبت نشده');
 }
 function openGhModal(){
   ghStatus();const c=ghCfg();
-  document.getElementById('gh-owner').value=c.owner||'ahmadr59-ops';
+  document.getElementById('gh-owner').value=c.owner||'';
   document.getElementById('gh-repo').value=c.repo||'sarmaye-backup';
   document.getElementById('gh-token').value=c.token||'';
   document.getElementById('gh-pass').value=c.pass||'';
@@ -4856,7 +4856,7 @@ const HELP=[
   ['تراکنش‌ها','همهٔ ثبت‌ها به تفکیک روز. با لمس ردیف، جزئیات و دکمه ویرایش یا ثبت مشابه را می‌بینید. دو ماه آخر نمایش داده می‌شود؛ برای قبل‌تر «نمایش ماه‌های قبل». بعد از ثبت یا حذف، تا ۶ ثانیه «↶ بازگردانی» دارید.'],
   null,
   ['گزارش','درآمد و هزینهٔ واقعی شما؛ انتقال بین حساب‌ها، پول پیش و اصل وام جزو آن نیستند. سرمایه‌گذاری‌ها در کارت جداگانه آمده‌اند.'],
-  ['بیشتر','کاشی‌ها ابزارهای کم‌کاربردترند. «حفاظت اطلاعات»: پشتیبان و بازیابی. «تنظیمات»: ظاهر، قفل و دسته‌بندی‌ها؛ ورود صورتحساب و حواله‌های قدیمی در بخش پیشرفته آن قرار دارند.']];
+  ['بیشتر','کاشی‌ها ابزارهای کم‌کاربردترند. «پشتیبان و بازیابی»: پشتیبان و بازیابی. «تنظیمات»: ظاهر، قفل و دسته‌بندی‌ها؛ ورود صورتحساب و حواله‌های قدیمی در بخش پیشرفته آن قرار دارند.']];
 function showHelp(i){const h=HELP[i];if(!h)return;document.getElementById('hlp-t').textContent=h[0];document.getElementById('hlp-b').textContent=h[1];document.getElementById('hlpm').classList.add('on');}
 document.addEventListener('DOMContentLoaded',()=>{[1,3,4].forEach(i=>{const hd=document.querySelector('#s'+i+' .hdr');if(!hd||hd.querySelector('.hlp'))return;hd.style.position='relative';
   const b=document.createElement('button');b.className='hlp';b.textContent='؟';b.setAttribute('aria-label','راهنما');b.onclick=()=>showHelp(i);hd.appendChild(b);});});
@@ -5311,6 +5311,7 @@ function hiErr(id){
   },2000);
 }
 function openSms(){
+  const cfg=ghCfg(),url=document.getElementById('sms-inbox-url');if(url)url.textContent=cfg.owner&&cfg.repo?'https://api.github.com/repos/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repo)+'/contents/sms/':'https://api.github.com/repos/OWNER/REPOSITORY/contents/sms/';
   {const m=document.getElementById('smsm-msg');if(m){m.style.display='none';m.innerHTML='';}const t=document.getElementById('smst');if(t)t.value='';}
   document.getElementById('smst').value='';
   document.getElementById('smsm').classList.add('on');
@@ -6609,7 +6610,7 @@ async function init(){
   // First launch after the v2 upgrade: offer the untouched v1 file immediately.
   if(pendingV1BackupOffer){
     setTimeout(()=>{
-      if(confirm('داده‌های شما به ساختار جدید (نسخهٔ ۲) ارتقا یافت.\n\nیک نسخهٔ کامل از داده‌های قبلی ذخیره شده است. همین حالا فایل آن را دانلود می‌کنید؟\n\n(هر زمان از بیشتر ← حفاظت اطلاعات ← گزینه‌های پیشرفته هم در دسترس است)'))
+      if(confirm('داده‌های شما به ساختار جدید (نسخهٔ ۲) ارتقا یافت.\n\nیک نسخهٔ کامل از داده‌های قبلی ذخیره شده است. همین حالا فایل آن را دانلود می‌کنید؟\n\n(هر زمان از بیشتر ← پشتیبان و بازیابی ← گزینه‌های پیشرفته هم در دسترس است)'))
         downloadV1Backup();
     },1200);
   }
@@ -6663,6 +6664,7 @@ function renderFilterSummary(){
 function ledgerEntries(q){
   const accountIds=new Set((ST.accounts||[]).map(a=>a.id));
   return sortByDate(ST.tx.filter(t=>{
+    if(q.mode==='cashflow')return cashFlowEntry(t,q.m,q.y)&&(!q.tp||t.tp===q.tp);
     if(q.mode==='account')return t.accId===q.id;
     if(q.mode==='assets')return accountIds.has(t.accId)&&t.y*12+t.m<=q.y*12+q.m;
     if(q.mode==='investment')return t.accId===q.id&&(!q.nature||natureOf(t)===q.nature);
@@ -6683,11 +6685,11 @@ function openInvestmentRows(id,nature=''){ledgerQuery={mode:'investment',id,natu
 function renderLedger(){
   if(!ledgerQuery)return;const q=ledgerQuery,rows=ledgerEntries(q);
   const sum=rows.reduce((n,t)=>n+signedAmount(t),0);
-  const title=q.mode==='loanUnsplit'?'اقساط بدون تفکیک اصل و سود · '+fmtMonthYear(q.m,q.y):q.mode==='account'?'گردش '+getAccName(q.id):q.mode==='investment'?'ثبت‌های '+getAccName(q.id):q.mode==='assets'?'موجودی ثبت‌شده تا '+fmtMonthYear(q.m,q.y):
+  const title=q.mode==='cashflow'?'گردش وجوه حساب‌ها · '+fmtMonthYear(q.m,q.y):q.mode==='loanUnsplit'?'اقساط بدون تفکیک اصل و سود · '+fmtMonthYear(q.m,q.y):q.mode==='account'?'گردش '+getAccName(q.id):q.mode==='investment'?'ثبت‌های '+getAccName(q.id):q.mode==='assets'?'موجودی ثبت‌شده تا '+fmtMonthYear(q.m,q.y):
     (q.cat?getCat(q.tp,q.cat).n:q.tp==='income'?'درآمد':q.tp==='expense'?'هزینه':'درآمد و هزینه')+' · '+(q.m===null?toFa(q.y):fmtMonthYear(q.m,q.y));
   document.getElementById('ledger-title').textContent=title;
   const init=q.mode==='account'?(ST.accounts.find(a=>a.id===q.id)?.initBalance||0):q.mode==='assets'?(ST.accounts||[]).reduce((n,a)=>n+(a.initBalance||0),0):0;
-  const displayed=q.mode==='loanUnsplit'||q.mode==='report'&&q.tp==='expense'?-sum:sum+init;
+  const displayed=q.mode==='loanUnsplit'||(q.mode==='report'||q.mode==='cashflow')&&q.tp==='expense'?-sum:sum+init;
   document.getElementById('ledger-summary').textContent=money(displayed)+' · '+toFa(rows.length)+' ثبت'+(q.throughDay?' · تا روز '+toFa(q.throughDay):'')+(q.mode==='account'?' · شامل موجودی اولیه و تعدیل ارزش':'');
   const old=TX_UNIFIED;TX_UNIFIED=false;
   document.getElementById('ledger-list').innerHTML=rows.length?rows.slice(0,ledgerLimit).map(txHtml).join(''):'<p class="ux-note">ثبتی در این محدوده وجود ندارد.</p>';
@@ -6733,13 +6735,13 @@ function rReportOverview(){
   const top=Object.entries(categories).sort((a,b)=>b[1]-a[1]).slice(0,3);
   const periods=new Set([SY*12+SM]);const now=today();for(let i=0;i<24;i++)periods.add(now.y*12+now.m-1-i);ST.tx.forEach(t=>periods.add((t.y||SY)*12+t.m));
   el.innerHTML=`<label for="report-period" class="ux-note">دوره گزارش</label><select id="report-period" onchange="selectReportPeriod(this.value)">${[...periods].sort((a,b)=>b-a).map(p=>`<option value="${Math.floor(p/12)}_${p%12}" ${p===SY*12+SM?'selected':''}>${fmtMonthYear(p%12,Math.floor(p/12))}</option>`).join('')}</select><div class="card-t" style="margin-top:12px">ماه ${fmtMonthYear(SM,SY)}</div>
-    <button class="ux-link ux-row" onclick="openReportRows('expense')"><span>چقدر خرج کردم؟</span><b>${money(cur.e)} ←</b></button>
+    <button class="ux-link ux-row" onclick="openReportRows('expense')"><span>هزینه‌های ثبت‌شده</span><b>${money(cur.e)} ←</b></button>
     <button class="ux-link ux-row" onclick="openReportRows('income')"><span>چقدر درآمد داشتم؟</span><b>${money(cur.i)} ←</b></button>
     <button class="ux-link ux-row" onclick="openReportRows('all')"><span>مازاد درآمد بر هزینه</span><b>${money(cur.b)} ←</b></button>
     <p class="ux-note">${diff===0?'هزینه بدون تغییر':money(Math.abs(diff))+(diff>0?' هزینه بیشتر':' هزینه کمتر')} نسبت به ${fmtMonthYear(cmp.prev.m,cmp.prev.y)}${cmp.day?'؛ مقایسه تا روز '+toFa(cmp.day)+' هر دو ماه':'؛ مقایسه کل ماه‌ها'}.</p>
     <div class="ux-note">${top.length?'بیشترین هزینه‌ها:':'هنوز هزینه‌ای ثبت نشده است.'}</div>
     ${top.map(([id,a])=>`<button class="ux-link ux-row" data-cat="${esc(id)}" onclick="openReportRows('expense',SM,SY,this.dataset.cat)"><span>${esc(getCat('expense',id).n)}</span><b>${money(a)} ←</b></button>`).join('')}`;
-  renderUnsplitLoanReport(el);
+  renderUnsplitLoanReport(el);renderCashFlowReport(el);
 }
 function rHomeSummary(){
   const el=document.getElementById('home-month-net'),unsplit=getTx(SM,SY).filter(t=>natureOf(t)==='loanUnsplit').reduce((n,t)=>n+t.a,0);if(el)el.textContent='ماه انتخاب‌شده '+fmtMonthYear(SM,SY)+' · مازاد درآمد بر هزینه: '+money(totals(getTx(SM,SY)).b)+(unsplit?' · اقساط بدون تفکیک: '+money(unsplit)+'؛ در هزینه بالا نیست':'');
@@ -6809,9 +6811,10 @@ function bridgeStateForTx(t){
   const sent=(ST.bridgeLog||[]).some(x=>x.sourceTxId===t.id);
   return `<p class="ux-note">${pending?'در صف ارسال':sent?'به صندوق مقصد ارسال شده؛ ثبت نهایی را در مقصد بررسی کنید':'ارسال قدیمی؛ وضعیت نهایی از این نسخه مشخص نیست'}. اصلاح مبلغ یا حذف را در اپ مقصد نیز بررسی کنید.</p>`;
 }
+function openBridgeConnectionSettings(){cls('bridgem');openGhModal();}
 function openBridgeStatus(){
   const box=document.getElementById('bridge-body');
-  box.innerHTML='<p class="ux-note">ارسال به صندوق مقصد با ثبت نهایی در آن اپ فرق دارد. اطلاعات قرارداد در «املاک» و معامله و هزینه ارزی در «صرافی» اصلاح می‌شود.</p>'+['amlak','sarafi'].map(target=>{
+  box.innerHTML='<p class="ux-note">'+(ghOn()?'تنظیمات GitHub موجود است؛ موفقیت هر ارسال جداگانه گزارش می‌شود.':'برای ارسال، ابتدا اتصال GitHub را تنظیم کنید؛ صف موجود حفظ می‌شود.')+'</p><button class="btn btns" onclick="openBridgeConnectionSettings()">تنظیم اتصال GitHub</button><p class="ux-note">ارسال به صندوق مقصد با ثبت نهایی در آن اپ فرق دارد. اطلاعات قرارداد در «املاک» و معامله و هزینه ارزی در «صرافی» اصلاح می‌شود.</p>'+['amlak','sarafi'].map(target=>{
     const name=target==='amlak'?'املاک':'صرافی',queue=ST[target+'Outbox']||[],history=(ST.bridgeLog||[]).filter(x=>x.target===target).slice(-10).reverse();
     return `<div class="ux-section"><h3>${name}</h3><p class="ux-note">${ST.bridgeErrors?.[target]?'نیازمند بررسی اتصال؛ موارد ارسال‌نشده در صف حفظ شده‌اند.':queue.length?'در انتظار ارسال':'موردی در صف نیست'}</p>
       ${queue.map(x=>uxRow('در صف ارسال',money(x.a||0))).join('')}
@@ -6829,8 +6832,8 @@ function openProtection(){
     `<button class="btn btnp" onclick="cls('protectionm');openBackupModal()">دریافت پشتیبان فایل</button>
     <button class="btn btns" onclick="cls('protectionm');openGhModal()">پشتیبان GitHub و تاریخچه</button>
     <button class="btn btns" onclick="cls('protectionm');document.getElementById('imp2').click()">بازیابی از فایل</button>
-    <details class="ux-more" id="protection-advanced"><summary>گزینه‌های پیشرفته و بازیابی قبلی</summary>
-      <button class="btn btns" onclick="cls('protectionm');openCloudModal()">پشتیبان دستی Firebase</button>
+    <button class="btn btns" onclick="cls('protectionm');openCloudModal()">پشتیبان ابری (Firebase)</button>
+    <details class="ux-more" id="protection-advanced"><summary>نسخه‌های بازیابی قبلی</summary>
       <button class="btn btns" onclick="undoRestore()">بازگشت از آخرین بازیابی</button>
       <button class="btn btns" id="v1-row" style="display:none" onclick="cls('protectionm');openV1Modal()"><span id="v1-lbl"></span></button>
     </details>`;
@@ -7011,8 +7014,11 @@ function loanScheduleCaption(l){
   return due.length?toFa(due.length)+' قسط سررسیدشده/ناقص · باقی‌مانده '+money(due.reduce((n,s)=>n+s.left,0)):
     next?'قسط بعدی: '+fmtDate(next.day,next.m,next.y)+' · '+money(next.left):!isSimpleLoan(l)&&l.remaining>0?'همه اقساط برنامه پوشش داده شده‌اند ولی مانده اصل نیازمند تطبیق با بانک است':'همه اقساط برنامه پرداخت شده‌اند';
 }
+let loanViewFilter='open',loanViewLimit=24;
+function setLoanView(value){loanViewFilter=value;loanViewLimit=24;renderLoanSchedule();}
+function loanVisibleDues(list){return list.filter(s=>loanViewFilter==='all'||loanViewFilter==='open'&&s.left>0||loanViewFilter==='due'&&s.isDue||loanViewFilter==='paid'&&s.left===0);}
 function openLoanSchedule(id){
-  const l=(ST.loans||[]).find(l=>l.id===id);if(!l)return;scheduleLoanId=id;scheduleEditingDueId=null;
+  const l=(ST.loans||[]).find(l=>l.id===id);if(!l)return;scheduleLoanId=id;scheduleEditingDueId=null;loanViewFilter=loanDueItems(l).some(s=>s.left>0)?'open':'paid';loanViewLimit=24;
   document.getElementById('loan-schedule-title').textContent='برنامه اقساط '+l.n;renderLoanSchedule();cls('loanm');document.getElementById('loanschedulem').classList.add('on');
 }
 function renderLoanSchedule(){
@@ -7025,9 +7031,11 @@ function renderLoanSchedule(){
       <p class="ux-note">پیش‌نمایش بر مبنای قسط ${money(l.inst)} و سود/کارمزد ثابت ${money(l.defaultInterest||0)} است؛ جدول بانک مرجع است. پس از ایجاد، تاریخ و مبلغ هر سررسید قابل اصلاح است.</p><button class="btn btns" onclick="previewLoanSchedule()">پیش‌نمایش برنامه</button><div id="loan-plan-preview"></div><button class="btn btnp" onclick="saveLoanSchedule()">تأیید و شروع پیگیری</button>`;
     fillMon('loan-start-mon',now.m-1);return;
   }
-  const list=loanDueItems(l),left=list.reduce((n,s)=>n+s.left,0);
+  const list=loanDueItems(l),left=list.reduce((n,s)=>n+s.left,0),visible=loanVisibleDues(list);
+  const filter=`<div class="fg"><label for="loan-view-filter">نمایش اقساط</label><select id="loan-view-filter" onchange="setLoanView(this.value)">${[['open','پرداخت‌نشده'],['due','سررسیدشده و معوق'],['paid','پرداخت‌شده'],['all','همه']].map(([v,n])=>`<option value="${v}" ${v===loanViewFilter?'selected':''}>${n}</option>`).join('')}</select></div><p class="ux-note">${toFa(visible.length)} قسط در این فهرست</p>`;
   box.innerHTML=uxRow(isSimpleLoan(l)?'وضعیت اقساط':'مانده اصل وام',isSimpleLoan(l)?simpleLoanCaption(l):money(l.remaining))+uxRow('جمع پرداخت‌های باقی‌مانده برنامه با سود',money(left))+
-    '<p class="ux-note">جمع برنامه، برآورد بر اساس جدول ثبت‌شده است؛ با بانک تطبیق دهید. تاریخ پرداخت می‌تواند با سررسید متفاوت باشد. ثبت قسط، مبلغ را فقط یک بار از حساب کم می‌کند.</p>'+list.map(s=>`<div class="ux-section">${uxRow(s.number?'قسط '+toFa(s.number)+' · سررسید':'سررسید',fmtDate(s.day,s.m,s.y))}${uxRow('وضعیت',LOAN_STATUS[s.status]+(s.isDue&&s.status==='partial'?' · نیازمند تکمیل':''))}${uxRow('مبلغ / پرداخت‌شده',money(s.a)+' / '+money(s.paid))}${uxRow('باقی‌مانده',money(s.left))}<div class="ux-actions">${s.left>0?`<button class="btn btnp" data-id="${esc(s.id)}" onclick="payScheduleItem(this.dataset.id)">ثبت پرداخت این قسط</button>`:''}<button class="btn btns" data-id="${esc(s.id)}" onclick="editScheduleItem(this.dataset.id)">اصلاح سررسید و مبلغ برنامه</button></div></div>`).join('')+
+    '<p class="ux-note">جمع برنامه، برآورد بر اساس جدول ثبت‌شده است؛ با بانک تطبیق دهید. تاریخ پرداخت می‌تواند با سررسید متفاوت باشد. ثبت قسط، مبلغ را فقط یک بار از حساب کم می‌کند.</p>'+filter+visible.slice(0,loanViewLimit).map(s=>`<div class="ux-section">${uxRow(s.number?'قسط '+toFa(s.number)+' · سررسید':'سررسید',fmtDate(s.day,s.m,s.y))}${uxRow('وضعیت',LOAN_STATUS[s.status]+(s.isDue&&s.status==='partial'?' · نیازمند تکمیل':''))}${uxRow('مبلغ / پرداخت‌شده',money(s.a)+' / '+money(s.paid))}${uxRow('باقی‌مانده',money(s.left))}<div class="ux-actions">${s.left>0?`<button class="btn btnp" data-id="${esc(s.id)}" onclick="payScheduleItem(this.dataset.id)">ثبت پرداخت این قسط</button>`:''}<button class="btn btns" data-id="${esc(s.id)}" onclick="editScheduleItem(this.dataset.id)">اصلاح سررسید و مبلغ برنامه</button></div></div>`).join('')+
+    (visible.length>loanViewLimit?'<button class="btn btns" onclick="loanViewLimit+=24;renderLoanSchedule()">نمایش اقساط بیشتر</button>':'')+
     `<button class="btn btns" onclick="cls('loanschedulem');openLoanHistory('${l.id}')">سابقه پرداخت‌های واقعی</button>`;
 }
 function buildLoanScheduleDraft(){
@@ -7233,6 +7241,26 @@ function renderUnsplitLoanReport(el){
   el.insertAdjacentHTML('beforeend',`<div class="ux-section"><button class="ux-link ux-row" onclick="openUnsplitLoanRows()"><span>پرداخت اقساط بدون تفکیک اصل و سود</span><b>${money(sum)} ←</b></button><p class="ux-note">این مبلغ از حساب کم شده، اما در هزینه و مازاد بالا نیست؛ به علت نامشخص‌بودن سهم سود، گزارش هزینه کامل نیست.</p></div>`);
 }
 function openUnsplitLoanRows(){ledgerQuery={mode:'loanUnsplit',m:SM,y:SY};ledgerLimit=80;renderLedger();}
+
+
+// Gross account flows are separate from income/expense classification.
+function cashFlowEntry(t,m,y){
+  return t.y===y&&(m===null||t.m===m)&&ST.accounts.some(a=>a.id===t.accId)&&
+    !t.isOpening&&!t.isTransfer&&!['opening','revaluation','transfer'].includes(natureOf(t));
+}
+function cashFlowSummary(m=SM,y=SY){
+  const rows=ST.tx.filter(t=>cashFlowEntry(t,m,y));
+  const incoming=rows.filter(t=>t.tp==='income').reduce((s,t)=>s+t.a,0),outgoing=rows.filter(t=>t.tp==='expense').reduce((s,t)=>s+t.a,0);
+  return {incoming,outgoing,net:incoming-outgoing};
+}
+function openCashFlowRows(tp){ledgerQuery={mode:'cashflow',tp,m:SM,y:SY};ledgerLimit=80;renderLedger();}
+function renderCashFlowReport(el){
+  const f=cashFlowSummary();el.insertAdjacentHTML('beforeend',`<div class="ux-section"><h3>ورود و خروج پول</h3>
+    <button class="ux-link ux-row" onclick="openCashFlowRows('income')"><span>ورودی حساب‌ها</span><b>${money(f.incoming)} ←</b></button>
+    <button class="ux-link ux-row" onclick="openCashFlowRows('expense')"><span>خروجی حساب‌ها، شامل اقساط</span><b>${money(f.outgoing)} ←</b></button>
+    <button class="ux-link ux-row" onclick="openCashFlowRows('')"><span>خالص گردش وجوه</span><b>${money(f.net)} ←</b></button>
+    <p class="ux-note">بر اساس تاریخ واقعی تراکنش‌های دارای حساب؛ دریافت و بازپرداخت وام و ودیعه را شامل می‌شود. انتقال بین حساب‌ها، موجودی اولیه و تغییر ارزش دارایی در این جمع نیست. این عدد موجودی قابل‌خرج یا سود نیست؛ برای تطبیق کامل موجودی، گردش هر حساب را ببینید.</p></div>`);
+}
 
 init();
 </script>

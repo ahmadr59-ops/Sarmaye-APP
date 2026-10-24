@@ -725,3 +725,38 @@ test('count-based monthly schedule clamps short months and amount edits retain c
   assert.equal(f.run('ST.loans[1].schedule[1].day'),30);assert.equal(f.run('ST.loans[1].schedule[6].day'),f.run('jMaxDay(11,1405)'));assert.equal(f.run('ST.loans[1].schedule[7].day'),31);
   const before=copy(f.run('ST.tx'));f.run("openLoanSchedule(ST.loans[1].id);editScheduleItem(ST.loans[1].schedule[7].id);document.getElementById('due-edit-amount').value='120'");await f.run('saveScheduleItem()');assert.equal(f.run('ST.loans[1].schedule[7].a'),120);assert.equal(f.run('ST.loans[1].schedule[7].number'),10);assert.deepEqual(copy(f.run('ST.tx')),before);assert.doesNotThrow(()=>f.run('validateBackup(ST)'));
 });
+
+test('cash-flow reporting includes loan and deposit movements without treating internal transfers or valuations as spending',async t=>{
+ const f=setup(t);await f.run('init()');f.run(dailyBase+`SM=1;SY=1405;ST.tx=[
+ {id:'inc',tp:'income',a:1000,nature:'operating'},
+ {id:'receipt',tp:'income',a:500,nature:'loanDisbursement'},
+ {id:'dep',tp:'income',a:200,nature:'deposit'},
+ {id:'expense',tp:'expense',a:100,nature:'operating'},
+ {id:'principal',tp:'expense',a:80,nature:'loanPrincipal'},
+ {id:'unsplit',tp:'expense',a:60,nature:'loanUnsplit'},
+ {id:'opening',tp:'income',a:900,nature:'opening'},
+ {id:'value',tp:'income',a:400,nature:'revaluation'},
+ {id:'out',tp:'expense',a:250,nature:'transfer',isTransfer:true},
+ {id:'in',tp:'income',a:250,nature:'transfer',isTransfer:true}
+ ].map(t=>({...t,accId:'a',day:5,m:1,y:1405,cat:'e7'}));
+ ST.tx.push({id:'unlinked',tp:'expense',a:100,day:5,m:1,y:1405,nature:'operating'});`);
+ assert.deepEqual(copy(f.run('cashFlowSummary()')),{incoming:1700,outgoing:240,net:1460});
+ const before=copy(f.run('ST'));f.run("rReportOverview();openCashFlowRows('expense')");assert.equal(f.run('ledgerEntries(ledgerQuery).length'),3);assert.match(f.w.document.getElementById('ledger-summary').textContent,/۲۴۰ تومان/);assert.deepEqual(copy(f.run('ST')),before);
+ assert.equal(f.run('cashFlowSummary(2,1405).outgoing'),0);
+});
+test('legacy rent navigation activates More, never the create action, and other tabs remain correctly mapped',async t=>{
+ const f=setup(t);await f.run('init()');f.run('nav(2)');assert.equal(f.w.document.querySelector('.nb.on').textContent.trim(),'بیشتر');assert.equal(f.w.document.querySelector('.nb-plus').classList.contains('on'),false);
+ f.run('nav(1)');assert.equal(f.w.document.querySelector('.nb[aria-current="page"]').textContent.trim(),'تراکنش‌ها');assert.equal(f.w.document.querySelectorAll('.nb.on').length,1);
+});
+test('generalized connection UI preserves existing credentials, pending queues and automatic SMS endpoint',async t=>{
+ const f=setup(t);await f.run('init()');f.run(`localStorage.setItem(GH_KEY,JSON.stringify({owner:'sample-owner',repo:'private-data',token:'synthetic-token',lastSha:'saved-sha'}));ST.amlakOutbox=[{id:'pending-a',a:1}];ST.sarafiOutbox=[{id:'pending-b',a:2}];`);
+ const before=copy(f.run('[ST,ghCfg()]'));f.run('openSms();openBridgeStatus();openProtection();openGhModal()');assert.equal(f.w.document.getElementById('sms-inbox-url').textContent,'https://api.github.com/repos/sample-owner/private-data/contents/sms/');assert.equal(f.w.document.getElementById('gh-owner').value,'sample-owner');assert.deepEqual(copy(f.run('[ST,ghCfg()]')),before);
+ assert.match(f.w.document.getElementById('protection-body').textContent,/Firebase/);assert.match(f.w.document.getElementById('bridge-body').textContent,/املاک/);assert.match(f.w.document.getElementById('bridge-body').textContent,/صرافی/);
+ f.run('localStorage.removeItem(GH_KEY);openGhModal();openSms()');assert.equal(f.w.document.getElementById('gh-owner').value,'');assert.match(f.w.document.getElementById('sms-inbox-url').textContent,/OWNER\/REPOSITORY/);
+});
+test('loan list filters and pagination never change dues, payments or balances',async t=>{
+ const f=await simpleLoan(t);await payLoan(f,100);const before=copy(f.run('ST'));
+ f.run("openLoanSchedule('l')");assert.equal(f.run('loanVisibleDues(loanDueItems(ST.loans[0])).length'),1);
+ f.run("setLoanView('paid')");assert.equal(f.run('loanVisibleDues(loanDueItems(ST.loans[0]))[0].status'),'paid');
+ f.run("setLoanView('all')");assert.equal(f.run('loanVisibleDues(loanDueItems(ST.loans[0])).length'),2);assert.deepEqual(copy(f.run('ST')),before);
+});

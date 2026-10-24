@@ -6,7 +6,7 @@ let code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('
   .replace(/\ninit\(\);\s*$/,'\n');
 const mk=()=>({style:{},classList:{add(){},remove(){},toggle(){},contains:()=>false},
   value:'',textContent:'',innerHTML:'',dataset:{},checked:false,
-  appendChild(){},setAttribute(){},getAttribute:()=>null,addEventListener(){},
+  insertAdjacentHTML(position,text){this.innerHTML+=text;},appendChild(){},setAttribute(){},getAttribute:()=>null,addEventListener(){},
   querySelector:()=>mk(),querySelectorAll:()=>[],scrollIntoView(){},click(){},
   getBoundingClientRect:()=>({left:0,top:0,width:0,height:0})});
 const sb={console,setTimeout:()=>0,setInterval:()=>0,clearTimeout,
