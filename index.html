@@ -350,6 +350,10 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 .report-subtitle{font-size:12.5px;text-align:center;opacity:.85;margin:8px 0}.report-hero{border-radius:18px;padding:18px;background:var(--grad);color:white;margin-bottom:16px}.report-hero h2{font-size:20px;margin:6px 0 16px}.report-hero p{font-size:12px;line-height:1.8;opacity:.9}.report-hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.report-hero-grid button{min-width:0;border:1px solid #ffffff40;border-radius:12px;background:#ffffff15;color:white;padding:12px 8px;font:inherit;text-align:right}.report-hero-grid small,.report-hero-grid b{display:block;overflow-wrap:anywhere}.report-hero-grid small{font-size:12px;margin-bottom:8px}.report-hero-grid b{font-size:16px}
 .review-error{padding:12px;border-radius:12px;background:var(--rdl);color:var(--rd);font-size:13px;line-height:1.9;white-space:normal;overflow-wrap:anywhere}#smsq-transfer-match select{width:100%;font:inherit;font-size:16px;padding:12px;background:var(--inp-bg);color:var(--t1);border:1px solid var(--border);border-radius:12px}.ntf{white-space:normal;max-width:calc(100vw - 32px);width:max-content;overflow-wrap:anywhere}
 
+
+#loanschedulem .mdl{background:var(--bg);max-height:94vh;max-height:94dvh}
+.loan-overview{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:20px 16px;margin-bottom:18px;text-align:center}.loan-overview h3{font-size:18px;margin:10px 0 6px}.loan-progress{width:112px;height:112px;margin:auto;position:relative;display:grid;place-items:center}.loan-progress svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}.loan-progress circle{fill:none;stroke-width:7;stroke-linecap:round}.loan-ring-track{stroke:var(--border)}.loan-ring-value{stroke:var(--gr)}.loan-progress b{font-size:24px;color:var(--gr)}.loan-progress-caption{font-size:13px;line-height:1.8;color:var(--t2)}.loan-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 0;border-top:1px solid var(--border);margin-top:14px}.loan-summary-grid small,.loan-summary-grid b{display:block;line-height:1.9;overflow-wrap:anywhere}.loan-summary-grid small{font-size:12px;color:var(--t2)}.loan-summary-grid b{font-size:14px}.loan-next{display:flex;flex-direction:column;gap:6px;text-align:right;border-radius:12px;padding:12px;background:var(--prl);font-size:13px;color:var(--t1)}.loan-tabs{display:flex;border-radius:16px;padding:4px;background:var(--card);gap:4px}.loan-tabs button{flex:1;border:0;border-radius:13px;background:transparent;min-height:48px;color:var(--t2);font:inherit;font-size:13px}.loan-tabs button.selected{background:var(--prl);color:var(--pr);font-weight:800}.loan-due-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:14px;margin:12px 0}.loan-due-heading,.loan-due-title{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.loan-due-title{justify-content:flex-start}.loan-due-pick{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px}.loan-due-pick input{width:22px;height:22px;accent-color:var(--pr)}.loan-due-date{font-size:12px;color:var(--t2)}.loan-state{font-size:11px;padding:4px 8px;border-radius:8px;background:var(--prl);color:var(--pr)}.loan-state.paid{background:var(--grl);color:var(--gr)}.loan-state.overdue{background:var(--rdl);color:var(--rd)}.loan-state.partial,.loan-state.due{background:var(--aml);color:var(--am)}.loan-due-amount{display:flex;justify-content:space-between;gap:12px;padding:12px 0;font-size:13px;line-height:1.8}.loan-due-amount b{font-size:16px;overflow-wrap:anywhere}.loan-receipt{padding:10px;border-radius:12px;background:var(--bg);margin:10px 0}.loan-payment-bar{position:sticky;bottom:0;background:var(--bg);padding:12px 0 calc(8px + var(--sb));border-top:1px solid var(--border);z-index:2}.loan-payment-bar .ux-note{font-size:11px;margin-bottom:0}.loan-selected-total{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:0 0 10px}.loan-payment-bar button:disabled{opacity:.5}
+
 </style>
 </head>
 <body>
@@ -1260,6 +1264,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
   <div class="mh"></div>
   <h2 id="loanpay-title">پرداخت قسط</h2>
   <div id="loanpay-due-wrap"><div class="fg"><label for="loanpay-due">بابت کدام قسط / سررسید؟</label><select id="loanpay-due" onchange="paymentDueChanged()"></select></div><label class="ux-row"><span>اگر مبلغ بیشتر است، اقساط بعدی نیز پوشش داده شوند</span><input id="loanpay-multi" type="checkbox"></label></div>
+  <div id="loanpay-selection-note" class="ux-note" hidden></div>
   <details id="loanpay-link-wrap" class="ux-more"><summary>برداشت قبلاً در تراکنش‌ها ثبت شده است؟</summary><p class="ux-note">انتخاب برداشت موجود، آن را به پرداخت قسط متصل می‌کند؛ موجودی دوباره کم نمی‌شود. هنگام حذف اتصال، برداشت اصلی برمی‌گردد.</p><div class="fg"><label for="loanpay-existing">برداشت جدید یا ثبت‌شده (۱۵۰ مورد اخیر)</label><select id="loanpay-existing" onchange="chooseLoanExisting()"></select></div></details>
   <p class="ux-note">تاریخ زیر، تاریخ واقعی پرداخت است؛ انتخاب ماه قبل، قسط انتخاب‌شده بالا را تغییر نمی‌دهد. اگر پرداخت قبلاً در مانده و موجودی شروع لحاظ شده، دوباره برداشت ثبت نکنید.</p>
   <div class="fg"><label>مبلغ کل قسط (تومان)</label><input type="text" inputmode="numeric" id="loanpay-amt" oninput="this.value=this.value?nf(toLn(this.value)):'';loanSplitPreview()"></div>
@@ -1995,7 +2000,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.37';
+const APP_VERSION='v24.38';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -5623,7 +5628,7 @@ async function delLoan(){
 // wrongly rise (debt falls while cash stays). Opens a small pay sheet.
 let payLoanId=null;
 function payInstallment(id,allowSettled=false,previousAccount='',dueId=''){
-  editingInstallment=null;const l=(ST.loans||[]).find(l=>l.id===id);if(!l)return;
+  editingInstallment=null;loanPaymentSelection=null;renderLoanPaymentSelection();const l=(ST.loans||[]).find(l=>l.id===id);if(!l)return;
   if(!allowSettled&&!Array.isArray(l.schedule)){openLoanSchedule(id);return;}
   if(!allowSettled&&!loanDueItems(l).some(s=>s.left>0)){ntf('قسط پرداخت‌نشده‌ای در برنامه نیست');return;}
   payLoanId=id;const accs=activeAccounts().filter(a=>a.id!==SAVINGS_ACC_ID);
@@ -5659,7 +5664,7 @@ async function confirmPayInstallment(){
   try{
     const l=ST.loans.find(l=>l.id===payLoanId);if(!l)return;if(!paymentIsUnsplit()&&!document.getElementById('loanpay-int').value.trim())throw Error('سود واقعی این پرداخت را وارد کنید؛ اگر سود ندارد، ۰ بزنید');const amount=toLn(document.getElementById('loanpay-amt').value),interest=paymentIsUnsplit()?0:toLn(document.getElementById('loanpay-int').value),accId=document.getElementById('loanpay-acc').value,date={d:+document.getElementById('loanpay-day').value,m:+document.getElementById('loanpay-mon').value,y:+document.getElementById('loanpay-yr').value};
     if(!Number.isSafeInteger(amount)||amount<=0||!Number.isSafeInteger(interest)||interest<0||interest>amount||!paymentIsUnsplit()&&amount-interest>l.remaining||!ST.accounts.some(a=>a.id===accId)||!validLoanDate(date.y,date.m,date.d))throw Error('مبلغ، سود، حساب یا تاریخ پرداخت معتبر نیست؛ اصل نباید از مانده وام بیشتر باشد');
-    const allocations=loanAllocation(l,amount,document.getElementById('loanpay-due').value,document.getElementById('loanpay-multi').checked),existingId=document.getElementById('loanpay-existing').value;
+    const allocations=manualLoanAllocation(l,amount),existingId=document.getElementById('loanpay-existing').value;
     if(!existingId&&(ST.tx.some(t=>t.tp==='expense'&&t.a===amount&&t.accId===accId&&t.day===date.d&&t.m===date.m&&t.y===date.y)||loanInstallments(l.id).some(g=>g.accId===accId&&g.day===date.d&&g.m===date.m&&g.y===date.y&&loanGroupAmount(g)===amount))&&!confirm('برداشت مشابه قبلاً ثبت شده است. برای جلوگیری از تکرار، انصراف بزنید و آن را از «برداشت ثبت‌شده» متصل کنید. برداشت جدید ثبت شود؟'))return;
     if(!existingId&&calcAccBalance(accId)<amount&&!confirm('موجودی ثبت‌شده حساب از مبلغ کمتر است؛ پرداخت با برداشت جدید ثبت شود؟'))return;
     const before=JSON.stringify(ST);postLoanPayment(l,amount,interest,date,accId,allocations,null,existingId);syncLoanNoticeFlags();await sv();cls('loanpaym');rDash();rTx();updateLoanCount();openLoanSchedule(l.id);__undoSnap=before;showUndo('پرداخت قسط ثبت شد');
@@ -6862,7 +6867,7 @@ function openLoanHistory(id){
 
 function editInstallment(id,groupId){
   const l=ST.loans.find(l=>l.id===id),g=loanInstallments(id).find(g=>g.id===groupId);if(!l||!g)return;payInstallment(id,true,g.accId);editingInstallment={loanId:id,id:groupId};
-  document.getElementById('loanpay-title').textContent='اصلاح پرداخت واقعی';const allocations=loanGroupAllocations(g);renderPaymentDues(l,allocations[0]?.dueId||'',g.id);document.getElementById('loanpay-multi').checked=allocations.length>1;
+  document.getElementById('loanpay-title').textContent='اصلاح پرداخت واقعی';const allocations=loanGroupAllocations(g);if(allocations.length>1)loanPaymentSelection={loanId:id,ids:allocations.map(a=>a.dueId)};renderPaymentDues(l,allocations[0]?.dueId||'',g.id);renderLoanPaymentSelection();document.getElementById('loanpay-multi').checked=allocations.length>1;
   if(!allocations.length)document.getElementById('loanpay-due-wrap').hidden=true;
   document.getElementById('loanpay-acc').value=g.accId;document.getElementById('loanpay-amt').value=nf(loanGroupAmount(g));document.getElementById('loanpay-int').value=nf(g.interest);document.getElementById('loanpay-day').value=g.day;fillMon('loanpay-mon',g.m);document.getElementById('loanpay-yr').value=g.y;loanSplitPreview();
 }
@@ -6872,7 +6877,7 @@ async function saveInstallmentEdit(){
   try{
     const amount=toLn(document.getElementById('loanpay-amt').value),interest=paymentIsUnsplit()?0:toLn(document.getElementById('loanpay-int').value),accId=document.getElementById('loanpay-acc').value,date={d:+document.getElementById('loanpay-day').value,m:+document.getElementById('loanpay-mon').value,y:+document.getElementById('loanpay-yr').value};
     if(!Number.isSafeInteger(amount)||amount<=0||!Number.isSafeInteger(interest)||interest<0||interest>amount||!paymentIsUnsplit()&&amount-interest>l.remaining+g.principal||!ST.accounts.some(a=>a.id===accId)||!validLoanDate(date.y,date.m,date.d))throw Error('مبلغ، سود، حساب یا تاریخ معتبر نیست؛ اصل نباید از مانده بیشتر باشد');
-    const allocations=loanGroupAllocations(g).length?loanAllocation(l,amount,document.getElementById('loanpay-due').value,document.getElementById('loanpay-multi').checked,g.id):[];
+    const allocations=loanGroupAllocations(g).length?manualLoanAllocation(l,amount,g.id):[];
     if(!confirm(paymentIsUnsplit()?`پرداخت به ${money(amount)} اصلاح شود؟ موجودی و پوشش قسط اصلاح می‌شود.`:`پرداخت به ${money(amount)} اصلاح شود؟ مانده اصل ${money(l.remaining+g.principal-(amount-interest))} خواهد شد.`))return;
     const before=JSON.stringify(ST),source=g.rows.find(t=>t.dueAllocations||t.smsHash)||g.rows[0],oldInterest=g.rows.find(t=>isPnL(t)),ids=new Set(g.rows.map(t=>t.id));ST.tx=ST.tx.filter(t=>!ids.has(t.id));l.remaining+=g.principal;
     const first=postLoanPayment(l,amount,interest,date,accId,allocations,source),newId=first.installmentId;ST.tx.filter(t=>t.installmentId===newId).forEach(t=>t.installmentId=g.id);first.id=source.id;if(oldInterest&&oldInterest.id!==source.id&&interest>0&&first.tp==='expense'&&first.nature==='loanPrincipal'){const row=ST.tx.find(t=>t.installmentId===g.id&&isPnL(t));if(row)row.id=oldInterest.id;}
@@ -7023,11 +7028,11 @@ function loanScheduleCaption(l){
   return due.length?toFa(due.length)+' قسط سررسیدشده/ناقص · باقی‌مانده '+money(due.reduce((n,s)=>n+s.left,0)):
     next?'قسط بعدی: '+fmtDate(next.day,next.m,next.y)+' · '+money(next.left):!isSimpleLoan(l)&&l.remaining>0?'همه اقساط برنامه پوشش داده شده‌اند ولی مانده اصل نیازمند تطبیق با بانک است':'همه اقساط برنامه پرداخت شده‌اند';
 }
-let loanViewFilter='open',loanViewLimit=24;
-function setLoanView(value){loanViewFilter=value;loanViewLimit=24;renderLoanSchedule();}
+let loanViewFilter='open',loanViewLimit=24,loanSelectedDues=new Set(),loanPaymentSelection=null;
+function setLoanView(value){loanViewFilter=value;loanViewLimit=24;loanSelectedDues.clear();renderLoanSchedule();}
 function loanVisibleDues(list){return list.filter(s=>loanViewFilter==='all'||loanViewFilter==='open'&&s.left>0||loanViewFilter==='due'&&s.isDue||loanViewFilter==='paid'&&s.left===0);}
 function openLoanSchedule(id){
-  const l=(ST.loans||[]).find(l=>l.id===id);if(!l)return;scheduleLoanId=id;scheduleEditingDueId=null;loanViewFilter=loanDueItems(l).some(s=>s.left>0)?'open':'paid';loanViewLimit=24;
+  const l=(ST.loans||[]).find(l=>l.id===id);if(!l)return;scheduleLoanId=id;scheduleEditingDueId=null;loanSelectedDues.clear();loanViewFilter=loanDueItems(l).some(s=>s.left>0)?'open':'paid';loanViewLimit=24;
   document.getElementById('loan-schedule-title').textContent='برنامه اقساط '+l.n;renderLoanSchedule();cls('loanm');document.getElementById('loanschedulem').classList.add('on');
 }
 function renderLoanSchedule(){
@@ -7040,13 +7045,15 @@ function renderLoanSchedule(){
       <p class="ux-note">پیش‌نمایش بر مبنای قسط ${money(l.inst)} و سود/کارمزد ثابت ${money(l.defaultInterest||0)} است؛ جدول بانک مرجع است. پس از ایجاد، تاریخ و مبلغ هر سررسید قابل اصلاح است.</p><button class="btn btns" onclick="previewLoanSchedule()">پیش‌نمایش برنامه</button><div id="loan-plan-preview"></div><button class="btn btnp" onclick="saveLoanSchedule()">تأیید و شروع پیگیری</button>`;
     fillMon('loan-start-mon',now.m-1);return;
   }
-  const list=loanDueItems(l),left=list.reduce((n,s)=>n+s.left,0),visible=loanVisibleDues(list);
-  const filter=`<div class="fg"><label for="loan-view-filter">نمایش اقساط</label><select id="loan-view-filter" onchange="setLoanView(this.value)">${[['open','پرداخت‌نشده'],['due','سررسیدشده و معوق'],['paid','پرداخت‌شده'],['all','همه']].map(([v,n])=>`<option value="${v}" ${v===loanViewFilter?'selected':''}>${n}</option>`).join('')}</select></div><p class="ux-note">${toFa(visible.length)} قسط در این فهرست</p>`;
-  box.innerHTML=uxRow(isSimpleLoan(l)?'وضعیت اقساط':'مانده اصل وام',isSimpleLoan(l)?simpleLoanCaption(l):money(l.remaining))+uxRow('جمع پرداخت‌های باقی‌مانده برنامه با سود',money(left))+
-    '<p class="ux-note">جمع برنامه، برآورد بر اساس جدول ثبت‌شده است؛ با بانک تطبیق دهید. تاریخ پرداخت می‌تواند با سررسید متفاوت باشد. ثبت قسط، مبلغ را فقط یک بار از حساب کم می‌کند.</p>'+filter+visible.slice(0,loanViewLimit).map(s=>`<div class="ux-section">${uxRow(s.number?'قسط '+toFa(s.number)+' · سررسید':'سررسید',fmtDate(s.day,s.m,s.y))}${uxRow('وضعیت',LOAN_STATUS[s.status]+(s.isDue&&s.status==='partial'?' · نیازمند تکمیل':''))}${uxRow('مبلغ / پرداخت‌شده',money(s.a)+' / '+money(s.paid))}${uxRow('باقی‌مانده',money(s.left))}<div class="ux-actions">${s.left>0?`<button class="btn btnp" data-id="${esc(s.id)}" onclick="payScheduleItem(this.dataset.id)">ثبت پرداخت این قسط</button>`:''}<button class="btn btns" data-id="${esc(s.id)}" onclick="editScheduleItem(this.dataset.id)">اصلاح سررسید و مبلغ برنامه</button></div></div>`).join('')+
+  const list=loanDueItems(l),visible=loanVisibleDues(list);
+  const filter=`<div class="loan-tabs" role="group" aria-label="وضعیت اقساط"><button class="${loanViewFilter==='open'?'selected':''}" aria-pressed="${loanViewFilter==='open'}" onclick="setLoanView('open')">پرداخت‌نشده (${toFa(list.filter(s=>s.left>0).length)})</button><button class="${loanViewFilter==='paid'?'selected':''}" aria-pressed="${loanViewFilter==='paid'}" onclick="setLoanView('paid')">پرداخت‌شده (${toFa(list.filter(s=>s.left===0).length)})</button></div><details class="ux-more"><summary>فیلترهای بیشتر</summary><div class="fg"><label for="loan-view-filter">نمایش اقساط</label><select id="loan-view-filter" onchange="setLoanView(this.value)">${[['open','پرداخت‌نشده'],['due','سررسیدشده و معوق'],['paid','پرداخت‌شده'],['all','همه']].map(([v,n])=>`<option value="${v}" ${v===loanViewFilter?'selected':''}>${n}</option>`).join('')}</select></div></details>`;
+  box.innerHTML=loanOverviewHtml(l)+filter+
+    `<div class="loan-due-list">${visible.length?visible.slice(0,loanViewLimit).map(s=>loanDueCardHtml(l,s)).join(''):'<p class="ux-note">قسطی با این وضعیت وجود ندارد.</p>'}</div>`+
     (visible.length>loanViewLimit?'<button class="btn btns" onclick="loanViewLimit+=24;renderLoanSchedule()">نمایش اقساط بیشتر</button>':'')+
-    (document.getElementById('smsqm').classList.contains('on')?'<button class="btn btnp" onclick="returnToSmsReview()">بازگشت به پیامک و ثبت قسط</button>':'')+
-    `<button class="btn btns" onclick="cls('loanschedulem');openLoanHistory('${l.id}')">سابقه پرداخت‌های واقعی</button>`;
+    `<button class="btn btns" onclick="cls('loanschedulem');openLoanHistory('${l.id}')">سابقه پرداخت‌های واقعی</button>`+
+    (document.getElementById('smsqm').classList.contains('on')?'<button class="btn btns" onclick="returnToSmsReview()">بازگشت به پیامک و ثبت قسط</button>':'')+
+    '<div id="loan-payment-bar" class="loan-payment-bar"></div>';
+  updateLoanPaymentBar();
 }
 function buildLoanScheduleDraft(){
   const l=ST.loans.find(l=>l.id===scheduleLoanId);if(!l||Array.isArray(l.schedule))throw Error('برنامه قبلاً ساخته شده است');
@@ -7081,7 +7088,7 @@ async function saveScheduleItem(){
 }
 function payScheduleItem(id){const loan=scheduleLoanId;cls('loanschedulem');payInstallment(loan,false,'',id);}
 function renderPaymentDues(l,selected='',exclude=null){
-  const sel=document.getElementById('loanpay-due'),list=loanDueItems(l,exclude).filter(s=>s.left>0);document.getElementById('loanpay-due-wrap').hidden=!Array.isArray(l.schedule);
+  const sel=document.getElementById('loanpay-due'),list=loanDueItems(l,exclude).filter(s=>s.left>0);document.getElementById('loanpay-due-wrap').hidden=!!loanPaymentSelection||!Array.isArray(l.schedule);
   sel.innerHTML=list.map(s=>`<option value="${esc(s.id)}">${esc(fmtDate(s.day,s.m,s.y)+' · '+money(s.left)+' · '+LOAN_STATUS[s.status])}</option>`).join('');if(list.some(s=>s.id===selected))sel.value=selected;
   document.getElementById('loanpay-multi').checked=false;
 }
@@ -7296,6 +7303,65 @@ function renderSmsTransferMatches(){
   const rows=smsTransferCandidates();if(!rows.length){box.innerHTML='';return;}
   box.innerHTML='<div class="ux-section"><label for="smsq-transfer-existing">اتصال به انتقال ثبت‌شده</label><p class="ux-note">اگر این پیامک مربوط به انتقال زیر است، آن را انتخاب و «ثبت و بعدی» را بزنید. موجودی دوباره کم یا زیاد نمی‌شود.</p><select id="smsq-transfer-existing"><option value="">انتخاب نکرده‌ام؛ تراکنش جدید</option>'+rows.map(t=>`<option value="${esc(t.id)}">${esc(getAccName(t.accId)+' ↔ '+getAccName(findTransferPair(t).accId)+' · '+money(t.a)+' · '+fmtDate(t.day,t.m,t.y))}</option>`).join('')+'</select></div>';
   if(rows.some(t=>t.id===previous))document.getElementById('smsq-transfer-existing').value=previous;
+}
+
+
+function openLoanReceipt(txId){
+  const t=ST.tx.find(t=>t.id===txId);if(!t)return;cls('loanschedulem');openTxDetails(txId);
+  document.getElementById('txdetail-body').insertAdjacentHTML('beforeend',`<button class="btn btns" data-loan="${esc(t.loanId)}" onclick="cls('txdetailm');openLoanSchedule(this.dataset.loan)">بازگشت به اقساط</button>`);
+}
+function loanProgress(l){
+  const list=loanDueItems(l),trackedPaid=list.filter(s=>s.left===0).length,baseline=isSimpleLoan(l)&&Number.isSafeInteger(l.paidBefore)?l.paidBefore:null;
+  const paid=trackedPaid+(baseline??0),total=list.length+(baseline??0);
+  return {paid,total,knownHistory:baseline!==null,percent:total?Math.min(paid===total?100:99,Math.round(paid/total*100)):0,remaining:list.filter(s=>s.left>0).length};
+}
+function loanOverviewHtml(l){
+  const list=loanDueItems(l),progress=loanProgress(l),next=list.find(s=>s.left>0),left=list.reduce((n,s)=>n+s.left,0),receipts=loanInstallments(l.id).reduce((n,g)=>n+loanGroupAmount(g),0);
+  return `<section class="loan-overview" aria-label="خلاصه وام"><div class="loan-progress" role="img" aria-label="${esc(toFa(progress.paid)+' از '+toFa(progress.total)+' قسط پرداخت‌شده'+(progress.knownHistory?'':' در برنامه ثبت‌شده'))}"><svg viewBox="0 0 104 104" aria-hidden="true"><circle class="loan-ring-track" cx="52" cy="52" r="44"/><circle class="loan-ring-value" cx="52" cy="52" r="44" stroke-dasharray="276.46" stroke-dashoffset="${276.46*(1-progress.percent/100)}"/></svg><b>${toFa(progress.percent)}٪</b></div>
+  <h3>${esc(l.n)}</h3>${l.bank?`<p class="ux-note">${esc(l.bank)}</p>`:''}<p class="loan-progress-caption">${toFa(progress.paid)} از ${toFa(progress.total)} قسط پرداخت‌شده${progress.knownHistory?'':' در برنامه ثبت‌شده'}</p>
+  <div class="loan-summary-grid"><div><small>اقساط باقی‌مانده</small><b>${toFa(progress.remaining)} قسط</b></div><div><small>جمع اقساط باقی‌مانده</small><b>${money(left)}</b></div></div>
+  ${next?`<div class="loan-next"><span>${next.isDue?'اولین قسط سررسیدشده':'قسط بعدی'} · ${fmtDate(next.day,next.m,next.y)}</span><b>${money(next.left)}</b></div>`:'<p class="ux-note">همه اقساط این برنامه پرداخت شده‌اند.</p>'}
+  <details class="ux-more"><summary>اطلاعات مالی و سابقه</summary>${uxRow('پرداخت‌های ثبت‌شده در اپ',money(receipts))}${!isSimpleLoan(l)?uxRow('مانده اصل ثبت‌شده',money(l.remaining)):''}<p class="ux-note">جمع اقساط، مانده اصل وام نیست. مبلغ پرداخت‌های قبل از شروع پیگیری حدس زده نمی‌شود.${progress.knownHistory?' تعداد پرداخت‌های قبلی در پیشرفت لحاظ شده است.':' پیشرفت فقط مربوط به برنامه ثبت‌شده است؛ سابقه قبل از آن نامعلوم است.'} ثبت قسط، برداشت از حساب را فقط یک بار انجام می‌دهد.</p></details></section>`;
+}
+function loanDueCardHtml(l,s){
+  const title=s.number?'قسط '+toFa(s.number):'قسط برنامه '+toFa(loanPlan(l).findIndex(x=>x.id===s.id)+1);
+  const records=loanInstallments(l.id).map(g=>({g,allocation:loanGroupAllocations(g).find(a=>a.dueId===s.id)})).filter(x=>x.allocation);
+  return `<article class="loan-due-card"><div class="loan-due-heading"><div class="loan-due-title">${s.left>0?`<label class="loan-due-pick"><input type="checkbox" data-due="${esc(s.id)}" aria-label="انتخاب ${esc(title)}" ${loanSelectedDues.has(s.id)?'checked':''} onchange="toggleLoanDueSelection(this.dataset.due,this.checked)"><b>${esc(title)}</b></label>`:`<b>${esc(title)}</b>`}<span class="loan-state ${s.status}">${LOAN_STATUS[s.status]}</span></div><span class="loan-due-date">${fmtDate(s.day,s.m,s.y)}</span></div>
+  <div class="loan-due-amount"><span>${s.left?'باقی‌مانده این قسط':'پرداخت‌شده این قسط'}</span><b>${money(s.left||s.paid)}</b></div>
+  <details class="ux-more"><summary>جزئیات قسط و پرداخت‌ها</summary>${uxRow('مبلغ کامل قسط',money(s.a))}${uxRow('پرداخت‌شده',money(s.paid))}${uxRow('باقی‌مانده',money(s.left))}
+  ${records.map(({g,allocation})=>`<div class="loan-receipt">${uxRow('تاریخ واقعی پرداخت',fmtDate(g.day,g.m,g.y))}${uxRow('حساب',getAccName(g.accId))}${uxRow('سهم این قسط از پرداخت',money(allocation.a))}<button class="btn btns" data-tx="${esc(g.rows[0].id)}" onclick="openLoanReceipt(this.dataset.tx)">مشاهده رسید و منبع پرداخت</button></div>`).join('')||'<p class="ux-note">پرداختی برای این قسط ثبت نشده است.</p>'}
+  <div class="ux-actions">${s.left>0?`<button class="btn btnp" data-id="${esc(s.id)}" onclick="payScheduleItem(this.dataset.id)">ثبت پرداخت این قسط</button>`:''}<button class="btn btns" data-id="${esc(s.id)}" onclick="editScheduleItem(this.dataset.id)">اصلاح سررسید و مبلغ</button></div></details></article>`;
+}
+function toggleLoanDueSelection(id,checked){
+  const l=ST.loans.find(l=>l.id===scheduleLoanId),s=l&&loanDueItems(l).find(s=>s.id===id);if(!s||s.left<=0)return;
+  if(checked)loanSelectedDues.add(id);else loanSelectedDues.delete(id);updateLoanPaymentBar();
+}
+function updateLoanPaymentBar(){
+  const box=document.getElementById('loan-payment-bar'),l=ST.loans.find(l=>l.id===scheduleLoanId);if(!box||!l)return;
+  const open=loanDueItems(l).filter(s=>s.left>0),selected=open.filter(s=>loanSelectedDues.has(s.id));
+  box.innerHTML=selected.length?`<div class="loan-selected-total"><span>${toFa(selected.length)} قسط انتخاب‌شده</span><b>${money(selected.reduce((n,s)=>n+s.left,0))}</b></div><button class="btn btnp" onclick="beginSelectedLoanPayment()">ادامه ثبت پرداخت</button><p class="ux-note">انتخاب قسط، پرداخت را ثبت نمی‌کند؛ مبلغ، تاریخ و حساب در مرحله بعد تأیید می‌شوند.</p>`:`<button class="btn btnp" onclick="beginSelectedLoanPayment()" ${open.length?'':'disabled'}>ثبت پرداخت قسط</button>${open.length?'<p class="ux-note">برای پرداخت چند قسط، ابتدا آن‌ها را انتخاب کنید.</p>':''}`;
+}
+function beginSelectedLoanPayment(){
+  const l=ST.loans.find(l=>l.id===scheduleLoanId);if(!l)return;const selected=loanDueItems(l).filter(s=>s.left>0&&loanSelectedDues.has(s.id));
+  if(!selected.length){payInstallment(l.id);return;}
+  payInstallment(l.id,false,'',selected[0].id);if(!document.getElementById('loanpaym').classList.contains('on'))return;
+  loanPaymentSelection={loanId:l.id,ids:selected.map(s=>s.id)};document.getElementById('loanpay-amt').value=nf(selected.reduce((n,s)=>n+s.left,0));
+  if(selected.length>1&&!isSimpleLoan(l))document.getElementById('loanpay-int').value='';
+  renderLoanPaymentSelection();loanSplitPreview();
+}
+function renderLoanPaymentSelection(){
+  const box=document.getElementById('loanpay-selection-note');if(!box)return;box.hidden=!loanPaymentSelection;
+  if(!loanPaymentSelection){box.textContent='';return;}
+  const l=ST.loans.find(l=>l.id===loanPaymentSelection.loanId),list=loanDueItems(l,editingInstallment?.id).filter(s=>loanPaymentSelection.ids.includes(s.id));
+  document.getElementById('loanpay-due-wrap').hidden=true;
+  box.textContent='پرداخت فقط برای '+toFa(list.length)+' قسط انتخاب‌شده: '+list.map(s=>fmtDate(s.day,s.m,s.y)).join('، ')+' . مبلغ کمتر، به ترتیب سررسید همین اقساط تخصیص می‌یابد.';
+}
+function manualLoanAllocation(l,amount,excludeGroup=null){
+  if(!loanPaymentSelection)return loanAllocation(l,amount,document.getElementById('loanpay-due').value,document.getElementById('loanpay-multi').checked,excludeGroup);
+  if(loanPaymentSelection.loanId!==l.id)throw Error('انتخاب اقساط با وام پرداخت یکسان نیست');
+  const list=loanDueItems(l,excludeGroup),ids=new Set(loanPaymentSelection.ids);if(!ids.size||[...ids].some(id=>!list.some(s=>s.id===id)))throw Error('قسط انتخابی دیگر در برنامه نیست؛ دوباره انتخاب کنید');
+  let left=amount;const result=[];for(const s of list.filter(s=>ids.has(s.id))){const a=Math.min(left,s.left);if(a>0){result.push({dueId:s.id,a});left-=a;}if(left<=0)break;}
+  if(left>0)throw Error('مبلغ از مانده اقساط انتخاب‌شده بیشتر است؛ انتخاب یا مبلغ را اصلاح کنید');return result;
 }
 
 init();
