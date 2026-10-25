@@ -788,7 +788,7 @@ test('ambiguous transfers are never auto-linked and changing the amount invalida
 });
 test('More uses consistent cards, separate service panels and no duplicate SMS-import action',async t=>{
  const f=setup(t);await f.run('init()');assert.equal(f.w.document.querySelectorAll('#s4 .more-tile').length,8);assert.equal(f.w.document.querySelectorAll('#s4 [onclick="openSms()" ]').length,0);
- f.run("openBridgeStatus('amlak')");assert.equal(f.w.document.querySelectorAll('#bridge-body h3').length,1);assert.equal(f.w.document.querySelector('#bridge-body h3').textContent,'املاک');f.run("openBridgeStatus('sarafi')");assert.equal(f.w.document.querySelector('#bridge-body h3').textContent,'صرافی');f.run('openProtection();rReportOverview()');assert.match(f.w.document.getElementById('protection-body').textContent,/ساخت پشتیبان/);assert.ok(f.w.document.querySelector('.report-hero'));
+ f.run("openBridgeStatus('amlak')");assert.equal(f.w.document.querySelectorAll('#bridge-body h3').length,1);assert.equal(f.w.document.querySelector('#bridge-body h3').textContent,'املاک');f.run("openBridgeStatus('sarafi')");assert.equal(f.w.document.querySelector('#bridge-body h3').textContent,'صرافی');f.run('openProtection();rReportOverview()');assert.match(f.w.document.getElementById('protection-body').textContent,/ساخت پشتیبان/);assert.ok(f.w.document.querySelector('.report-kpis'));
 });
 
 test('loan overview uses known baseline counts but never invents historical payment amounts',async t=>{
@@ -916,4 +916,19 @@ test('category saves show progress, block double submission and expose failure w
  await f.run('saveCat()');assert.equal(f.run('ST.cats.expense.length'),count+1);f.w.failCategory(Error('test failure'));await saving;
  assert.equal(f.run('ST.cats.expense.length'),count);assert.equal(f.w.document.getElementById('cat-save-button').disabled,false);assert.equal(f.w.document.getElementById('catm').classList.contains('on'),true);assert.match(f.w.document.getElementById('cat-save-error').textContent,/ذخیره دسته انجام نشد/);
  f.run(`document.getElementById('cnm').value=''`);await f.run('saveCat()');assert.equal(f.w.document.getElementById('cat-save-error').hidden,false);
+});
+
+test('report month navigation, category bars and both six-month trends follow selected historical period without changing data',async t=>{
+ const f=setup(t);await f.run('init()');f.run(dailyBase+`SY=1404;SM=0;ST.tx=[{id:'report1',tp:'expense',cat:'e2',a:80,accId:'a',day:1,m:0,y:1404},{id:'report2',tp:'expense',cat:'e7',a:20,accId:'a',day:2,m:0,y:1404}];rRep()`);
+ const before=f.run('JSON.stringify(ST)');assert.equal(f.w.document.querySelector('#report-period option:checked').textContent,'فروردین ۱۴۰۴');assert.match(f.w.document.getElementById('report-trend-period').textContent,/آبان ۱۴۰۳ تا فروردین ۱۴۰۴/);
+ assert.match(f.w.document.getElementById('report-categories').textContent,/۸۰٪/);assert.equal(f.w.document.querySelectorAll('#report-overview .report-kpi').length,3);assert.equal(f.w.document.querySelectorAll('#report-cashflow h3').length,1);
+ assert.ok(f.w.document.querySelector('#assetTrend button[onclick="openAssetRows(0,1404)"]'));
+ f.run('shiftReportMonth(-1)');assert.equal(f.run('SM'),11);assert.equal(f.run('SY'),1403);f.run('shiftReportMonth(1)');assert.equal(f.run('JSON.stringify(ST)'),before);
+ f.run("selectReportPeriod('1404_1.5')");assert.equal(f.run('SM'),0);
+ f.run("openReportRows('expense',SM,SY,'e2')");assert.equal(f.run('ledgerEntries(ledgerQuery).length'),1);
+});
+test('report empty comparison avoids fabricated percentages and installment cash drilldown excludes internal transfers',async t=>{
+ const f=setup(t);await f.run('init()');f.run(dailyBase+`SY=1404;SM=2;ST.tx=[];rRep()`);assert.match(f.w.document.getElementById('report-overview').textContent,/داده کافی/);assert.match(f.w.document.getElementById('report-categories').textContent,/ثبت نشده/);
+ f.run(`ST.tx=[{id:'p',tp:'expense',cat:'loan',nature:'loanPrincipal',a:90,loanId:'l',accId:'a',day:1,m:2,y:1404},{id:'i',tp:'expense',cat:'e8',nature:'operating',a:10,loanId:'l',accId:'a',day:1,m:2,y:1404},{id:'tr',tp:'expense',cat:'transfer',isTransfer:true,a:50,accId:'a',day:1,m:2,y:1404}];rRep();openInstallmentCashRows()`);
+ assert.equal(f.run('ledgerEntries(ledgerQuery).length'),2);assert.match(f.w.document.getElementById('ledger-summary').textContent,/۱۰۰ تومان/);assert.equal(f.run('totals(getTx(SM,SY)).e'),10);
 });

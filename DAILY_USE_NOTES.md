@@ -451,3 +451,11 @@ fixture آزمون پس از پایان هر سناریو مراجع DOM را آ
 - Ordinary transaction rows use the current category name as the primary heading and place custom descriptions below it. A description exactly matching a current/historical category alias is omitted from the list only; original transaction descriptions remain unchanged and available in details.
 - Notification timers are replaced so an earlier notification cannot prematurely hide a newer result.
 - The reported user's data was not accessed; alias descriptions reproduce one reason for old names remaining visible. Different category IDs or another device's data still require inspecting an affected example if the symptom persists.
+
+## v24.43 — report redesign
+- Named Persian month selector with previous/next navigation; clearly labels all records in the selected month, with current-month incompleteness noted.
+- Income, expense and surplus/deficit cards drill down to existing transactions. Original accounting classification is preserved.
+- One cashflow section replaces duplicate summaries, adds linked installment outflows, and folds calculation guidance into expandable help. Unknown interest remains explicitly disclosed near the primary figures.
+- Category expenditure uses five ranked horizontal bars, percentages, and expandable remaining categories. Income/expense and balance trends both end in the selected month and handle year boundaries.
+- Comparison uses matched elapsed days for the current month, avoids a percentage with missing comparison data or zero baseline, and labels estimates as based on recorded transactions.
+- 122 functional scenarios plus accounting and renderer checks. No financial data migration. Real iPhone validation remains outstanding; local browser installation failed, so visual rendering was not verified.

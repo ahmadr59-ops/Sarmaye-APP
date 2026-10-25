@@ -367,6 +367,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{fo
 .account-action{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font-size:12px;color:var(--t2);cursor:pointer;font-family:'Vazirmatn',sans-serif;font-weight:700;min-height:40px}
 button:active:not(:disabled){filter:brightness(.9)}button:disabled{cursor:wait}
 #cat-save-feedback{padding:12px;border-radius:12px;background:var(--grl);color:var(--gr);line-height:1.8}
+
+#report-overview{background:transparent;border:0;box-shadow:none;padding:0}.report-period-control{margin:0 0 8px;padding:8px;gap:6px}#report-period{max-width:none;width:100%;text-align:center;appearance:none;-webkit-appearance:none;background:transparent;padding:12px 20px;font-size:18px}.report-month-picker{position:relative;flex:1;min-width:0}.report-month-picker::after{content:'⌄';position:absolute;left:8px;top:12px;color:var(--pr);pointer-events:none}.report-month-nav{width:44px;height:48px;flex-shrink:0;border:0;border-radius:12px;background:var(--prl);color:var(--pr);font-size:24px}.report-period-caption{font-size:12px;color:var(--t2);text-align:center;margin:8px 0 16px;line-height:1.8}.report-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}.report-kpi{border:1px solid var(--border);border-radius:18px;padding:16px 12px;background:var(--card);font:inherit;text-align:right;color:var(--t1);min-width:0}.report-kpi small,.report-kpi strong{display:block}.report-kpi small{font-size:13px;color:var(--t2);margin-bottom:10px}.report-kpi strong{font-size:21px;font-weight:800;overflow-wrap:anywhere}.report-kpi.income strong{color:var(--gr)}.report-kpi.expense strong{color:var(--rd)}.report-kpi.net{grid-column:1/-1;background:var(--prl);display:flex;align-items:center;justify-content:space-between;gap:10px}.report-kpi.net small{margin:0}.report-comparison{padding:12px 0;font-size:13px;line-height:1.9;color:var(--t2)}.report-category{display:block;width:100%;background:none;border:0;text-align:right;font:inherit;color:var(--t1);padding:12px 0}.report-category-head{display:flex;justify-content:space-between;gap:12px;font-size:13px;line-height:1.9}.report-category-head b{flex-shrink:0}.report-category-track{height:7px;background:var(--prl);border-radius:8px;overflow:hidden;margin-top:8px}.report-category-fill{display:block;height:100%;border-radius:8px;background:var(--pr)}.report-category small{color:var(--t2);font-size:11px}.report-guide{font-size:12px;line-height:1.9;color:var(--t2);margin-top:12px}.report-guide summary{cursor:pointer;min-height:36px}.report-section-title{font-size:15px;font-weight:800;margin:0 0 10px}#report-cashflow .ux-section{margin:0;padding:0;border:0}#s3 .bg2{flex:1;min-width:0}#s3 .bar{min-height:0;border:0;min-width:12px;padding:0;cursor:pointer}#s3 .blb{white-space:normal;line-height:1.5!important;height:auto!important}
 </style>
 </head>
 <body>
@@ -528,18 +530,11 @@ button:active:not(:disabled){filter:brightness(.9)}button:disabled{cursor:wait}
 
 <!-- SCREEN 3: Reports -->
 <div class="scr" id="s3">
-  <div class="hdr"><div class="hdr-top"><div style="width:36px;flex-shrink:0"></div><h1>گزارش‌ها</h1><div style="width:36px;flex-shrink:0"></div></div><p class="report-subtitle">تصویر روشن‌تری از پولی که وارد و خارج شده</p></div>
+  <div class="hdr"><div class="hdr-top"><div style="width:36px;flex-shrink:0"></div><h1>گزارش‌ها</h1><div style="width:36px;flex-shrink:0"></div></div><p class="report-subtitle">درآمد، هزینه و روند مالی</p></div>
   <div class="card" id="report-overview"></div>
-  <details class="ux-more" style="margin:0 14px"><summary>نمودارها و روند حساب‌ها</summary>
+  <div class="card" id="report-categories"></div>
   <div class="card">
-    <div class="card-t">توزیع هزینه‌های ماه انتخاب‌شده</div>
-    <div class="dw" style="gap:10px">
-      <svg id="dsv" width="90" height="90" viewBox="0 0 110 110" style="flex-shrink:0"></svg>
-      <div class="dleg" id="dleg" style="flex:1;min-width:0"></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-t">مقایسه ۶ ماه اخیر</div>
+    <div class="card-t">روند درآمد و هزینه</div><p class="ux-note" id="report-trend-period"></p>
     <div class="bc" id="bch"></div>
     <div class="bar-tip" id="barTip" style="display:none"></div>
     <div style="display:flex;gap:14px;margin-top:10px">
@@ -547,7 +542,7 @@ button:active:not(:disabled){filter:brightness(.9)}button:disabled{cursor:wait}
       <span style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--t2);font-weight:600"><span style="width:10px;height:10px;border-radius:3px;background:var(--rd);display:inline-block"></span>هزینه</span>
     </div>
   </div>
-  </details>
+  <div class="card" id="report-cashflow"></div>
   <div class="card" id="budgetCard" style="display:none">
     <div class="card-t" style="display:flex;justify-content:space-between;align-items:center">بودجه ماه انتخاب‌شده
       <button onclick="openBudgetMgr()" style="background:none;border:none;font-size:12px;font-weight:700;color:var(--pr);cursor:pointer;font-family:'Vazirmatn',sans-serif">ویرایش</button>
@@ -560,7 +555,7 @@ button:active:not(:disabled){filter:brightness(.9)}button:disabled{cursor:wait}
     <div id="assetTrend" style="margin-top:10px"></div>
   </div>
   </details>
-  <div class="card"><div class="card-t">خلاصه سالانه</div><div id="ys"></div></div>
+  <details class="ux-more" style="margin:0 14px"><summary>گزارش سالانه</summary><div class="card"><div class="card-t">خلاصه سالانه</div><div id="ys"></div></div></details>
   <div class="card" id="invCard" style="display:none"></div><div class="card" id="investment-flows" hidden></div>
   <div class="card" id="propCard" style="display:none">
     <div class="card-t">سودآوری و بازدهی املاک</div>
@@ -2019,7 +2014,7 @@ const BANK_STYLE={
 };
 // Fixed id for the auto-created savings account (savings modeled as a transfer, not an expense)
 const SAVINGS_ACC_ID='sav_main';
-const APP_VERSION='v24.42';
+const APP_VERSION='v24.43';
 const SCHEMA_VERSION=2;
 const BANK_LOGO={
   'بانک ملی':'bank-meli.png',
@@ -3688,28 +3683,28 @@ function rPropTable(){
 }
 function rRep(){
   rReportOverview();rInvest();rInvestmentFlows();
-  const curTxs=getTx(SM);const{e:curExp}=totals(curTxs);
-  rDonut(curTxs,curExp);
+  renderReportCategories();
   rBudgets();
   rSavingsAndTrend();
   const t=today();
   const last6=[];
   for(let k=5;k>=0;k--){
-    let mm=t.m-1-k, yy=t.y;
+    let mm=SM-k, yy=SY;
     while(mm<0){mm+=12;yy--;}
     last6.push({m:mm,y:yy});
   }
+  document.getElementById('report-trend-period').textContent=reportMonthLabel(last6[0].m,last6[0].y)+' تا '+reportMonthLabel(SM,SY);
   const maxV=Math.max(...last6.map(o=>{const{i:inc,e:exp}=totals(getTx(o.m,o.y));return Math.max(inc,exp,1);}));
   document.getElementById('bch').innerHTML=last6.map((o,pos)=>{
     const mi=o.m;
     const{i:inc,e:exp}=totals(getTx(o.m,o.y));
     const hi=Math.round((inc/maxV)*102),he=Math.round((exp/maxV)*102);
     const delay=(pos*0.06).toFixed(2);
-    const lbl=o.y!==t.y?fmtMonthYear(mi,o.y):toFa(pad2(mi+1));
+    const lbl=MFA[mi]+(o.y!==SY?' '+toFa(o.y):'');
     return `<div class="bg2">
       <div class="bc2">
-        <div class="bar" style="height:${hi}px;background:linear-gradient(180deg,#2ECC71,#1A8A4A);animation-delay:${delay}s" onclick="openReportRows('income',${mi},${o.y})"></div>
-        <div class="bar" style="height:${he}px;background:linear-gradient(180deg,#FF6B6B,#C0392B);animation-delay:${delay}s" onclick="openReportRows('expense',${mi},${o.y})"></div>
+        <button type="button" aria-label="درآمد ${reportMonthLabel(mi,o.y)}: ${money(inc)}" class="bar" style="height:${hi}px;background:linear-gradient(180deg,#2ECC71,#1A8A4A);animation-delay:${delay}s" onclick="openReportRows('income',${mi},${o.y})"></button>
+        <button type="button" aria-label="هزینه ${reportMonthLabel(mi,o.y)}: ${money(exp)}" class="bar" style="height:${he}px;background:linear-gradient(180deg,#FF6B6B,#C0392B);animation-delay:${delay}s" onclick="openReportRows('expense',${mi},${o.y})"></button>
       </div>
       <div class="blb" style="font-size:12px;height:16px;line-height:1">${lbl}</div>
     </div>`;
@@ -3746,7 +3741,7 @@ function rSavingsAndTrend(){
   const t=today();
   const pts=[];
   for(let k=5;k>=0;k--){
-    let mm=t.m-1-k,yy=t.y;
+    let mm=SM-k,yy=SY;
     while(mm<0){mm+=12;yy--;}
     pts.push({m:mm,y:yy,v:assetsAt(mm,yy)});
   }
@@ -3762,7 +3757,7 @@ function rSavingsAndTrend(){
   const line=xy.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' ');
   const area=line+` L${xy[5].x.toFixed(1)} ${H-2} L${xy[0].x.toFixed(1)} ${H-2} Z`;
   trBox.innerHTML=`
-    <div style="font-size:12.5px;font-weight:700;color:var(--t2);margin-bottom:6px">روند موجودی حساب‌ها (۶ ماه اخیر)</div>
+    <div style="font-size:12.5px;font-weight:700;color:var(--t2);margin-bottom:6px">روند موجودی تا ماه انتخاب‌شده</div>
     <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" preserveAspectRatio="none">
       <path d="${area}" fill="var(--prl)" opacity=".8"/>
       <path d="${line}" fill="none" stroke="var(--pr)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -3772,7 +3767,7 @@ function rSavingsAndTrend(){
       ${pts.map(p=>`<button class="qchip" style="padding:2px 5px" onclick="openAssetRows(${p.m},${p.y})" aria-label="موجودی پایان ${fmtMonthYear(p.m,p.y)}">${toFa(pad2(p.m+1))}</button>`).join('')}
     </div>
     <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--t2);margin-top:5px">
-      <span>${nf(pts[0].v)} ت</span><span>اکنون: ${nf(pts[5].v)} ت</span>
+      <span>${nf(pts[0].v)} ت</span><span>${reportMonthLabel(SM,SY)}: ${nf(pts[5].v)} ت</span>
     </div>`;
 }
 function showBarTip(ev,label,inc,exp){
@@ -6707,6 +6702,7 @@ function renderFilterSummary(){
 function ledgerEntries(q){
   const accountIds=new Set((ST.accounts||[]).map(a=>a.id));
   return sortByDate(ST.tx.filter(t=>{
+    if(q.mode==='installmentCash')return cashFlowEntry(t,q.m,q.y)&&t.tp==='expense'&&!!t.loanId;
     if(q.mode==='cashflow')return cashFlowEntry(t,q.m,q.y)&&(!q.tp||t.tp===q.tp);
     if(q.mode==='account')return t.accId===q.id;
     if(q.mode==='assets')return accountIds.has(t.accId)&&t.y*12+t.m<=q.y*12+q.m;
@@ -6728,11 +6724,11 @@ function openInvestmentRows(id,nature=''){ledgerQuery={mode:'investment',id,natu
 function renderLedger(){
   if(!ledgerQuery)return;const q=ledgerQuery,rows=ledgerEntries(q);
   const sum=rows.reduce((n,t)=>n+signedAmount(t),0);
-  const title=q.mode==='cashflow'?'گردش وجوه حساب‌ها · '+fmtMonthYear(q.m,q.y):q.mode==='loanUnsplit'?'اقساط بدون تفکیک اصل و سود · '+fmtMonthYear(q.m,q.y):q.mode==='account'?'گردش '+getAccName(q.id):q.mode==='investment'?'ثبت‌های '+getAccName(q.id):q.mode==='assets'?'موجودی ثبت‌شده تا '+fmtMonthYear(q.m,q.y):
+  const title=q.mode==='installmentCash'?'پرداخت اقساط · '+reportMonthLabel(q.m,q.y):q.mode==='cashflow'?'گردش وجوه حساب‌ها · '+fmtMonthYear(q.m,q.y):q.mode==='loanUnsplit'?'اقساط بدون تفکیک اصل و سود · '+fmtMonthYear(q.m,q.y):q.mode==='account'?'گردش '+getAccName(q.id):q.mode==='investment'?'ثبت‌های '+getAccName(q.id):q.mode==='assets'?'موجودی ثبت‌شده تا '+fmtMonthYear(q.m,q.y):
     (q.cat?getCat(q.tp,q.cat).n:q.tp==='income'?'درآمد':q.tp==='expense'?'هزینه':'درآمد و هزینه')+' · '+(q.m===null?toFa(q.y):fmtMonthYear(q.m,q.y));
   document.getElementById('ledger-title').textContent=title;
   const init=q.mode==='account'?(ST.accounts.find(a=>a.id===q.id)?.initBalance||0):q.mode==='assets'?(ST.accounts||[]).reduce((n,a)=>n+(a.initBalance||0),0):0;
-  const displayed=q.mode==='loanUnsplit'||(q.mode==='report'||q.mode==='cashflow')&&q.tp==='expense'?-sum:sum+init;
+  const displayed=q.mode==='installmentCash'||q.mode==='loanUnsplit'||(q.mode==='report'||q.mode==='cashflow')&&q.tp==='expense'?-sum:sum+init;
   document.getElementById('ledger-summary').textContent=money(displayed)+' · '+toFa(rows.length)+' ثبت'+(q.throughDay?' · تا روز '+toFa(q.throughDay):'')+(q.mode==='account'?' · شامل موجودی اولیه و تعدیل ارزش':'');
   const old=TX_UNIFIED;TX_UNIFIED=false;
   document.getElementById('ledger-list').innerHTML=rows.length?rows.slice(0,ledgerLimit).map(txHtml).join(''):'<p class="ux-note">ثبتی در این محدوده وجود ندارد.</p>';
@@ -6770,22 +6766,34 @@ function monthComparison(m,y){
   const previous=getTx(prev.m,prev.y).filter(t=>!day||t.day<=Math.min(day,jMaxDay(prev.m,prev.y)));
   return {prev,day,current:totals(current),previous:totals(previous)};
 }
-function selectReportPeriod(value){const parts=value.split('_').map(Number);if(parts.length!==2||!Number.isInteger(parts[0])||parts[1]<0||parts[1]>11)return;SY=parts[0];SM=parts[1];rRep();}
+function selectReportPeriod(value){const parts=value.split('_').map(Number);if(parts.length!==2||!Number.isInteger(parts[0])||parts[0]<1300||parts[0]>=1500||!Number.isInteger(parts[1])||parts[1]<0||parts[1]>11)return;SY=parts[0];SM=parts[1];rRep();}
+function reportMonthLabel(m,y){return MFA[m]+' '+toFa(y);}
+function shiftReportMonth(delta){const p=SY*12+SM+delta;if(p<1300*12||p>=1500*12)return;selectReportPeriod(Math.floor(p/12)+'_'+p%12);}
+function reportComparisonText(){
+ const c=monthComparison(SM,SY),diff=c.current.e-c.previous.e;
+ const previous=getTx(c.prev.m,c.prev.y).filter(t=>isPnL(t)&&(!c.day||t.day<=Math.min(c.day,jMaxDay(c.prev.m,c.prev.y))));
+ const current=getTx(SM,SY).filter(t=>isPnL(t)&&(!c.day||t.day<=c.day));
+ if(!previous.length||!current.length)return 'داده کافی برای مقایسه با ماه قبل ثبت نشده است.';
+ const base=c.day?'نسبت به '+toFa(c.day)+' روز نخست ماه قبل':'نسبت به ماه قبل';
+ if(!diff)return 'هزینه‌ها بدون تغییر '+base;
+ if(c.previous.e<=0)return money(Math.abs(diff))+' '+(diff>0?'افزایش':'کاهش')+' هزینه '+base;
+ return (Math.abs(diff)/c.previous.e*100<1?'کمتر از '+toFa(1):toFa(Math.round(Math.abs(diff)/c.previous.e*100)))+'٪ '+(diff>0?'افزایش':'کاهش')+' هزینه '+base+'؛ بر اساس ثبت‌های موجود';
+}
 function rReportOverview(){
-  const el=document.getElementById('report-overview');if(!el)return;
-  const cur=totals(getTx(SM,SY)),cmp=monthComparison(SM,SY),diff=cmp.current.e-cmp.previous.e;
-  const categories={};getTx(SM,SY).filter(t=>isPnL(t)&&t.tp==='expense').forEach(t=>categories[t.cat]=(categories[t.cat]||0)+t.a);
-  const top=Object.entries(categories).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  const periods=new Set([SY*12+SM]);const now=today();for(let i=0;i<24;i++)periods.add(now.y*12+now.m-1-i);ST.tx.forEach(t=>periods.add((t.y||SY)*12+t.m));
-  el.innerHTML=`<div class="report-period-control"><label for="report-period">دوره گزارش</label><select id="report-period" onchange="selectReportPeriod(this.value)">${[...periods].sort((a,b)=>b-a).map(p=>`<option value="${Math.floor(p/12)}_${p%12}" ${p===SY*12+SM?'selected':''}>${fmtMonthYear(p%12,Math.floor(p/12))}</option>`).join('')}</select></div><div class="card-t">خلاصه درآمد و هزینه</div>
-    <button class="ux-link ux-row" onclick="openReportRows('expense')"><span>هزینه‌های ثبت‌شده</span><b>${money(cur.e)} ←</b></button>
-    <button class="ux-link ux-row" onclick="openReportRows('income')"><span>درآمد ثبت‌شده</span><b>${money(cur.i)} ←</b></button>
-    <button class="ux-link ux-row" onclick="openReportRows('all')"><span>مازاد درآمد بر هزینه</span><b>${money(cur.b)} ←</b></button>
-    <p class="ux-note">${diff===0?'هزینه بدون تغییر':money(Math.abs(diff))+(diff>0?' هزینه بیشتر':' هزینه کمتر')} نسبت به ${fmtMonthYear(cmp.prev.m,cmp.prev.y)}${cmp.day?'؛ مقایسه تا روز '+toFa(cmp.day)+' هر دو ماه':'؛ مقایسه کل ماه‌ها'}.</p>
-    <div class="ux-note">${top.length?'بیشترین هزینه‌ها:':'هنوز هزینه‌ای ثبت نشده است.'}</div>
-    ${top.map(([id,a])=>`<button class="ux-link ux-row" data-cat="${esc(id)}" onclick="openReportRows('expense',SM,SY,this.dataset.cat)"><span>${esc(getCat('expense',id).n)}</span><b>${money(a)} ←</b></button>`).join('')}`;
-  const flow=cashFlowSummary();el.insertAdjacentHTML('beforeend',`<div class="report-hero"><span>${fmtMonthYear(SM,SY)}</span><h2>گردش حساب‌ها</h2><div class="report-hero-grid"><button onclick="openCashFlowRows('income')"><small>ورودی حساب‌ها</small><b>${money(flow.incoming)}</b></button><button onclick="openCashFlowRows('expense')"><small>خروجی حساب‌ها</small><b>${money(flow.outgoing)}</b></button></div><p>شامل وام و اقساط؛ بدون انتقال بین حساب‌های خودتان.</p></div>`);
-  renderUnsplitLoanReport(el);renderCashFlowReport(el);
+ const el=document.getElementById('report-overview');if(!el)return;
+ const cur=totals(getTx(SM,SY)),now=today(),periods=new Set([SY*12+SM]);for(let i=0;i<24;i++)periods.add(now.y*12+now.m-1-i);ST.tx.forEach(t=>periods.add((t.y||SY)*12+t.m));
+ el.innerHTML=`<div class="report-period-control"><button class="report-month-nav" aria-label="ماه قبل" onclick="shiftReportMonth(-1)">‹</button><div class="report-month-picker"><select id="report-period" aria-label="دوره گزارش" onchange="selectReportPeriod(this.value)">${[...periods].sort((a,b)=>b-a).map(p=>`<option value="${Math.floor(p/12)}_${p%12}" ${p===SY*12+SM?'selected':''}>${reportMonthLabel(p%12,Math.floor(p/12))}</option>`).join('')}</select></div><button class="report-month-nav" aria-label="ماه بعد" onclick="shiftReportMonth(1)">›</button></div>
+ <div class="report-period-caption">تمام ثبت‌های این ماه · مبالغ به تومان${SY===now.y&&SM===now.m-1?' · ماه جاری هنوز کامل نشده':''}</div>
+ <div class="report-kpis report-hero-summary"><button class="report-kpi income" onclick="openReportRows('income')"><small>درآمد</small><strong>${nf(cur.i)}</strong></button><button class="report-kpi expense" onclick="openReportRows('expense')"><small>هزینه</small><strong>${nf(cur.e)}</strong></button><button class="report-kpi net" onclick="openReportRows('all')"><small>${cur.b<0?'کسری درآمد نسبت به هزینه':'مازاد درآمد نسبت به هزینه'}</small><strong>${nf(Math.abs(cur.b))}</strong></button></div>
+ <div class="report-comparison">${reportComparisonText()}</div>`;
+ renderUnsplitLoanReport(el);
+ const flow=document.getElementById('report-cashflow');flow.innerHTML='';renderCashFlowReport(flow);
+}
+function renderReportCategories(){
+ const el=document.getElementById('report-categories');if(!el)return;const sums={};getTx(SM,SY).filter(t=>isPnL(t)&&t.tp==='expense').forEach(t=>sums[t.cat]=(sums[t.cat]||0)+t.a);
+ const rows=Object.entries(sums).sort((a,b)=>b[1]-a[1]),total=rows.reduce((n,r)=>n+r[1],0);
+ const render=([id,a])=>`<button class="report-category" data-cat="${esc(id)}" onclick="openReportRows('expense',SM,SY,this.dataset.cat)"><span class="report-category-head"><span>${esc(getCat('expense',id).n)}</span><b>${nf(a)}</b></span><span class="report-category-track"><span class="report-category-fill" style="width:${total?Math.min(100,a/total*100):0}%"></span></span><small>${total?toFa(Math.round(a/total*100)):toFa(0)}٪ از هزینه‌ها</small></button>`;
+ el.innerHTML='<h2 class="report-section-title">هزینه‌ها به تفکیک دسته</h2>'+(!rows.length?'<p class="ux-note">هزینه‌ای در این ماه ثبت نشده است.</p>':rows.slice(0,5).map(render).join('')+(rows.length>5?'<details class="report-guide"><summary>مشاهده همه دسته‌ها</summary>'+rows.slice(5).map(render).join('')+'</details>':''));
 }
 function rHomeSummary(){
   const el=document.getElementById('home-month-net'),unsplit=getTx(SM,SY).filter(t=>natureOf(t)==='loanUnsplit').reduce((n,t)=>n+t.a,0);if(el)el.textContent='ماه انتخاب‌شده '+fmtMonthYear(SM,SY)+' · مازاد درآمد بر هزینه: '+money(totals(getTx(SM,SY)).b)+(unsplit?' · اقساط بدون تفکیک: '+money(unsplit)+'؛ در هزینه بالا نیست':'');
@@ -7314,7 +7322,7 @@ async function saveSimpleLoan(){
 }
 function renderUnsplitLoanReport(el){
   const sum=getTx(SM,SY).filter(t=>natureOf(t)==='loanUnsplit').reduce((n,t)=>n+t.a,0);if(!sum)return;
-  el.insertAdjacentHTML('beforeend',`<div class="ux-section"><button class="ux-link ux-row" onclick="openUnsplitLoanRows()"><span>پرداخت اقساط بدون تفکیک اصل و سود</span><b>${money(sum)} ←</b></button><p class="ux-note">این مبلغ از حساب کم شده، اما در هزینه و مازاد بالا نیست؛ به علت نامشخص‌بودن سهم سود، گزارش هزینه کامل نیست.</p></div>`);
+  el.insertAdjacentHTML('beforeend',`<div class="ux-section"><button class="ux-link ux-row" onclick="openUnsplitLoanRows()"><span>اقساط با سود نامشخص</span><b>${money(sum)} ←</b></button><p class="ux-note">سود این اقساط مشخص نشده؛ هزینه و مازاد بالا کامل نیست. کل مبلغ در خروجی حساب‌ها محاسبه شده است.</p></div>`);
 }
 function openUnsplitLoanRows(){ledgerQuery={mode:'loanUnsplit',m:SM,y:SY};ledgerLimit=80;renderLedger();}
 
@@ -7330,12 +7338,14 @@ function cashFlowSummary(m=SM,y=SY){
   return {incoming,outgoing,net:incoming-outgoing};
 }
 function openCashFlowRows(tp){ledgerQuery={mode:'cashflow',tp,m:SM,y:SY};ledgerLimit=80;renderLedger();}
+function openInstallmentCashRows(){ledgerQuery={mode:'installmentCash',m:SM,y:SY};ledgerLimit=80;renderLedger();}
 function renderCashFlowReport(el){
-  const f=cashFlowSummary();el.insertAdjacentHTML('beforeend',`<div class="ux-section"><h3>ورود و خروج پول</h3>
+  const installments=ST.tx.filter(t=>cashFlowEntry(t,SM,SY)&&t.tp==='expense'&&t.loanId).reduce((n,t)=>n+t.a,0);
+  const f=cashFlowSummary();el.insertAdjacentHTML('beforeend',`<div class="ux-section"><h3>گردش حساب‌ها</h3>
     <button class="ux-link ux-row" onclick="openCashFlowRows('income')"><span>ورودی حساب‌ها</span><b>${money(f.incoming)} ←</b></button>
-    <button class="ux-link ux-row" onclick="openCashFlowRows('expense')"><span>خروجی حساب‌ها، شامل اقساط</span><b>${money(f.outgoing)} ←</b></button>
+    <button class="ux-link ux-row" onclick="openCashFlowRows('expense')"><span>خروجی حساب‌ها</span><b>${money(f.outgoing)} ←</b></button>
     <button class="ux-link ux-row" onclick="openCashFlowRows('')"><span>خالص گردش وجوه</span><b>${money(f.net)} ←</b></button>
-    <p class="ux-note">بر اساس تاریخ واقعی تراکنش‌های دارای حساب؛ دریافت و بازپرداخت وام و ودیعه را شامل می‌شود. انتقال بین حساب‌ها، موجودی اولیه و تغییر ارزش دارایی در این جمع نیست. این عدد موجودی قابل‌خرج یا سود نیست؛ برای تطبیق کامل موجودی، گردش هر حساب را ببینید.</p></div>`);
+    <button class="ux-link ux-row" onclick="openInstallmentCashRows()"><span>از این خروجی: پرداخت اقساط</span><b>${money(installments)} ←</b></button><details class="report-guide"><summary>راهنمای محاسبه گردش حساب‌ها</summary><p>بر اساس تاریخ واقعی تراکنش‌های دارای حساب؛ دریافت و بازپرداخت وام و ودیعه را شامل می‌شود. انتقال بین حساب‌ها، موجودی اولیه و تغییر ارزش دارایی در این جمع نیست. این عدد موجودی قابل‌خرج یا سود نیست؛ برای تطبیق کامل موجودی، گردش هر حساب را ببینید.</p></details></div>`);
 }
 
 
