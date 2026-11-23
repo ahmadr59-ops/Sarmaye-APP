@@ -459,3 +459,11 @@ fixture آزمون پس از پایان هر سناریو مراجع DOM را آ
 - Category expenditure uses five ranked horizontal bars, percentages, and expandable remaining categories. Income/expense and balance trends both end in the selected month and handle year boundaries.
 - Comparison uses matched elapsed days for the current month, avoids a percentage with missing comparison data or zero baseline, and labels estimates as based on recorded transactions.
 - 122 functional scenarios plus accounting and renderer checks. No financial data migration. Real iPhone validation remains outstanding; local browser installation failed, so visual rendering was not verified.
+
+## v24.44 — انتقال بین حساب‌ها
+
+- در صندوق پیامک، رسید دوم به انتقال موجود وصل می‌شود. برای چند تطبیق، انتخاب کاربر الزامی است. دو رسید از جزئیات همان انتقال در دسترس‌اند.
+- کارمزد اختیاری از مبدأ کم و فقط همان مبلغ هزینه محسوب می‌شود. برای پیامک برداشت، «کارمزد داخل مبلغ برداشت» را فقط وقتی وارد کنید که مبلغ پیامک شامل کارمزد است.
+- ورود صورت‌حساب سوابق نامنطبق را پیش‌فرض نگه می‌دارد. در تطبیق مبهم یا متفاوت با انتقال موجود، ورود متوقف می‌شود. انتقال قدیمی فاقد شناسه پیش از اصلاح یا حذف به تأیید ثبت مقابل نیاز دارد.
+- برداشت و واریز در گردش حساب از هزینه و درآمد در نمای کلی جدا هستند. در مقایسهٔ بانکی، گردش همان روز قابل مشاهده است؛ ماندهٔ اولیه از روی یک مغایرت تغییر نمی‌کند.
+- تا قبل از ارسال به صرافی، ویرایش یا حذف انتقال روی صف هم اثر دارد. پس از ارسال، اصلاح سمت صرافی جداگانه است. ثبت قدیمیِ بدون مبدأ ارسال نمی‌شود.

@@ -932,3 +932,59 @@ test('report empty comparison avoids fabricated percentages and installment cash
  f.run(`ST.tx=[{id:'p',tp:'expense',cat:'loan',nature:'loanPrincipal',a:90,loanId:'l',accId:'a',day:1,m:2,y:1404},{id:'i',tp:'expense',cat:'e8',nature:'operating',a:10,loanId:'l',accId:'a',day:1,m:2,y:1404},{id:'tr',tp:'expense',cat:'transfer',isTransfer:true,a:50,accId:'a',day:1,m:2,y:1404}];rRep();openInstallmentCashRows()`);
  assert.equal(f.run('ledgerEntries(ledgerQuery).length'),2);assert.match(f.w.document.getElementById('ledger-summary').textContent,/۱۰۰ تومان/);assert.equal(f.run('totals(getTx(SM,SY)).e'),10);
 });
+
+const pair44=`ST.accounts=['a','b','c','d'].map(id=>({id,bank:id,initBalance:0}));ST.tx=[];
+const row=(id,accId,tp,tid,a=100)=>({id,accId,tp,a,day:5,m:1,y:1405,isTransfer:true,cat:'transfer',...(tid?{transferId:tid}:{})});
+ST.tx=[row('out','a','expense','pair'),row('in','b','income','pair')];`;
+const statement44=`STI={pkg:{acctNo:'fixture',period:{from:{y:1405,m:1,d:1},to:{y:1405,m:1,d:5}},opening:{y:1405,m:1,d:1,a:1000},closing:900,accounts:{dest:{bank:'b'}},rows:[{n:1,date:{y:1405,m:1,d:5},dir:'out',a:100,nature:'ignore'}]},mainId:'a',choice:{},keepOrphan:{},fix:true};`;
+test('statement ignore, re-import and wrong destination preserve both accounts; gross withdrawal includes the existing fee',async t=>{
+ const f=setup(t);await f.run('init()');f.run(pair44+statement44);
+ await f.run('stmtCommit()');await f.run('stmtCommit()');
+ assert.deepEqual(copy(f.run("[calcAccBalance('a'),calcAccBalance('b'),ST.tx.filter(internalLeg).length]")),[900,100,2]);
+ f.run("STI.pkg.rows[0].nature='transfer';STI.pkg.rows[0].other='dest';STI.pkg.accounts.dest.bank='c'");
+ assert.equal(f.run('stmtBuild().S'),null);
+ f.run("STI.pkg.accounts.dest.bank='b';writeFee('pair',5,'a',5,1,1405);STI.pkg.rows[0].a=105;STI.pkg.closing=895");
+ await f.run('stmtCommit()');await f.run('stmtCommit()');
+ assert.deepEqual(copy(f.run("[calcAccBalance('a'),calcAccBalance('b'),totals(ST.tx.filter(t=>!t.isOpening)).e,ST.tx.filter(internalLeg).length]")),[895,100,5,2]);
+});
+test('ambiguous legacy legs cannot be deleted or edited until a specific counterpart is confirmed',async t=>{
+ const f=setup(t);await f.run('init()');f.run(pair44+"ST.tx=[row('out','a','expense'),row('wrong','d','income'),row('other','c','expense'),row('right','b','income')];openTransfer('out');");
+ assert.equal(f.run('findTransferPair(ST.tx[0])'),null);assert.equal(f.w.document.getElementById('dtransb').disabled,true);
+ await f.run('delTransfer()');assert.equal(f.run('ST.tx.length'),4);
+ f.run("document.querySelector('#trans-pair-choice').value='right'");await f.run("document.querySelector('#trans-repair button').onclick()");
+ assert.equal(f.run('findTransferPair(ST.tx[0]).id'),'right');await f.run('delTransfer()');
+ assert.deepEqual(copy(f.run('ST.tx.map(t=>t.id)')),['wrong','other']);
+});
+test('quick transfer charges just the fee; edit updates queued exchange amount and delete cancels dispatch',async t=>{
+ const f=setup(t);await f.run('init()');f.run(pair44+`ST.tx=[];openQuick();qaTp('transfer');const put=(id,v)=>document.getElementById(id).value=v;
+ put('qa-from','a');put('qa-to','b');put('qa-amt','1000');put('qa-fee','۵');`);
+ await f.run('Promise.all([qaSave(),qaSave()])');assert.deepEqual(copy(f.run("[calcAccBalance('a'),calcAccBalance('b'),totals(ST.tx).e]")),[-1005,1000,5]);
+ f.run("const debit=ST.tx.find(t=>internalLeg(t)&&t.tp==='expense');ST.sarafiOutbox=[{id:'q',sourceTxId:debit.id,a:1000}];openTransfer(debit.id);put('trans-from','a');put('trans-to','b');put('trans-fee','7');put('trans-amt','1500')");
+ await f.run('doTransfer()');assert.deepEqual(copy(f.run("[calcAccBalance('a'),calcAccBalance('b'),totals(ST.tx).e,ST.sarafiOutbox[0].a]")),[-1507,1500,7,1500]);
+ f.run('sarafiFlushing=true');await f.run('delTransfer()');assert.equal(f.run('ST.tx.length'),3);f.run('sarafiFlushing=false');await f.run('delTransfer()');
+ assert.deepEqual(copy(f.run('[ST.tx.length,ST.sarafiOutbox.length]')),[0,0]);
+});
+test('gross SMS attaches to a funded transfer only on user confirmation; second receipt does not create income',async t=>{
+ const f=setup(t);await f.run('init()');f.run(pair44+`writeFee('pair',5,'a',5,1,1405);ST.smsKeys={ka:'a',kb:'b'};ST.smsQueue=[['ka',105,'expense'],['kb',100,'income']].map(([key,a,tp],i)=>({id:'q'+i,hash:'h'+i,raw:'receipt '+i,p:{keys:[key],a,tp,d:{y:1405,m:1,d:5}}}));smsqIdx=0;openSmsQueue()`);
+ assert.equal(f.w.document.getElementById('smsq-transfer-existing').value,'out');assert.match(f.w.document.querySelector('#smsq-savebar button').textContent,/اتصال/);
+ assert.equal(f.run('ST.tx.filter(t=>t.src).length'),0);await f.run('smsqSave()');await f.run('smsqSave()');
+ assert.deepEqual(copy(f.run("[ST.smsQueue.length,ST.tx.length,calcAccBalance('a'),calcAccBalance('b'),totals(ST.tx).i,totals(ST.tx).e]")),[0,3,-105,100,0,5]);
+ f.run("openTxDetails('out')");const detail=f.w.document.getElementById('txdetail-body').textContent;assert.match(detail,/receipt 0/);assert.match(detail,/receipt 1/);
+});
+test('mixed-day bank snapshot shows uncertainty and opens only the corresponding account and day',async t=>{
+ const f=setup(t);await f.run('init()');f.run(pair44+`ST.tx.push({id:'a2',tp:'expense',accId:'a',a:30,day:5,m:1,y:1405},{id:'a3',tp:'income',accId:'a',a:1000,day:4,m:1,y:1405});ST.bankBal={a:{d:{y:1405,m:1,d:5},bal:900,delta:-100}};openBalIssues()`);
+ assert.match(f.w.document.getElementById('balm-body').textContent,/ترتیب نامشخص/);assert.doesNotMatch(f.w.document.getElementById('balm-body').textContent,/اصلاح موجودی اولیه/);
+ f.run("openBankDay('a')");assert.deepEqual(copy(f.run("ledgerEntries(ledgerQuery).map(t=>t.id).sort()")),['a2','out']);
+});
+test('transfer filter and account inflows differ from P&L: principal is only a cash outflow',async t=>{
+ const f=setup(t);await f.run('init()');f.run(pair44+"ST.tx.push({id:'prin',tp:'expense',a:25,accId:'a',nature:'loanPrincipal',dsc:'principal-only',y:1405,m:1,day:5});setTxFilter('expense')");
+ assert.doesNotMatch(f.w.document.getElementById('txl').textContent,/principal-only/);
+ f.run("setTxAccFilter('a')");assert.equal(f.w.document.querySelectorAll('#txl .txi').length,2);
+ f.run("setTxAccFilter('');setTxFilter('transfer')");assert.equal(f.w.document.querySelectorAll('#txl .txi').length,1);
+});
+test('old pending exchange instructions with a missing source stay unsent; a new gross SMS can post its net and fee separately',async t=>{
+ const f=setup(t);await f.run('init()');f.run(pair44+"ST.tx=[];ST.sarafiOutbox=[{id:'orphan',sourceTxId:'missing',kind:'pay',a:100}];ghOn=()=>true;let calls=0;ghInboxUpdate=async()=>{calls++;return true;}");
+ assert.equal(await f.run('sendSarafiOutbox()'),0);assert.equal(f.run('calls'),0);
+ f.run("ghOn=()=>false;ST.smsKeys={ka:'a'};ST.smsQueue=[{id:'q',hash:'h',raw:'gross',p:{keys:['ka'],a:105,tp:'expense',d:{y:1405,m:1,d:5}}}];smsqIdx=0;openSmsQueue();smsqSetTp('transfer');document.getElementById('smsq-acc2').value='b';document.getElementById('smsq-fee').value='5'");await f.run('smsqSave()');
+ assert.deepEqual(copy(f.run("[calcAccBalance('a'),calcAccBalance('b'),totals(ST.tx).e,ST.smsQueue.length]")),[-105,100,5,0]);
+});
